@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2023",
+    "jsx": "react-jsx",
+    "resolveJsonModule": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": [

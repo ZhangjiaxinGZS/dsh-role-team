@@ -305,12 +305,20 @@ it('keeps training proposals reviewable and routes temporary requirements only t
     expect(
       await service.confirmProposal({ trainingId: training.trainingId, proposalId: p.id }),
     ).toMatchObject({ ok: true })
+  await tool(id, 'propose_role_memory', { title: 'Rejected', body: 'unapproved-habit' })
+  const last = (await service.getTraining({ trainingId: training.trainingId })).proposals!.at(-1)!
+  const review = { trainingId: training.trainingId, proposalId: last.id }
+  await service.rejectProposal(review)
+  await expect(service.confirmProposal(review)).rejects.toThrow(/unavailable/)
+  expect((await service.readDocument({ roleId, memoryId: last.memoryId }))?.text).toContain(
+    'status: draft',
+  )
   const fresh = await newTeam('C')
   await prompt(fresh.run.rootSessionId, 'test')
   const content = JSON.stringify(request(fresh.run.rootSessionId).messages)
   expect(content).toContain('confirmed-rule')
   expect(content).toContain('confirmed-habit')
-  expect(content).not.toMatch(/private raw coaching|alpha task only/)
+  expect(content).not.toMatch(/private raw coaching|alpha task only|unapproved-habit/)
   expect(await service.listNotes({ runId: b.run.runId })).toEqual([])
   expect(await service.listNotes({ runId: a.run.runId })).toMatchObject([{ content: 'alpha task only' }])
 })

@@ -38,7 +38,14 @@
     "client": {
       "platform": "web",
       "immediately": true,
-      "inject": []
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-locale"
+      ]
     }
   },
   "files": [
@@ -77,9 +84,20 @@
     "@deepseek-ai/dsh-agent-team": "0.2.2-rc.5",
     "@deepseek-ai/dsh-api-gateway": "0.2.2-rc.5",
     "@deepseek-ai/dsh-api-remote-access": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-api-remotes": "0.2.2-rc.5",
     "@deepseek-ai/dsh-api-session-controller": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-api-settings-controller": "0.2.2-rc.5",
     "@deepseek-ai/dsh-attachment-local": "0.2.2-rc.5",
     "@deepseek-ai/dsh-client-connection": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-locale": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-store": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-ui-conversation": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-ui-layout": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-ui-session": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-ui-settings": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-ui-sidebar": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.2-rc.5",
     "@deepseek-ai/dsh-session-persistence-jsonl": "0.2.2-rc.5",
     "@deepseek-ai/dsh-session-reference": "0.2.2-rc.5",
     "@deepseek-ai/dsh-storage": "0.2.2-rc.5",
@@ -90,8 +108,14 @@
     "@deepseek-ai/dsh-tool-subagent-control": "0.2.2-rc.5",
     "@deepseek-ai/dsh-typert-loader": "0.2.2-rc.5",
     "@deepseek-ai/dsh-typert-registry": "0.2.2-rc.5",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^24.10.0",
     "@types/proper-lockfile": "^4.1.4",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "jsdom": "^26.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tsdown": "0.16.3",
     "typescript": "5.9.3",
     "vitest": "4.0.18"

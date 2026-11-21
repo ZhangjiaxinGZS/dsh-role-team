@@ -1,5 +1,6 @@
 import { defineConfig } from 'tsdown'
 import ts from 'typescript'
+import { fileURLToPath } from 'node:url'
 
 export default defineConfig([
   {
@@ -32,7 +33,16 @@ export default defineConfig([
     platform: 'browser',
     dts: false,
     clean: false,
-    external: ['react', 'react-dom', 'react/jsx-runtime'],
+    external: ['react', 'react-dom', 'react/jsx-runtime', 'zod'],
+    noExternal: [/^yaml/, /^@deepseek-ai\/dsh-typert-protocol/],
+    inputOptions: {
+      moduleTypes: { '.css': 'text' },
+      resolve: {
+        alias: {
+          yaml: fileURLToPath(new URL('./browser/index.js', import.meta.resolve('yaml/package.json'))),
+        },
+      },
+    },
     outExtensions: () => ({ js: '.js' }),
     outputOptions: {
       banner:

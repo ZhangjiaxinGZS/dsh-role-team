@@ -1,4 +1,4 @@
-import { Service, type Context } from '@deepseek-ai/cordis'
+import { Service, type Context, type Volatile } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import schema from '@deepseek-ai/schemastery'
 import { TeamRuntime } from './team-runtime/index.js'
@@ -9,7 +9,7 @@ import { repository, teamDomain } from './storage/index.js'
 import type { DeleteRequest, EditRequest, FileRef, RoleTeamRpc } from '../shared/index.js'
 
 export interface Config {
-  roleStoreDir: string
+  roleStoreDir: Volatile<string>
 }
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -19,10 +19,14 @@ declare module '@deepseek-ai/cordis' {
 
 export default class RoleTeamService extends TypertRemoteService implements RoleTeamRpc {
   static inject = ['storageDomain']
-  static Config: schema<Config> = schema.object({
-    roleStoreDir: schema.string().default(defaultRoleDir()),
+  static Config = schema.object({
+    roleStoreDir: schema
+      .string()
+      .pattern(/^(?:\/|[A-Za-z]:[\\/]|\\\\)/)
+      .default(defaultRoleDir())
+      .volatile(),
   })
-  private readonly root: string
+  private readonly pathSetting: Volatile<string>
   private roles!: RoleStore
   private mounted?: TeamRuntime
   private get runtime() {
@@ -33,7 +37,7 @@ export default class RoleTeamService extends TypertRemoteService implements Role
 
   constructor(ctx: Context, config: Config) {
     super(ctx, 'roleTeam')
-    this.root = config.roleStoreDir
+    this.pathSetting = config.roleStoreDir
     ctx.on('agent/created', async ({ agent }) => {
       const reserved = (id?: string) => id !== undefined && /^rt-(?:root|child|training)-/.test(id)
       if (!reserved(agent.id) && !reserved(agent.session.header.parentSession)) return
@@ -44,7 +48,7 @@ export default class RoleTeamService extends TypertRemoteService implements Role
   protected async [Service.init]() {
     const domain = await this.ctx.storageDomain.open(teamDomain)
     try {
-      this.roles = await RoleStore.open(this.root, {
+      this.roles = await RoleStore.open(this.pathSetting.get(), {
         onError: (error) => this.ctx.logger.warn(String(error)),
         observed: async (status) => {
           await this.mounted?.observe(status)
@@ -145,11 +149,31 @@ export default class RoleTeamService extends TypertRemoteService implements Role
   }
 
   @Remote async listTrainings(request: Input<'listTrainings'>) {
-    return this.index.training.list().filter((t) => t.roleId === request.roleId)
+    return this.index.training.list().filter((t) => !request.roleId || t.roleId === request.roleId)
   }
 
   @Remote async confirmProposal(request: Input<'confirmProposal'>) {
-    return this.runtime.training.confirmProposal(request)
+    return this.runtime.ordered('review/' + request.trainingId, () =>
+      this.runtime.training.confirmProposal(request),
+    )
+  }
+
+  @Remote async libraryInfo(_request: Input<'libraryInfo'>) {
+    return { activePath: this.roles.root, configuredPath: this.pathSetting.get() }
+  }
+
+  @Remote async rejectProposal({ trainingId, proposalId }: Input<'rejectProposal'>) {
+    return this.runtime.ordered('review/' + trainingId, () =>
+      this.index.training.update(trainingId, (row) => {
+        const proposal = row.proposals?.find((p) => p.id === proposalId)
+        if (!proposal || proposal.status === 'confirmed')
+          throw new Error('Proposal is unavailable for rejection')
+        return {
+          ...row,
+          proposals: row.proposals?.map((p) => (p.id === proposalId ? { ...p, status: 'rejected' } : p)),
+        }
+      }),
+    )
   }
 
   @Remote listRoles() {

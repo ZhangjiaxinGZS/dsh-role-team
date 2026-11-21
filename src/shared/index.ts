@@ -88,7 +88,7 @@ export const proposal = z.strictObject({
   text: z.string(),
   expectedHash: hash.nullable(),
   diff: z.string(),
-  status: z.enum(['pending', 'confirmed']),
+  status: z.enum(['pending', 'confirmed', 'rejected']),
 })
 const key = z.string().min(1)
 export const indexRecords = {

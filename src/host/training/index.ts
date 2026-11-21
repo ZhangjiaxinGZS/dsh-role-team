@@ -185,7 +185,8 @@ export class TrainingRuntime {
   async confirmProposal({ trainingId, proposalId }: Input<'confirmProposal'>) {
     const row = this.getTraining(trainingId)
     const item = row.proposals?.find((p) => p.id === proposalId)
-    if (!item) throw new Error('Proposal not found in this training session')
+    if (!item || item.status === 'rejected')
+      throw new Error('Proposal unavailable in this training session')
     const ref = { roleId: row.roleId, memoryId: item.memoryId }
     if (item.status === 'confirmed') {
       const current = await this.roles.readDocument(ref)

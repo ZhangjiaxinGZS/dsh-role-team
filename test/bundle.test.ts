@@ -14,7 +14,7 @@ import * as Json from '@deepseek-ai/dsh-storage-json'
 import * as Domains from '@deepseek-ai/dsh-storage-domain'
 import { remoteMethods } from '@deepseek-ai/dsh-typert-protocol'
 import { parse } from 'yaml'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import type RoleTeam from '../src/host/index.js'
 import { runtimeMethods } from '../src/shared/runtime.js'
 
@@ -83,19 +83,73 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
     expect(ctx.get('roleTeam')).toBeUndefined()
 
     const client = await readFile(require.resolve(moduleId + '/client'), 'utf8')
-    let activated = false
+    let factory:
+      | ((resolve: (id: string) => unknown) => { apply(ctx: unknown): Promise<void> })
+      | undefined
     runInNewContext(client, {
+      document: { createElement: () => ({ remove: () => {} }), head: { append: () => {} } },
       window: {
         __ModuleLoader__: {
-          load(entry: { id: string; factory(): { apply(): void } }) {
+          load(entry: { id: string; factory: NonNullable<typeof factory> }) {
             expect(entry.id).toBe(moduleId)
-            entry.factory().apply()
-            activated = true
+            factory = entry.factory
           },
         },
       },
     })
-    expect(activated).toBe(true)
+    const injected = new Set<string>()
+    const plugin = factory!((id) => {
+      expect(['react', 'react/jsx-runtime', 'zod']).toContain(id)
+      injected.add(id)
+      return require(id)
+    })
+    // Use the published renderer's SlotRegistry and Cordis lifecycle with the packaged browser factory.
+    type Renderer = typeof import('@deepseek-ai/dsh-client-ui-renderer/client')
+    let renderer!: Renderer
+    runInNewContext(
+      await readFile(require.resolve('@deepseek-ai/dsh-client-ui-renderer/client'), 'utf8'),
+      {
+        window: {
+          __ModuleLoader__: {
+            load(entry: { factory(resolve: typeof require): Renderer }) {
+              renderer = entry.factory(require)
+            },
+          },
+        },
+      },
+    )
+    const clientCtx = new Context()
+    try {
+      await clientCtx.plugin(renderer.SlotRegistry)
+      clientCtx.provide('locale', { register: () => () => {}, bind: () => () => '' } as never)
+      clientCtx.provide('remote', {
+        $mount: (r: { package: string }) => expect(r.package).toBe(moduleId),
+      } as never)
+      clientCtx.provide('sessions', {} as never)
+      clientCtx.slots.register(
+        {
+          name: 'root',
+          children: {
+            main: { kind: 'keyed', scope: 'root' },
+            'sidebar.panellist': { kind: 'list', scope: 'root' },
+            'settings.section': { kind: 'list', scope: 'root' },
+          },
+        },
+        (
+          _props: import('@deepseek-ai/dsh-client-ui-slots').PropsRenderSlots<
+            'main' | 'sidebar.panellist' | 'settings.section'
+          >,
+        ) => null,
+      )
+      const clientFiber = await clientCtx.plugin(plugin)
+      for (const key of ['main', 'sidebar.panellist', 'settings.section', 'roleTeam.chat'] as const)
+        await vi.waitFor(() => expect(clientCtx.slots.entriesOfSlot(key)).toHaveLength(1))
+      expect([...injected].sort()).toEqual(['react', 'react/jsx-runtime', 'zod'])
+      await clientFiber.dispose()
+      expect(clientCtx.slots.entriesOfSlot('main')).toHaveLength(0)
+    } finally {
+      await clientCtx.fiber.dispose()
+    }
     for (const lang of ['en', 'zh'])
       expect(require(moduleId + '/locale/' + lang + '.json').meta.title).toBeTruthy()
   } finally {

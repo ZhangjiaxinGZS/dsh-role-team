@@ -49,7 +49,15 @@ export const runtimeMethods = {
     indexRecords.training_sessions,
   ],
   getTraining: [training, indexRecords.training_sessions],
-  listTrainings: [z.strictObject({ roleId: fileId }), z.array(indexRecords.training_sessions)],
+  listTrainings: [
+    z.strictObject({ roleId: fileId.optional() }),
+    z.array(indexRecords.training_sessions),
+  ],
+  libraryInfo: [
+    z.strictObject({}),
+    z.strictObject({ activePath: z.string(), configuredPath: z.string() }),
+  ],
+  rejectProposal: [training.extend({ proposalId: fileId }), indexRecords.training_sessions],
   confirmProposal: [training.extend({ proposalId: fileId }), editResult],
 } as const
 export type Method = keyof typeof runtimeMethods
