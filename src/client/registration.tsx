@@ -30,6 +30,10 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
 export const inject = ['remote', 'sessions', 'slots', 'locale']
 export async function apply(ctx: Context) {
   await ctx.remote.$mount(TYPERT_REMOTE)
+  ctx.inject(['remote.roleTeam'], mount)
+}
+
+function mount(ctx: Context) {
   ctx.effect(() => ctx.locale.register('roleTeam', { en: en.ui, zh: zh.ui }))
   ctx.effect(() => {
     const style = document.createElement('style')
@@ -45,11 +49,6 @@ export async function apply(ctx: Context) {
     globalThis as typeof globalThis & { __DSH_DIRECTORY_PICKER__?: { pick(): Promise<string | null> } }
   ).__DSH_DIRECTORY_PICKER__
   const options = { source: 'roleTeam' as const, facets: { conversation: true } }
-  const settings = (
-    ctx.remote as typeof ctx.remote & {
-      settings?: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['settings']
-    }
-  ).settings
   const shared: Ui = {
     t,
     retain: (target) => ctx.sessions.retain(target, options),
@@ -62,16 +61,6 @@ export async function apply(ctx: Context) {
       : workspace?.pickDirectory
         ? () => workspace.pickDirectory!()
         : undefined,
-    settings: settings && {
-      async read() {
-        const view = unwrap(await settings.describe())
-        const row = view.namespaces.find((n) => n.ns === 'role-team')
-        return { writable: view.writable && !!row, revision: row?.revision ?? 0 }
-      },
-      async write(path, revision) {
-        unwrap(await settings.update('role-team', { roleStoreDir: path }, revision))
-      },
-    },
   }
   function Main({
     SessionProvider,
@@ -83,13 +72,6 @@ export async function apply(ctx: Context) {
         value={{ ...shared, t, SessionProvider, chat: () => renderSlot('roleTeam.chat', {}) }}
       >
         <App />
-      </Client.Provider>
-    )
-  }
-  function Settings({ t }: PropsLocale<'roleTeam'>) {
-    return (
-      <Client.Provider value={{ ...shared, t }}>
-        <LibrarySettings />
       </Client.Provider>
     )
   }
@@ -130,10 +112,32 @@ export async function apply(ctx: Context) {
     ),
   )
   ctx.slots.inject('roleTeam.chat', () => ctx.slots.register({ name: 'roleTeam.chat' }, SessionChat))
-  ctx.slots.inject('settings.section', () =>
-    ctx.slots.register(
-      { name: 'settings.section', id: 'role-team', locale: 'roleTeam', label: () => t('title') },
-      Settings,
-    ),
-  )
+  ctx.inject(['remote.settings'], (scope) => {
+    const settings = scope.get(
+      'remote.settings',
+    ) as import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['settings']
+    const settingsFace: Ui['settings'] = {
+      async read() {
+        const view = unwrap(await settings.describe())
+        const row = view.namespaces.find((n) => n.ns === 'role-team')
+        return { writable: view.writable && !!row, revision: row?.revision ?? 0 }
+      },
+      async write(path, revision) {
+        unwrap(await settings.update('role-team', { roleStoreDir: path }, revision))
+      },
+    }
+    function Settings({ t }: PropsLocale<'roleTeam'>) {
+      return (
+        <Client.Provider value={{ ...shared, settings: settingsFace, t }}>
+          <LibrarySettings />
+        </Client.Provider>
+      )
+    }
+    scope.slots.inject('settings.section', () =>
+      scope.slots.register(
+        { name: 'settings.section', id: 'role-team', locale: 'roleTeam', label: () => t('title') },
+        Settings,
+      ),
+    )
+  })
 }

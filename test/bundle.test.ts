@@ -142,8 +142,20 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
         ) => null,
       )
       const clientFiber = await clientCtx.plugin(plugin)
-      for (const key of ['main', 'sidebar.panellist', 'settings.section', 'roleTeam.chat'] as const)
+      expect(clientCtx.slots.entriesOfSlot('main')).toHaveLength(0)
+      clientCtx.provide('remote.roleTeam', {} as never)
+      for (const key of ['main', 'sidebar.panellist', 'roleTeam.chat'] as const)
         await vi.waitFor(() => expect(clientCtx.slots.entriesOfSlot(key)).toHaveLength(1))
+      expect(clientCtx.slots.entriesOfSlot('settings.section')).toHaveLength(0)
+      const settingsOwner = await clientCtx.plugin({
+        apply(scope: Context) {
+          scope.provide('remote.settings', {} as never)
+        },
+      })
+      await vi.waitFor(() => expect(clientCtx.slots.entriesOfSlot('settings.section')).toHaveLength(1))
+      await settingsOwner.dispose()
+      await vi.waitFor(() => expect(clientCtx.slots.entriesOfSlot('settings.section')).toHaveLength(0))
+      expect(clientCtx.slots.entriesOfSlot('main')).toHaveLength(1)
       expect([...injected].sort()).toEqual(['react', 'react/jsx-runtime', 'zod'])
       await clientFiber.dispose()
       expect(clientCtx.slots.entriesOfSlot('main')).toHaveLength(0)

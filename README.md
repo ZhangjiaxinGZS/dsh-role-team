@@ -2,11 +2,32 @@
 
 An external DeepSeek Harness (`0.2.2-rc.5+`) plugin for conversational AI role cultivation, shared long-term memory, strict per-team session isolation, and AionUi-style multi-column team collaboration.
 
+## Install and start in three steps
+
+Tested with DeepSeek Harness 0.2.2-rc.5 on macOS. Web and Electron Desktop use the same package and maintain separate plugin profiles.
+
+1. **Build the package.** From this repository with Node.js 24.9 or newer, run the following commands. Keep the resulting tarball at a stable absolute path.
+
+   ```sh
+   npm ci
+   npm pack
+   ```
+
+2. **Install into the profile you use.** For Web, stop its Host, run the command below, then start it with `dsh web`. For Desktop, open the app once, fully quit it, use its bundled CLI for the second command, then reopen the app. The examples show the macOS application path. If Desktop registered its bundled `dsh` command in your terminal, you can use that command directly.
+
+   ```sh
+   dsh plugin --profile web add "/absolute/path/dsh-role-team-0.1.0.tgz"
+   # macOS Desktop
+   "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop add "/absolute/path/dsh-role-team-0.1.0.tgz"
+   ```
+
+3. **Create roles and a team.** Open **Role teams → Roles & training**, create and save a role card, then return to **Team workspace → New team**. Select the lead, members, and an existing workspace directory separate from the role library. For generated replies and conversational coaching, configure your DeepSeek key in the Host’s model settings.
+
+Read the [Chinese installation guide and Web/Desktop verification report](docs/VERIFICATION.md) for the tested workflows, screenshots and model coverage.
+
 ## Host runtime
 
-The Host provides the plain-text role library, coaching sessions, native team orchestration, revision controls and seat replacement. The multi-column workbench is scheduled for Phase 3.
-
-With Node 24.9 or newer, run `npm ci`, `npm run typecheck`, and `npm test`. Tests build the package first and use temporary libraries. Use `npm pack` for a distributable tarball. In the DSH Web or Desktop **Plugins → Add plugin** dialog, select the built package directory. Each profile loads its own bundle row. The browser entry registers with the DSH module loader.
+The Host provides the plain-text role library, coaching sessions, native team orchestration, revision controls and seat replacement. The client workbench binds a separate live conversation to each seat. Run `npm run typecheck` and `npm test` for development checks.
 
 The Host's `roleStoreDir` setting defaults to `~/.dsh-role-team/roles/`. Store one UTF-8 `role.md` per role and one Markdown file per memory in `memories/`. Each file's YAML `id` matches its role directory or memory filename. Use lowercase ASCII letters, digits, hyphens and underscores for IDs. Display names, titles and bodies support Unicode. The examples in [the design](./docs/DESIGN.md) show both formats.
 
