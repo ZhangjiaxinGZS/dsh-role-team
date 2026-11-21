@@ -1,0 +1,133 @@
+import { z } from 'zod'
+
+export const fileId = z
+  .string()
+  .regex(/^[a-z0-9][a-z0-9_-]{0,127}$/, 'Expected a lowercase file identifier')
+  .refine((id) => !/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/.test(id), 'Reserved filename')
+export const hash = z.string().regex(/^[a-f0-9]{64}$/)
+export const revision = z.number().int().positive()
+const timestamp = z.iso.datetime({ offset: true })
+const names = z.array(z.string().min(1))
+export const roleMeta = z.strictObject({
+  id: fileId,
+  name: z.string().trim().min(1),
+  version: revision.optional(),
+  model: z.string().min(1).optional(),
+  skills: names.optional(),
+  tools: z.strictObject({ allow: names.optional(), deny: names.optional() }).optional(),
+  updatedAt: timestamp.optional(),
+})
+export const memoryMeta = z.strictObject({
+  id: fileId,
+  title: z.string().trim().min(1),
+  scope: z.literal('role_long_term'),
+  status: z.enum(['draft', 'published', 'archived']),
+  source: z.string().optional(),
+  createdAt: timestamp,
+})
+export type RoleMeta = z.infer<typeof roleMeta>
+export type MemoryMeta = z.infer<typeof memoryMeta>
+export const fileRef = z.strictObject({ roleId: fileId, memoryId: fileId.optional() })
+export type FileRef = z.infer<typeof fileRef>
+export const editRequest = fileRef.extend({ expectedHash: hash.nullable(), text: z.string() })
+export const deleteRequest = fileRef.extend({ expectedHash: hash })
+export type EditRequest = z.infer<typeof editRequest>
+export type DeleteRequest = z.infer<typeof deleteRequest>
+export const fileContents = z.strictObject({ text: z.string(), hash })
+export const diagnostic = z.strictObject({
+  file: z.string(),
+  line: z.int().positive(),
+  message: z.string(),
+})
+export const roleStatus = z.strictObject({
+  roleId: fileId,
+  publishedRevision: revision.nullable(),
+  error: diagnostic.nullable(),
+})
+export type FileContents = z.infer<typeof fileContents>
+export type Diagnostic = z.infer<typeof diagnostic>
+export type RoleStatus = z.infer<typeof roleStatus>
+export const snapshotSchema = z.strictObject({
+  roleId: fileId,
+  publishedRevision: revision,
+  sourceHash: hash,
+  publishedAt: timestamp,
+  role: z.strictObject({ meta: roleMeta, body: z.string() }),
+  memories: z.array(
+    z.strictObject({ meta: memoryMeta.extend({ status: z.literal('published') }), body: z.string() }),
+  ),
+})
+export type Snapshot = z.infer<typeof snapshotSchema>
+export const editResult = z.union([
+  z.strictObject({ ok: z.literal(true), status: roleStatus, hash: hash.nullable() }),
+  z.strictObject({
+    ok: z.literal(false),
+    code: z.literal('conflict'),
+    current: fileContents.nullable(),
+    proposed: z.string().nullable(),
+  }),
+  z.strictObject({ ok: z.literal(false), code: z.literal('invalid'), error: diagnostic }),
+])
+export type EditResult = z.infer<typeof editResult>
+export interface RoleTeamRpc {
+  listRoles(): Promise<RoleStatus[]>
+  listMemories(roleId: string): Promise<string[]>
+  readDocument(ref: FileRef): Promise<FileContents | null>
+  saveDocument(request: EditRequest): Promise<EditResult>
+  deleteDocument(request: DeleteRequest): Promise<EditResult>
+  readSnapshot(roleId: string, publishedRevision: number): Promise<Snapshot>
+  rescan(): Promise<RoleStatus[]>
+}
+
+const key = z.string().min(1)
+export const indexRecords = {
+  team_runs: z.strictObject({
+    runId: key,
+    title: key,
+    rootSessionId: key,
+    leaderSeatId: key,
+    workspaceCwd: key,
+    status: z.enum(['creating', 'active', 'archived', 'failed']),
+    createdAt: timestamp,
+  }),
+  team_seats: z.strictObject({
+    seatId: key,
+    runId: key,
+    parentSeatId: key.nullable(),
+    roleId: fileId,
+    displayName: key,
+    currentGeneration: revision,
+    currentSessionId: key,
+    nativeAgentName: key,
+    adoptedRoleRev: revision,
+    adoptedMemoryRev: revision,
+    pendingRoleRev: revision.nullable(),
+    pendingMemoryRev: revision.nullable(),
+    status: z.enum(['active', 'resetting', 'archived']),
+  }),
+  seat_generations: z.strictObject({
+    seatId: key,
+    generation: revision,
+    sessionId: key,
+    nativeAgentName: key,
+    roleSnapshotHash: hash,
+    memoryIds: z.array(fileId),
+    handoffNote: z.string().nullable(),
+    archivedAt: timestamp.nullable(),
+  }),
+  team_local_notes: z.strictObject({
+    noteId: key,
+    runId: key,
+    seatId: key.nullish(),
+    content: key,
+    createdAt: timestamp,
+  }),
+  training_sessions: z.strictObject({
+    trainingId: key,
+    roleId: fileId,
+    sessionId: key,
+    mode: z.enum(['create', 'coach', 'debrief']),
+    sourceRunId: key.nullish(),
+  }),
+}
+export type IndexRecord<T extends keyof typeof indexRecords> = z.infer<(typeof indexRecords)[T]>

@@ -1,0 +1,4 @@
+# The loader discovers the browser entry from this bundle row's dsh.client manifest.
+- insert:
+    - id: role-team
+      name: dsh-role-team
