@@ -1,6 +1,9 @@
 import { Service, type Context } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import schema from '@deepseek-ai/schemastery'
+import { TeamRuntime } from './team-runtime/index.js'
+import { NativeTeam } from './team-runtime/native.js'
+import type { Input } from '../shared/runtime.js'
 import { defaultRoleDir, RoleStore } from './role-store/index.js'
 import { repository, teamDomain } from './storage/index.js'
 import type { DeleteRequest, EditRequest, FileRef, RoleTeamRpc } from '../shared/index.js'
@@ -16,14 +19,26 @@ declare module '@deepseek-ai/cordis' {
 
 export default class RoleTeamService extends TypertRemoteService implements RoleTeamRpc {
   static inject = ['storageDomain']
-  static Config: schema<Config> = schema.object({ roleStoreDir: schema.string().default(defaultRoleDir()) })
+  static Config: schema<Config> = schema.object({
+    roleStoreDir: schema.string().default(defaultRoleDir()),
+  })
   private readonly root: string
   private roles!: RoleStore
+  private mounted?: TeamRuntime
+  private get runtime() {
+    if (!this.mounted) throw new Error('Role team runtime is not ready')
+    return this.mounted
+  }
   index!: ReturnType<typeof repository>
 
   constructor(ctx: Context, config: Config) {
     super(ctx, 'roleTeam')
     this.root = config.roleStoreDir
+    ctx.on('agent/created', async ({ agent }) => {
+      const reserved = (id?: string) => id !== undefined && /^rt-(?:root|child|training)-/.test(id)
+      if (!reserved(agent.id) && !reserved(agent.session.header.parentSession)) return
+      await this.runtime.attach(agent)
+    })
   }
 
   protected async [Service.init]() {
@@ -31,12 +46,36 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     try {
       this.roles = await RoleStore.open(this.root, {
         onError: (error) => this.ctx.logger.warn(String(error)),
+        observed: async (status) => {
+          await this.mounted?.observe(status)
+        },
       })
     } catch (error) {
       await domain.close()
       throw error
     }
     this.index = repository(domain)
+    this.ctx.inject(
+      [
+        'agents',
+        'sessionController',
+        'sessionQuery',
+        'agentTeams',
+        'subagents',
+        'workspaceRegistry',
+        'tools',
+        'systemPrompt',
+      ],
+      async (host) => {
+        const runtime = new TeamRuntime(this.index, this.roles, new NativeTeam(host))
+        this.mounted = runtime
+        host.effect(() => () => {
+          if (this.mounted === runtime) this.mounted = undefined
+        })
+        await runtime.recover()
+        await this.roles.rescan()
+      },
+    )
     this.ctx.effect(() => async () => {
       try {
         await this.roles.close()
@@ -44,6 +83,73 @@ export default class RoleTeamService extends TypertRemoteService implements Role
         await domain.close()
       }
     })
+  }
+
+  @Remote async createTeam(request: Input<'createTeam'>) {
+    return this.runtime.createTeam(request)
+  }
+
+  @Remote async listTeams(_request: Input<'listTeams'>) {
+    return this.index.runs.list()
+  }
+
+  @Remote async getTeam(request: Input<'getTeam'>) {
+    return this.runtime.getTeam(request.runId)
+  }
+
+  @Remote async renameTeam(request: Input<'renameTeam'>) {
+    return this.index.runs.update(request.runId, (row) => ({ ...row, title: request.title }))
+  }
+
+  @Remote async archiveTeam(request: Input<'archiveTeam'>) {
+    return this.runtime.archiveTeam(request.runId)
+  }
+
+  @Remote async addMember(request: Input<'addMember'>) {
+    return this.runtime.addMember(request)
+  }
+
+  @Remote async versionDecision(request: Input<'versionDecision'>) {
+    return this.runtime.versionDecision(request)
+  }
+
+  @Remote async promptSeat(request: Input<'promptSeat'>) {
+    return this.runtime.promptSeat(request)
+  }
+
+  @Remote async resetSeat(request: Input<'resetSeat'>) {
+    return this.runtime.resetSeat(request)
+  }
+
+  @Remote async listGenerations(request: Input<'listGenerations'>) {
+    return this.index.generations
+      .list()
+      .filter((g) => g.seatId === request.seatId)
+      .sort((a, b) => a.generation - b.generation)
+  }
+
+  @Remote async addNote(request: Input<'addNote'>) {
+    return this.runtime.addNote(request)
+  }
+
+  @Remote async listNotes(request: Input<'listNotes'>) {
+    return this.index.notes.list().filter((n) => n.runId === request.runId)
+  }
+
+  @Remote async createTraining(request: Input<'createTraining'>) {
+    return this.runtime.training.createTraining(request)
+  }
+
+  @Remote async getTraining(request: Input<'getTraining'>) {
+    return this.runtime.training.getTraining(request.trainingId)
+  }
+
+  @Remote async listTrainings(request: Input<'listTrainings'>) {
+    return this.index.training.list().filter((t) => t.roleId === request.roleId)
+  }
+
+  @Remote async confirmProposal(request: Input<'confirmProposal'>) {
+    return this.runtime.training.confirmProposal(request)
   }
 
   @Remote listRoles() {

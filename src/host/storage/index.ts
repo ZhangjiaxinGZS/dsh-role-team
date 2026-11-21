@@ -35,6 +35,7 @@ function records<T>(table: KvTable<string, T>, schema: z.ZodType<T>, keyOf: (row
   }
 }
 
+export type Index = ReturnType<typeof repository>
 export function generationKey(seatId: string, generation: number) {
   return JSON.stringify([seatId, generation])
 }

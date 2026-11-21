@@ -16,6 +16,7 @@ import { remoteMethods } from '@deepseek-ai/dsh-typert-protocol'
 import { parse } from 'yaml'
 import { expect, it } from 'vitest'
 import type RoleTeam from '../src/host/index.js'
+import { runtimeMethods } from '../src/shared/runtime.js'
 
 const require = createRequire(import.meta.url)
 it('loads the manifest-selected Host and renderer artifacts and disposes their resources', async () => {
@@ -23,7 +24,9 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
   const patch = parse(await readFile(join(process.cwd(), manifest.dsh.bundle.patch), 'utf8'))
   const moduleId = patch[0].insert[0].name
   expect(moduleId).toBe(manifest.name)
-  const host = (await import(pathToFileURL(require.resolve(moduleId)).href)) as { default: typeof RoleTeam }
+  const host = (await import(pathToFileURL(require.resolve(moduleId)).href)) as {
+    default: typeof RoleTeam
+  }
   const ctx = new Context()
   const temp = await mkdtemp(join(process.cwd(), 'node_modules/.role-bundle-'))
   try {
@@ -36,15 +39,18 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
       remoteMethods(service)
         .map((m) => m.method)
         .sort(),
-    ).toEqual([
-      'deleteDocument',
-      'listMemories',
-      'listRoles',
-      'readDocument',
-      'readSnapshot',
-      'rescan',
-      'saveDocument',
-    ])
+    ).toEqual(
+      [
+        'deleteDocument',
+        'listMemories',
+        'listRoles',
+        'readDocument',
+        'readSnapshot',
+        'rescan',
+        'saveDocument',
+        ...Object.keys(runtimeMethods),
+      ].sort(),
+    )
     await ctx.plugin(TypertRegistry)
     await ctx.plugin(RemoteAccess)
     await ctx.plugin(Gateway)
@@ -54,12 +60,22 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
     const call = (method: string, args: Record<string, unknown>) =>
       ctx.typertGateway.invoke({ namespace: 'roleTeam', method, args, peer })
     expect(await call('listRoles', {})).toEqual([])
+    await expect(
+      call('resetSeat', { request: { seatId: 'seat', generation: 0, handoff: '' } }),
+    ).rejects.toMatchObject({ code: 'gateway/input-invalid' })
+    await expect(
+      call('confirmProposal', { request: { trainingId: 't', proposalId: 'p', roleId: 'override' } }),
+    ).rejects.toMatchObject({ code: 'gateway/input-invalid' })
     await expect(call('readDocument', { ref: { roleId: '../invalid' } })).rejects.toMatchObject({
       code: 'gateway/input-invalid',
     })
     expect(
       await call('saveDocument', {
-        request: { roleId: 'proof', expectedHash: null, text: '---\nid: proof\nname: Example\n---\nHello' },
+        request: {
+          roleId: 'proof',
+          expectedHash: null,
+          text: '---\nid: proof\nname: Example\n---\nHello',
+        },
       }),
     ).toMatchObject({ ok: true })
     expect((await service.readSnapshot('proof', 1)).role.body).toBe('Hello')

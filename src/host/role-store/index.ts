@@ -34,11 +34,16 @@ export class RoleStore {
   private constructor(
     readonly root: string,
     private readonly onError: (error: unknown) => void,
+    private readonly observed?: (status: RoleStatus) => Promise<void>,
   ) {}
 
   static async open(
     path = defaultRoleDir(),
-    options: { scanIntervalMs?: number; onError?: (error: unknown) => void } = {},
+    options: {
+      scanIntervalMs?: number
+      onError?: (error: unknown) => void
+      observed?: (status: RoleStatus) => Promise<void>
+    } = {},
   ) {
     if (!isAbsolute(path)) throw new Error('roleStoreDir must be an absolute path')
     const configured = resolve(path)
@@ -47,6 +52,7 @@ export class RoleStore {
     const store = new RoleStore(
       await realpath(configured),
       options.onError ?? ((error) => console.error(error)),
+      options.observed,
     )
     try {
       await store.rescan()
@@ -229,7 +235,9 @@ export class RoleStore {
       const result: RoleStatus[] = []
       for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
         if (!fileId.safeParse(entry.name).success || !entry.isDirectory()) continue
-        result.push(await this.publish(entry.name))
+        const status = await this.publish(entry.name)
+        await this.observed?.(status)
+        result.push(status)
       }
       return result
     })
@@ -294,9 +302,11 @@ export class RoleStore {
       } else {
         await unlink(existingPath)
       }
+      const status = await this.publish(roleId)
+      await this.observed?.(status)
       return {
         ok: true,
-        status: await this.publish(roleId),
+        status,
         hash: proposed === null ? null : digest(proposed),
       }
     })

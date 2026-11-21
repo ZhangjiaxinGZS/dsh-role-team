@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import type { RuntimeRpc } from './runtime.js'
+export type { Input, RuntimeRpc } from './runtime.js'
 
 export const fileId = z
   .string()
@@ -69,7 +71,7 @@ export const editResult = z.union([
   z.strictObject({ ok: z.literal(false), code: z.literal('invalid'), error: diagnostic }),
 ])
 export type EditResult = z.infer<typeof editResult>
-export interface RoleTeamRpc {
+export interface RoleTeamRpc extends RuntimeRpc {
   listRoles(): Promise<RoleStatus[]>
   listMemories(roleId: string): Promise<string[]>
   readDocument(ref: FileRef): Promise<FileContents | null>
@@ -79,6 +81,15 @@ export interface RoleTeamRpc {
   rescan(): Promise<RoleStatus[]>
 }
 
+export const proposal = z.strictObject({
+  id: fileId,
+  memoryId: fileId.optional(),
+  before: z.string().nullable(),
+  text: z.string(),
+  expectedHash: hash.nullable(),
+  diff: z.string(),
+  status: z.enum(['pending', 'confirmed']),
+})
 const key = z.string().min(1)
 export const indexRecords = {
   team_runs: z.strictObject({
@@ -101,6 +112,12 @@ export const indexRecords = {
     nativeAgentName: key,
     adoptedRoleRev: revision,
     adoptedMemoryRev: revision,
+    approved: z.strictObject({ revision, afterTurn: z.int().nonnegative() }).optional(),
+    seenRevision: revision.optional(),
+    joining: z.literal(true).optional(),
+    reset: z
+      .strictObject({ sessionId: key, revision, handoff: z.string(), startedAt: timestamp })
+      .optional(),
     pendingRoleRev: revision.nullable(),
     pendingMemoryRev: revision.nullable(),
     status: z.enum(['active', 'resetting', 'archived']),
@@ -128,6 +145,7 @@ export const indexRecords = {
     sessionId: key,
     mode: z.enum(['create', 'coach', 'debrief']),
     sourceRunId: key.nullish(),
+    proposals: z.array(proposal).optional(),
   }),
 }
 export type IndexRecord<T extends keyof typeof indexRecords> = z.infer<(typeof indexRecords)[T]>

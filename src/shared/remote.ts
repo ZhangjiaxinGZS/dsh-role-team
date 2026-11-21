@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { runtimeMethods, type Method } from './runtime.js'
 import { createTypertRemoteInfo } from '@deepseek-ai/dsh-typert-protocol/remote-info'
 import type { RemoteResult, TypertRemoteMethodSpec } from '@deepseek-ai/dsh-typert-protocol'
 import {
@@ -51,6 +52,12 @@ export const TYPERT_REMOTE = createTypertRemoteInfo(
   {
     package: 'dsh-role-team',
     methods: {
+      ...Object.fromEntries(
+        Object.entries(runtimeMethods).map(([name, [request, result]]) => [
+          'roleTeam/' + name,
+          method(name as Method, { request }, result),
+        ]),
+      ),
       'roleTeam/listRoles': method('listRoles', {}, roles),
       'roleTeam/rescan': method('rescan', {}, roles),
       'roleTeam/listMemories': method('listMemories', { roleId: fileId }, z.array(fileId)),
