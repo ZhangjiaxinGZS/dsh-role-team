@@ -43,7 +43,7 @@ export const runtimeMethods = {
     z.strictObject({
       roleId: fileId,
       mode: indexRecords.training_sessions.shape.mode,
-      workspaceCwd,
+      workspaceCwd: workspaceCwd.optional(),
       sourceRunId: id.optional(),
     }),
     indexRecords.training_sessions,

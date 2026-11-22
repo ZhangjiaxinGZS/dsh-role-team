@@ -8,7 +8,7 @@ import { Workbench } from '../src/client/workbench/Workbench.js'
 import { SessionChat, targetId } from '../src/client/workbench/SessionPane.js'
 import { LibrarySettings } from '../src/client/App.js'
 import { DocumentEditor } from '../src/client/roles/DocumentEditor.js'
-import { TrainingDetail } from '../src/client/roles/Training.js'
+import { TrainingDetail, TrainingDialog, TrainingPanel } from '../src/client/roles/Training.js'
 import { TeamSetup } from '../src/client/team-setup/TeamSetup.js'
 import { serializeMarkdown } from '../src/shared/markdown.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -351,4 +351,47 @@ it('shows the effective library and writes the next path against the native sett
   fireEvent.click(screen.getByText(en.ui.save))
   await waitFor(() => expect(write).toHaveBeenCalledWith('/next', 5))
   expect(screen.getByText('/roles')).toBeTruthy()
+})
+
+it('opens conversational role creation with only a role ID and no team lookup', async () => {
+  const created = { trainingId: 't', sessionId: 's', roleId: 'author', mode: 'create' }
+  const call = vi.fn().mockResolvedValue(created),
+    done = vi.fn()
+  harness(call).mount(<TrainingDialog close={() => {}} done={done} />)
+  const form = within(screen.getByRole('dialog'))
+  expect(form.getAllByRole('textbox')).toHaveLength(1)
+  expect(form.queryByRole('combobox')).toBeNull()
+  fireEvent.change(form.getByLabelText(en.ui.roleId), { target: { value: 'author' } })
+  fireEvent.click(form.getByRole('button', { name: en.ui.startTraining }))
+  await waitFor(() => expect(done).toHaveBeenCalledWith(created))
+  expect(call.mock.calls).toEqual([['createTraining', { roleId: 'author', mode: 'create' }]])
+})
+
+it('starts coaching immediately and only offers team selection for a debrief', async () => {
+  const row = { trainingId: 't', sessionId: 'coach-session', roleId: 'author', mode: 'coach' }
+  const call = vi.fn(async (method: string) => {
+    if (method === 'listTrainings') return []
+    if (method === 'listTeams') return [{ runId: 'run', title: 'Review team', status: 'active' }]
+    return row
+  })
+  harness(call).mount(<TrainingPanel roleId="author" hasRole changed={() => {}} />)
+  fireEvent.click(screen.getByRole('button', { name: en.ui.newTraining }))
+  await screen.findByText('stream:coach-session')
+  expect(call).toHaveBeenCalledWith('createTraining', { roleId: 'author', mode: 'coach' })
+  expect(call).not.toHaveBeenCalledWith('listTeams', {})
+  expect(screen.queryByRole('dialog')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: en.ui.debrief }))
+  const modal = within(screen.getByRole('dialog'))
+  await modal.findByRole('option', { name: 'Review team' })
+  expect(modal.queryByRole('textbox')).toBeNull()
+  expect((modal.getByRole('combobox') as HTMLSelectElement).value).toBe('')
+  fireEvent.change(modal.getByRole('combobox'), { target: { value: 'run' } })
+  fireEvent.click(modal.getByRole('button', { name: en.ui.startTraining }))
+  await waitFor(() =>
+    expect(call).toHaveBeenCalledWith('createTraining', {
+      roleId: 'author',
+      mode: 'debrief',
+      sourceRunId: 'run',
+    }),
+  )
 })

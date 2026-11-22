@@ -21,7 +21,7 @@ Tested with DeepSeek Harness 0.2.2-rc.5 on macOS. Web and Electron Desktop use t
    "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop add "/absolute/path/dsh-role-team-0.1.0.tgz"
    ```
 
-3. **Create roles and a team.** Open **Role teams → Roles & training**, create and save a role card, then return to **Team workspace → New team**. Select the lead, members, and an existing workspace directory separate from the role library. For generated replies and conversational coaching, configure your DeepSeek key in the Host’s model settings.
+3. **Create roles and a team.** Open **Role teams → Roles & training**. Choose **Create through chat** and enter a role ID, or write a role card manually. For an existing role, **Start coaching** opens a fresh 1:1 chat. To assemble a team, return to **Team workspace → New team**. Select the lead, members, and an existing workspace directory separate from the role library. For generated replies and conversational coaching, configure your DeepSeek key in the Host’s model settings.
 
 Read the [Chinese installation guide and Web/Desktop verification report](docs/VERIFICATION.md) for the tested workflows, screenshots and model coverage.
 
@@ -43,7 +43,7 @@ Web and Desktop plugin writers share a directory lock and recheck disk content i
 
 The typed `roleTeam` methods take a single `request` object for each team or training operation. The schemas are in [src/shared/runtime.ts](src/shared/runtime.ts).
 
-- Call `createTraining` with a role ID, an existing workspace directory, `mode` (`create`, `coach` or `debrief`), and an optional `sourceRunId`. Send ordinary chat to the returned Session. Show proposals from `getTraining`, including the original text and diff. Call `confirmProposal` when the user accepts. Each memory and role proposal has its own confirmation.
+- Call `createTraining` with a role ID and `mode` (`create`, `coach` or `debrief`). The Host allocates a separate empty directory per session alongside the role library. API callers can supply an existing `workspaceCwd` to override it. A debrief can optionally link a team through `sourceRunId`. Send ordinary chat to the returned Session. Show proposals from `getTraining`, including the original text and diff. Call `confirmProposal` when the user accepts. Each memory and role proposal has its own confirmation.
 - Call `createTeam` to open a fresh root. Use `addMember` with an optional `parentSeatId` to spawn a continuable child. Route user text via `promptSeat` with the displayed generation, a client-minted request ID, and `queue` or `steer`. `listTeams`, `getTeam`, `renameTeam`, and `archiveTeam` manage the run. Archiving retains its logs.
 - For a pending seat revision, send the displayed revision to `versionDecision` with `next-turn` or `keep`. A scheduled revision appears in `approved` until the first admitted step of the new turn. `addNote` stores run-wide or seat-specific notes. `listNotes` reads one run.
 - Call `resetSeat` with the displayed generation and selected handoff. The response supplies the new native session ID. A failed transfer leaves a durable reset intent. Retry the original generation and handoff to finish. Use `listGenerations` to find archived session IDs for read-only history.

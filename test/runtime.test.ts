@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { readFile } from 'node:fs/promises'
 import { parse } from 'yaml'
@@ -322,6 +322,31 @@ it('keeps training proposals reviewable and routes temporary requirements only t
   expect(await service.listNotes({ runId: b.run.runId })).toEqual([])
   expect(await service.listNotes({ runId: a.run.runId })).toMatchObject([{ content: 'alpha task only' }])
 })
+it('creates a private empty workspace for each directory-free training session', async () => {
+  const first = await service.createTraining({ roleId, mode: 'create' })
+  const second = await service.createTraining({ roleId, mode: 'coach' })
+  const sessionCwd = async (id: string) =>
+    ctx.sessionQuery.inspectSession(id as SessionId, (session) => session.header.cwd!)
+  const sandbox = await sessionCwd(first.sessionId),
+    other = await sessionCwd(second.sessionId)
+  expect(sandbox).not.toBe(other)
+  for (const path of [sandbox, other]) {
+    expect(path).toMatch(/roles\.training-sandboxes[/\\]session-/)
+    expect(await realpath(path)).toBe(path)
+    expect(await readdir(path)).toEqual([])
+  }
+  await prompt(second.sessionId, 'Coach me')
+  expect(request(second.sessionId).messages).toBeDefined()
+  const explicit = await service.createTraining({ roleId, mode: 'coach', workspaceCwd: cwd })
+  expect(await sessionCwd(explicit.sessionId)).toBe(await realpath(cwd))
+})
+
+it('refuses an automatic sandbox redirected into the role library', async () => {
+  await symlink(join(folder, 'roles'), join(folder, 'roles.training-sandboxes'), 'dir')
+  await expect(service.createTraining({ roleId, mode: 'coach' })).rejects.toThrow(/refusing link/)
+  expect(await service.listTrainings({ roleId })).toEqual([])
+})
+
 it('creates a role and its first memory only after their separate confirmations', async () => {
   const newId = 'apprentice'
   const { sessionId, trainingId } = await service.createTraining({

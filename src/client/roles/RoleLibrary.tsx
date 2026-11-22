@@ -66,7 +66,13 @@ export function RoleLibrary({
             )}
             <div className="rt-split">
               <Documents roleId={id} revision={active?.revision ?? null} changed={changed} />
-              <TrainingPanel key={id + session} roleId={id} initialId={session} changed={changed} />
+              <TrainingPanel
+                key={id + session}
+                roleId={id}
+                hasRole={active?.revision != null}
+                initialId={session}
+                changed={changed}
+              />
             </div>
           </div>
         ) : (

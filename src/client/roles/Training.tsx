@@ -1,76 +1,67 @@
 import { useState } from 'react'
 import { fileId } from '../../shared/index.js'
-import { Modal, Notice, PathInput, useAction, useLoad, useUi, type Training } from '../ui.js'
+import { Modal, Notice, useAction, useLoad, useUi, type Training } from '../ui.js'
 import { SessionPane, sessionTarget } from '../workbench/SessionPane.js'
 
+function DebriefTeamField({ value, select }: { value: string; select: (id: string) => void }) {
+  const { t, call } = useUi(),
+    teams = useLoad('debrief-teams', () => call('listTeams', {}))
+  return (
+    <>
+      <label>
+        {t('sourceTeam')}
+        <select value={value} onChange={(e) => select(e.target.value)}>
+          <option value="">{t('none')}</option>
+          {teams.data
+            ?.filter((r) => r.status === 'active')
+            .map((r) => (
+              <option key={r.runId} value={r.runId}>
+                {r.title}
+              </option>
+            ))}
+        </select>
+      </label>
+      <Notice>{teams.error}</Notice>
+    </>
+  )
+}
 export function TrainingDialog({
-  role,
+  debriefRoleId,
   close,
   done,
 }: {
-  role?: string
+  debriefRoleId?: string
   close: () => void
   done: (row: Training) => void
 }) {
   const { t, call } = useUi(),
     a = useAction(),
-    [id, setId] = useState(role ?? ''),
-    [cwd, setCwd] = useState(''),
-    [mode, setMode] = useState<Training['mode']>(role ? 'coach' : 'create'),
+    [id, setId] = useState(''),
     [run, setRun] = useState('')
-  const teams = useLoad('training-runs', () => call('listTeams', {}))
   return (
-    <Modal title={t(role ? 'newTraining' : 'trainNew')} close={close} locked={a.busy}>
+    <Modal title={t(debriefRoleId ? 'debrief' : 'trainNew')} close={close} locked={a.busy}>
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          void a.run(async () =>
-            done(
-              await call('createTraining', {
-                roleId: fileId.parse(id),
-                mode,
-                workspaceCwd: cwd.trim(),
-                ...(run && { sourceRunId: run }),
-              }),
-            ),
-          )
+          void a.run(async () => {
+            const request = debriefRoleId
+              ? { roleId: debriefRoleId, mode: 'debrief' as const, ...(run && { sourceRunId: run }) }
+              : { roleId: fileId.parse(id.trim()), mode: 'create' as const }
+            done(await call('createTraining', request))
+          })
         }}
       >
-        {!role && (
+        {debriefRoleId ? (
+          <DebriefTeamField value={run} select={setRun} />
+        ) : (
           <label>
             {t('roleId')}
-            <input required value={id} onChange={(e) => setId(e.target.value)} />
+            <input required autoFocus value={id} onChange={(e) => setId(e.target.value)} />
           </label>
         )}
-        {role && (
-          <label>
-            {t('mode')}
-            <select value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}>
-              {(['coach', 'debrief', 'create'] as const).map((k) => (
-                <option key={k} value={k}>
-                  {t(k === 'create' ? 'createMode' : k)}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <PathInput value={cwd} onChange={setCwd} />
-        <label>
-          {t('sourceTeam')}
-          <select value={run} onChange={(e) => setRun(e.target.value)}>
-            <option value="">{t('none')}</option>
-            {teams.data
-              ?.filter((r) => r.status === 'active')
-              .map((r) => (
-                <option key={r.runId} value={r.runId}>
-                  {r.title}
-                </option>
-              ))}
-          </select>
-        </label>
-        <Notice>{a.error || teams.error}</Notice>
+        <Notice>{a.error}</Notice>
         <footer>
-          <button className="rt-primary" disabled={a.busy}>
+          <button className="rt-primary" disabled={a.busy || (!debriefRoleId && !id.trim())}>
             {t('startTraining')}
           </button>
         </footer>
@@ -81,24 +72,49 @@ export function TrainingDialog({
 export function TrainingPanel({
   roleId,
   initialId,
+  hasRole,
   changed,
 }: {
   roleId: string
   initialId?: string
+  hasRole: boolean
   changed: () => void
 }) {
   const { t, call } = useUi(),
     list = useLoad(roleId + ':' + initialId, () => call('listTrainings', { roleId })),
     [selected, setSelected] = useState(initialId ?? ''),
-    [show, setShow] = useState(false)
+    [debrief, setDebrief] = useState(false),
+    start = useAction()
+  const opened = (row: Training) => {
+    setSelected(row.trainingId)
+    setDebrief(false)
+    list.refresh()
+  }
   const id = selected || list.data?.[0]?.trainingId
   return (
     <section className="rt-training">
       <header>
         <h3>{t('training')}</h3>
-        <button onClick={() => setShow(true)}>＋ {t('newTraining')}</button>
+        <div className="rt-row">
+          {hasRole && (
+            <button onClick={() => setDebrief(true)} disabled={start.busy}>
+              {t('debrief')}
+            </button>
+          )}
+          <button
+            className="rt-primary"
+            disabled={start.busy}
+            onClick={() =>
+              start.run(async () =>
+                opened(await call('createTraining', { roleId, mode: hasRole ? 'coach' : 'create' })),
+              )
+            }
+          >
+            {t(hasRole ? 'newTraining' : 'trainNew')}
+          </button>
+        </div>
       </header>
-      <Notice>{list.error}</Notice>
+      <Notice>{list.error || start.error}</Notice>
       {id && (
         <>
           <select
@@ -115,16 +131,8 @@ export function TrainingPanel({
           <TrainingDetail key={id} trainingId={id} changed={changed} />
         </>
       )}
-      {show && (
-        <TrainingDialog
-          role={roleId}
-          close={() => setShow(false)}
-          done={(row) => {
-            setSelected(row.trainingId)
-            setShow(false)
-            list.refresh()
-          }}
-        />
+      {debrief && (
+        <TrainingDialog debriefRoleId={roleId} close={() => setDebrief(false)} done={opened} />
       )}
     </section>
   )

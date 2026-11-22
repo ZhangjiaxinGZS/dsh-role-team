@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto'
+import { mkdtemp, rmdir } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
+import { directory } from '../role-store/files.js'
 import { z } from 'zod'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { roleMeta, memoryMeta, type IndexRecord } from '../../shared/index.js'
@@ -48,7 +51,6 @@ export class TrainingRuntime {
     readonly addNote: (request: Input<'addNote'>) => Promise<IndexRecord<'team_local_notes'>>,
   ) {}
   async createTraining(input: Input<'createTraining'>) {
-    const cwd = await workspacePath(input.workspaceCwd, this.roles.root)
     const { roleId, mode, sourceRunId } = input
     if (sourceRunId && this.index.runs.get(sourceRunId)?.status !== 'active')
       throw new Error('Unknown active team')
@@ -62,10 +64,25 @@ export class TrainingRuntime {
       sourceRunId,
     }
     await this.index.training.put(row)
+    let sandbox: string | undefined
     try {
+      let cwd: string
+      if (input.workspaceCwd !== undefined) {
+        cwd = await workspacePath(input.workspaceCwd, this.roles.root)
+      } else {
+        // Keep the directory for the lifetime of the native session, including cold restores.
+        if (dirname(this.roles.root) === this.roles.root)
+          throw new Error('A filesystem root cannot have a separate sibling training sandbox')
+        const parent = this.roles.root + '.training-sandboxes'
+        await directory(parent, true)
+        const base = await workspacePath(parent, this.roles.root)
+        sandbox = await mkdtemp(join(base, 'session-'))
+        cwd = sandbox
+      }
       await this.native.create(row.sessionId, cwd)
     } catch (error) {
       await this.index.training.delete(row.trainingId)
+      if (sandbox) await rmdir(sandbox)
       throw error
     }
     return row
