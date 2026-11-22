@@ -1,5 +1,5 @@
 import { mkdtemp, mkdir, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { readFile } from 'node:fs/promises'
 import { parse } from 'yaml'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
@@ -329,9 +329,13 @@ it('creates a private empty workspace for each directory-free training session',
     ctx.sessionQuery.inspectSession(id as SessionId, (session) => session.header.cwd!)
   const sandbox = await sessionCwd(first.sessionId),
     other = await sessionCwd(second.sessionId)
+  const author = await service.createTraining({ roleId: 'author', mode: 'create' })
+  const sandboxRoot = join(await realpath(folder), 'roles.training-sandboxes')
+  expect(dirname(await sessionCwd(author.sessionId))).toBe(join(sandboxRoot, 'author'))
+  expect(dirname(sandbox)).toBe(join(sandboxRoot, roleId))
+  expect(dirname(other)).toBe(dirname(sandbox))
   expect(sandbox).not.toBe(other)
   for (const path of [sandbox, other]) {
-    expect(path).toMatch(/roles\.training-sandboxes[/\\]session-/)
     expect(await realpath(path)).toBe(path)
     expect(await readdir(path)).toEqual([])
   }
@@ -345,6 +349,17 @@ it('refuses an automatic sandbox redirected into the role library', async () => 
   await symlink(join(folder, 'roles'), join(folder, 'roles.training-sandboxes'), 'dir')
   await expect(service.createTraining({ roleId, mode: 'coach' })).rejects.toThrow(/refusing link/)
   expect(await service.listTrainings({ roleId })).toEqual([])
+})
+
+it('rejects traversal and a role sandbox linked to another role', async () => {
+  await expect(service.createTraining({ roleId: '../escape', mode: 'create' })).rejects.toThrow()
+  const root = join(folder, 'roles.training-sandboxes')
+  await service.createTraining({ roleId, mode: 'coach' })
+  await symlink(join(root, roleId), join(root, 'author'), 'dir')
+  await expect(service.createTraining({ roleId: 'author', mode: 'create' })).rejects.toThrow(
+    /refusing link/,
+  )
+  expect(await service.listTrainings({ roleId: 'author' })).toEqual([])
 })
 
 it('creates a role and its first memory only after their separate confirmations', async () => {

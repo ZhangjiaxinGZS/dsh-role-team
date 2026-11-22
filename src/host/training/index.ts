@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 import { directory } from '../role-store/files.js'
 import { z } from 'zod'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { roleMeta, memoryMeta, type IndexRecord } from '../../shared/index.js'
+import { fileId, roleMeta, memoryMeta, type IndexRecord } from '../../shared/index.js'
 import type { Input } from '../../shared/runtime.js'
 import { RoleStore } from '../role-store/index.js'
 import { digest, parseMarkdown, serializeMarkdown } from '../role-store/markdown.js'
@@ -51,7 +51,8 @@ export class TrainingRuntime {
     readonly addNote: (request: Input<'addNote'>) => Promise<IndexRecord<'team_local_notes'>>,
   ) {}
   async createTraining(input: Input<'createTraining'>) {
-    const { roleId, mode, sourceRunId } = input
+    const { mode, sourceRunId } = input
+    const roleId = fileId.parse(input.roleId)
     if (sourceRunId && this.index.runs.get(sourceRunId)?.status !== 'active')
       throw new Error('Unknown active team')
     if (mode !== 'create' && !(await this.roles.readDocument({ roleId })))
@@ -75,8 +76,9 @@ export class TrainingRuntime {
           throw new Error('A filesystem root cannot have a separate sibling training sandbox')
         const parent = this.roles.root + '.training-sandboxes'
         await directory(parent, true)
-        const base = await workspacePath(parent, this.roles.root)
-        sandbox = await mkdtemp(join(base, 'session-'))
+        const roleSandbox = join(await workspacePath(parent, this.roles.root), roleId)
+        await directory(roleSandbox, true)
+        sandbox = await mkdtemp(join(await workspacePath(roleSandbox, this.roles.root), 'session-'))
         cwd = sandbox
       }
       await this.native.create(row.sessionId, cwd)
