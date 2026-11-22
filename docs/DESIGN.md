@@ -129,6 +129,7 @@ createdAt: "2026-11-22T01:42:00+08:00"
 
 因外置插件不应依赖未登记进宿主词表的自定义 Session 事件，运行态绑定与索引统一存于插件自有 `storageDomain` 表：
 
+- **`role_models`** 存储角色最近选择的提供商、模型与推理档位，独立于角色设定版本。
 - **`team_runs`**：`runId`、`title`、`rootSessionId`、`leaderSeatId`、`workspaceCwd`、`status`、`createdAt`
 - **`team_seats`**（逻辑席位树）：`seatId`、`runId`、`parentSeatId`（`null` 表示队长/根，为树状层级预留）、`roleId`、`displayName`、`currentGeneration`、`currentSessionId`、`nativeAgentName`、`adoptedRoleRev`、`adoptedMemoryRev`、`pendingRoleRev`、`pendingMemoryRev`、`status`（`active | resetting | archived`）
 - **`seat_generations`**（历代会话审计）：`seatId`、`generation`、`sessionId`、`nativeAgentName`、`roleSnapshotHash`、`memoryIds`、`handoffNote`、`archivedAt`
@@ -172,10 +173,15 @@ createdAt: "2026-11-22T01:42:00+08:00"
 - **侧边栏主入口**：通过 `sidebar.panellist` 注册「角色团队」图标，对应 keyed `main` 工作台主页面（Web 与 Desktop 渲染同一页面）。
 - **工作台布局**：
   - **顶栏**：团队切换下拉 + 成员胶囊标签（标出队长皇冠、当前代次、待更新版本红点）+「+ 新建团队 / 添加成员」+ 视图切换（多栏并排 / 单栏聚焦）。
-  - **多栏主区**：每列顶部显示成员名、模型、代次、`清空上下文并重注` 按钮、`查看历史代次`、`全屏`；中间为独立流式对话区；底部为独立输入框（支持 `queue / steer` 切换、停止、权限审批）。
-  - **右侧轻量抽屉（可选折叠）**：原生共享任务板（`team_task_*` 实时投影）+ 当前团队临时要求（`team_local_notes`）。
-- **角色库子视图**：
-  - 角色卡片列表 → 点击进入详情页：左右分栏（左侧 `role.md` 可视化/源码编辑 + `memories/*.md` 列表与发布/撤回开关 + “打开本地目录”；右侧直接内嵌该角色的 1v1 培养/纠偏聊天窗）。
+  - 每列绑定本代独立的 SessionReference 和 DSH 原生对话输入栏。运行时使用宿主排队、插话与停止操作，查看旧代时只显示记录。
+  - 队长通过原生权限选择器设置团队权限。在线成员同步，休眠成员在再次启动时应用队长当前模式。子成员通过输入栏内的模型控件选择自己的模型与推理档位。rc.5 原生子会话支持图片拖放与粘贴，通用文件由队长原生输入栏接收，也可放在全队共享的项目目录。
+  - 团队可通过宿主文件工具读取、写入、编辑共享目录中的文件。文件范围按解析后的实际路径校验，训练会话仍限于角色提案和指定团队便签。
+  - 成员使用显示名称，对原生寻址使用符合 rc.5 要求的简短英文别名，重名按序号区分。加入后队长收到带成员名称、职责和就绪状态的入队消息。团队和训练按创建时的界面语言工作。
+  - 侧抽屉显示原生共享任务板和当前团队的临时要求。
+- **角色库子视图**
+  - 「新建角色」输入名称即可保存首版并打开第一场对话。可展开自定义 ID。空设定的角色可以立即加入团队。
+  - 左侧列表选择角色，中栏「新对话」从同一角色的已发布设定与经验开始，历史下拉可回看和继续独立话题。培养建议在当前对话内逐条审核。
+  - 右侧可折叠角色档案提供「角色设定」和「沉淀的长期经验」，支持 Markdown 源码、并发冲突处理、编辑、停用与删除经验。
 
 ---
 

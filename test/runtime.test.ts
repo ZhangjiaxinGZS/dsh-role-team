@@ -1,3 +1,4 @@
+import Permissions from '@deepseek-ai/dsh-permission-presets'
 import { mkdtemp, mkdir, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { readFile } from 'node:fs/promises'
@@ -58,6 +59,24 @@ class TextUploads extends Service {
   }
 }
 class Adapter extends LlmAdapter {
+  async listModels(provider: string) {
+    return ['fixture', 'authoring'].map((id) => ({ id, name: id, provider }))
+  }
+  async resolveModel(provider: string, id: string) {
+    return {
+      id,
+      provider,
+      name: id,
+      reasoning: {
+        efforts: [
+          {
+            id: 'high' as import('@deepseek-ai/dsh-llm/types').LlmReasoningEffortInfo['id'],
+            name: 'High',
+          },
+        ],
+      },
+    }
+  }
   requests: GenerateOptions[] = []
   pause?: (request: GenerateOptions) => Promise<void>
   async *stream(request: GenerateOptions): AsyncIterable<StreamChunk> {
@@ -492,4 +511,88 @@ it('resumes a partially committed replacement after a host restart without spawn
   expect(restored.currentSessionId).toBe(locked.reset!.sessionId)
   expect(await ctx.subagents.listDescendants(run.rootSessionId as SessionId)).toHaveLength(2)
   expect(ctx.agentTeams.listTasks(ctx.agents.get(root.id)!)[0].ownerId).toBe(restored.currentSessionId)
+})
+
+it('carries a role model and effort across training, team admission and restart', async () => {
+  const first = await service.createTraining({ roleId, mode: 'coach' })
+  const choice = { provider: 'fixture', model: 'authoring', reasoningEffort: 'high' }
+  await ctx.sessionController.selectModel({ sessionId: first.sessionId as SessionId, ...choice })
+  await vi.waitFor(() => expect(service.index.models.get(roleId)?.selection).toEqual(choice))
+  const a = await newTeam('甲')
+  const child = await service.addMember({ runId: a.run.runId, roleId })
+  await vi.waitFor(() => expect(request(child.currentSessionId).model).toBe('authoring'))
+  expect(ctx.agents.get(child.currentSessionId as SessionId)?.model.current()).toEqual(choice)
+  const next = { provider: 'fixture', model: 'fixture', reasoningEffort: 'high' }
+  await service.selectSeatModel({ seatId: child.seatId, generation: 1, selection: next })
+  expect(service.index.models.get(roleId)?.selection).toEqual(next)
+  await expect(
+    service.selectSeatModel({ seatId: child.seatId, generation: 2, selection: choice }),
+  ).rejects.toThrow()
+  await ctx.fiber.dispose()
+  await boot()
+  const later = await service.createTraining({ roleId, mode: 'coach' })
+  expect(ctx.agents.get(later.sessionId as SessionId)?.model.current()).toEqual(next)
+})
+it('delivers a localized membership notice and mirrors the lead permission to live and new children', async () => {
+  ctx.provide('shell', { sandboxMode: 'workspace-write' } as never)
+  ctx.provide('approval', { config: { policy: 'ask' } } as never)
+  await ctx.plugin(Permissions, {})
+  const team = await newTeam('甲')
+  const root = ctx.agents.get(team.run.rootSessionId as SessionId)!
+  const first = await service.addMember({ runId: team.run.runId, roleId, displayName: '审稿' })
+  await ctx.subagents.waitForTreeWork(root)
+  await root.whenIdle()
+  expect(JSON.stringify(request(root.id).messages)).toContain('成员「审稿」已加入团队并就绪')
+  expect(first.nativeAgentName).toBe('reviewer')
+  const started = Promise.withResolvers<void>(),
+    finish = Promise.withResolvers<void>()
+  model.pause = async (req) => {
+    if (req.sessionId === first.currentSessionId) {
+      started.resolve()
+      await finish.promise
+    }
+  }
+  await service.promptSeat({
+    seatId: first.seatId,
+    generation: 1,
+    requestId: crypto.randomUUID(),
+    delivery: 'queue',
+    text: 'hold',
+  })
+  await started.promise
+  const live = ctx.agents.get(first.currentSessionId as SessionId)!
+  try {
+    ctx.permissionPresets.set(root.session, 'danger-full-access')
+    await vi.waitFor(() =>
+      expect(ctx.permissionPresets.current(live.session)).toBe('danger-full-access'),
+    )
+    const second = await service.addMember({ runId: team.run.runId, roleId, displayName: '审稿' })
+    expect(second.nativeAgentName).toBe('reviewer-2')
+    expect(
+      ctx.permissionPresets.current(ctx.agents.get(second.currentSessionId as SessionId)!.session),
+    ).toBe('danger-full-access')
+    ctx.permissionPresets.set(root.session, 'workspace-write')
+    await vi.waitFor(() => expect(ctx.permissionPresets.current(live.session)).toBe('workspace-write'))
+  } finally {
+    finish.resolve()
+    await ctx.subagents.waitForTreeWork(root)
+    await root.whenIdle()
+  }
+})
+it('permits workspace file edits and rejects file targets outside the shared directory', async () => {
+  const a = await newTeam('Files')
+  const id = a.run.rootSessionId
+  const path = join(cwd, 'result.md')
+  expect((await tool(id, 'write', { file_path: path, content: 'local' })).isError).toBeFalsy()
+  expect(await readFile(path, 'utf8')).toBe('local')
+  expect(
+    (await tool(id, 'edit', { file_path: path, old_string: 'local', new_string: 'done' })).isError,
+  ).toBeFalsy()
+  const roleFile = join(folder, 'roles', roleId, 'role.md')
+  await symlink(roleFile, join(cwd, 'linked.md'))
+  for (const file_path of [roleFile, join(cwd, 'linked.md')]) {
+    expect((await tool(id, 'read', { file_path })).isError).toBe(true)
+    expect((await tool(id, 'write', { file_path, content: 'outside' })).isError).toBe(true)
+  }
+  expect(await readFile(roleFile, 'utf8')).toContain('rule-one')
 })

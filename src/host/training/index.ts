@@ -63,6 +63,7 @@ export class TrainingRuntime {
       roleId,
       mode,
       sourceRunId,
+      locale: input.locale,
     }
     await this.index.training.put(row)
     let sandbox: string | undefined
@@ -105,9 +106,11 @@ export class TrainingRuntime {
       complete: true,
       interpolate: false,
       text: [
-        'Role training (' +
-          row.mode +
-          '). Propose lasting changes for human confirmation. Scope temporary notes to the designated team.',
+        row.locale !== 'en'
+          ? '请用中文与用户对话。通过对话培养角色，提出长期设定或经验的改动供用户确认。临时要求仅记录到本次指定团队。'
+          : 'Reply in English. Role training (' +
+            row.mode +
+            '). Propose lasting changes for human confirmation. Scope temporary notes to the designated team.',
         snapshot?.role.body,
         ...(snapshot?.memories.map((m) => m.body) ?? []),
       ]
@@ -118,11 +121,18 @@ export class TrainingRuntime {
     trainingTools.forEach((name, i) =>
       agent.ctx.tools.register({
         name,
-        description: [
-          'Propose a complete revised role name and Markdown body for review.',
-          'Propose one long-term memory for human review.',
-          'Record a temporary note for the linked team only.',
-        ][i],
+        description:
+          row.locale !== 'en'
+            ? [
+                '提出完整的角色名称和设定，交由用户确认。',
+                '提出一条长期经验，交由用户确认。',
+                '将临时要求记录在关联团队中。',
+              ][i]
+            : [
+                'Propose a complete revised role name and Markdown body for review.',
+                'Propose one long-term memory for human review.',
+                'Record a temporary note for the linked team only.',
+              ][i],
         parameters: z.toJSONSchema(inputs[i]),
         output: {
           schema: { type: 'string' },

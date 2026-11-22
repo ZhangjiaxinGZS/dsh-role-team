@@ -39,7 +39,7 @@ export async function replaceSeat(
     archivedAt: g.archivedAt ?? intent.startedAt,
   }))
   const next = generation + 1
-  const name = 's-' + seatId.slice(0, 12) + '-' + next
+  const name = runtime.nativeName(parent.seatId, seat.displayName, seat.roleId)
   const snap = await runtime.snapshot(seat.roleId, intent.revision)
   await index.generations.put({
     seatId,
@@ -57,6 +57,7 @@ export async function replaceSeat(
     intent.sessionId,
     name,
     seat.displayName,
+    run.locale,
   )
   await native.transfer(run.rootSessionId, seat.currentSessionId, intent.sessionId)
   return index.seats.update(seatId, (row) => {

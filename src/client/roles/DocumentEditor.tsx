@@ -1,7 +1,6 @@
 import { z } from 'zod'
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import {
-  fileId,
   memoryMeta,
   roleMeta,
   type EditResult,
@@ -28,108 +27,107 @@ export function Documents({
   revision: number | null
   changed: () => void
 }) {
-  const { call, t } = useUi(),
-    [memoryId, select] = useState(''),
-    [creating, setCreating] = useState(false)
-  const memories = useLoad(roleId + ':' + revision, () =>
-    revision ? call('listMemories', roleId) : Promise.resolve([]),
+  const { call, t } = useUi()
+  const [memoryId, select] = useState('')
+  const [version, refresh] = useState(0)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const action = useAction()
+  const updated = () => {
+    refresh((n) => n + 1)
+    changed()
+  }
+  const memories = useLoad(JSON.stringify([roleId, revision, version]), async () => {
+    if (!revision) return []
+    return Promise.all(
+      (await call('listMemories', roleId)).map(async (id) => {
+        const file = await call('readDocument', { roleId, memoryId: id })
+        if (!file) return { id, title: id }
+        try {
+          const { meta } = parseMarkdown(file.text, memoryMeta, id, id + '.md')
+          return { id, title: meta.title, status: meta.status }
+        } catch {
+          return { id, title: id }
+        }
+      }),
+    )
+  })
+  const role = useLoad(JSON.stringify([roleId, revision, version]), () =>
+    call('readDocument', { roleId }),
   )
-  const file: FileRef = { roleId, ...(memoryId && { memoryId }) }
-  const content = useLoad(JSON.stringify(file), () => call('readDocument', file))
-  const previousRevision = useRef(revision)
-  useEffect(() => {
-    if (previousRevision.current !== revision) {
-      previousRevision.current = revision
-      content.refresh()
-    }
-  }, [revision, content.refresh])
-  const [stamp, setStamp] = useState(0)
+  const memory = useLoad(JSON.stringify([roleId, memoryId, revision, version]), () =>
+    memoryId ? call('readDocument', { roleId, memoryId }) : Promise.resolve(null),
+  )
   return (
-    <section className="rt-docs">
+    <aside className="rt-docs">
       <header>
-        <h3>{t('documents')}</h3>
-        <button disabled={!revision} onClick={() => setCreating(true)}>
+        <h3>{t('card')}</h3>
+      </header>
+      <Notice>{role.error || memories.error || memory.error || action.error}</Notice>
+      {role.data !== undefined && (
+        <DocumentEditor key={roleId} file={{ roleId }} initial={role.data} changed={updated} />
+      )}
+      <section className="rt-experiences">
+        <h3>{t('memories')}</h3>
+        {memories.data?.map((m) => (
+          <button
+            key={m.id}
+            aria-pressed={memoryId === m.id}
+            onClick={() => {
+              select(memoryId === m.id ? '' : m.id)
+              setConfirmDelete(false)
+            }}
+          >
+            {m.title} {m.status && <small>{t(m.status)}</small>}
+          </button>
+        ))}
+        {memoryId && memory.data !== undefined && (
+          <>
+            <DocumentEditor
+              key={memoryId}
+              file={{ roleId, memoryId }}
+              initial={memory.data}
+              changed={updated}
+            />
+            {memory.data && <button onClick={() => setConfirmDelete(true)}>{t('deleteMemory')}</button>}
+          </>
+        )}
+        <button
+          className="rt-text-button"
+          disabled={!revision}
+          onClick={() => {
+            select('memory-' + crypto.getRandomValues(new Uint32Array(2)).join('-'))
+            setConfirmDelete(false)
+          }}
+        >
           ＋ {t('newMemory')}
         </button>
-      </header>
-      <select aria-label={t('documents')} value={memoryId} onChange={(e) => select(e.target.value)}>
-        <option value="">role.md</option>
-        {[...new Set([...(memories.data ?? []), ...(memoryId ? [memoryId] : [])])].map((id) => (
-          <option key={id} value={id}>
-            memories/{id}.md
-          </option>
-        ))}
-      </select>
-      <Notice>{content.error || memories.error}</Notice>
-      {content.data !== undefined && (
-        <DocumentEditor
-          key={JSON.stringify(file) + ':' + stamp}
-          file={file}
-          initial={content.data}
-          changed={() => {
-            changed()
-            memories.refresh()
-            content.refresh()
-          }}
-        />
-      )}
-      {creating && (
-        <IdentifierModal
-          title={t('newMemory')}
-          label={t('entryId')}
-          close={() => setCreating(false)}
-          submit={async (id) => {
-            if ((await call('listMemories', roleId)).includes(id)) throw new Error(t('conflict'))
-            select(id)
-            setStamp((n) => n + 1)
-            setCreating(false)
-          }}
-        />
-      )}
-    </section>
-  )
-}
-export function IdentifierModal({
-  title,
-  label,
-  close,
-  submit,
-}: {
-  title: string
-  label: string
-  close: () => void
-  submit: (id: string) => Promise<void>
-}) {
-  const { t } = useUi(),
-    a = useAction(),
-    [id, setId] = useState('')
-  return (
-    <Modal title={title} close={close} locked={a.busy}>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          void a.run(() => submit(fileId.parse(id)))
-        }}
-      >
-        <label>
-          {label}
-          <input
-            required
-            minLength={1}
-            maxLength={128}
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-          />
-        </label>
-        <small>{t('idHint')}</small>
-        <Notice>{a.error}</Notice>
-        <footer>
-          <button className="rt-primary" disabled={a.busy}>
-            {t('create')}
+      </section>
+      {confirmDelete && (
+        <Modal title={t('deleteMemory')} locked={action.busy} close={() => setConfirmDelete(false)}>
+          <p>{t('deleteHint')}</p>
+          <Notice>{action.error}</Notice>
+          <button
+            disabled={action.busy}
+            onClick={() =>
+              action.run(async () => {
+                if (!memory.data) return
+                const result = await call('deleteDocument', {
+                  roleId,
+                  memoryId,
+                  expectedHash: memory.data.hash,
+                })
+                if (!result.ok) throw new Error(t('conflict'))
+                select('')
+                setConfirmDelete(false)
+                updated()
+              })
+            }
+          >
+            {t('deleteMemory')}
           </button>
-        </footer>
-      </form>
-    </Modal>
+        </Modal>
+      )}
+    </aside>
   )
 }
 export function DocumentEditor({
@@ -150,7 +148,7 @@ export function DocumentEditor({
       file.memoryId
         ? {
             id,
-            title: id,
+            title: '',
             status: 'draft',
             scope: 'role_long_term',
             createdAt: new Date().toISOString(),
@@ -232,7 +230,7 @@ export function DocumentEditor({
         doc && (
           <>
             <label>
-              {t('name')}
+              {t(file.memoryId ? 'memoryTitle' : 'name')}
               <input
                 value={'name' in doc.meta ? doc.meta.name : doc.meta.title}
                 onChange={(e) =>
@@ -263,7 +261,7 @@ export function DocumentEditor({
               </label>
             )}
             <label>
-              {t('body')}
+              {t(file.memoryId ? 'experienceBody' : 'body')}
               <textarea
                 value={doc.body}
                 onChange={(e) => edit(serializeMarkdown(doc.meta, e.target.value))}

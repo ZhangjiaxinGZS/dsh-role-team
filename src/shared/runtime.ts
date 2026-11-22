@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { fileId, indexRecords, editResult, revision } from './index.js'
+import { fileId, indexRecords, editResult, revision, conversationLocale, modelChoice } from './index.js'
 
 const id = z.string().min(1).max(256)
 const workspaceCwd = z.string().min(1)
@@ -10,7 +10,10 @@ const seat = z.strictObject({ seatId: id })
 const training = z.strictObject({ trainingId: id })
 const team = z.strictObject({ run: indexRecords.team_runs, seats: z.array(indexRecords.team_seats) })
 export const runtimeMethods = {
-  createTeam: [z.strictObject({ title, roleId: fileId, workspaceCwd }), team],
+  createTeam: [
+    z.strictObject({ title, roleId: fileId, workspaceCwd, locale: conversationLocale.optional() }),
+    team,
+  ],
   listTeams: [z.strictObject({}), z.array(indexRecords.team_runs)],
   getTeam: [run, team],
   renameTeam: [run.extend({ title }), indexRecords.team_runs],
@@ -21,6 +24,21 @@ export const runtimeMethods = {
   ],
   versionDecision: [
     seat.extend({ revision, decision: z.enum(['next-turn', 'keep']) }),
+    indexRecords.team_seats,
+  ],
+  seatModels: [
+    z.strictObject({}),
+    z.array(
+      z.strictObject({
+        provider: id,
+        model: id,
+        name: title,
+        efforts: z.array(z.strictObject({ id, name: title })),
+      }),
+    ),
+  ],
+  selectSeatModel: [
+    seat.extend({ generation: revision, selection: modelChoice }),
     indexRecords.team_seats,
   ],
   resetSeat: [
@@ -42,6 +60,7 @@ export const runtimeMethods = {
   createTraining: [
     z.strictObject({
       roleId: fileId,
+      locale: conversationLocale.optional(),
       mode: indexRecords.training_sessions.shape.mode,
       workspaceCwd: workspaceCwd.optional(),
       sourceRunId: id.optional(),

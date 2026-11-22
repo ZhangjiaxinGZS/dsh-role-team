@@ -12,3 +12,5 @@
             name: '@deepseek-ai/dsh-tool-subagent-control'
             config:
               interrupt: false
+          - id: workspace-files
+            name: '@deepseek-ai/dsh-tool-fs'

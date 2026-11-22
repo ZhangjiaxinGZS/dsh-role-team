@@ -296,6 +296,7 @@ function MemberColumn({
       ) : (
         <SessionPane
           target={sessionTarget(version || s.currentSessionId, parent?.currentSessionId)}
+          permission={team.run.permissionPreset}
           readOnly={readOnly}
           seat={s}
         />

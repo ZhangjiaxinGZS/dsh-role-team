@@ -1,10 +1,12 @@
+import { fileId } from '../../shared/index.js'
+import { serializeMarkdown } from '../../shared/markdown.js'
 import { useState } from 'react'
 import type { Diagnostic } from '../../shared/index.js'
-import { Avatar, Notice, useUi } from '../ui.js'
+import { Avatar, Modal, Notice, useAction, useUi } from '../ui.js'
 import type { RoleChoice } from '../team-setup/TeamSetup.js'
-import { Documents, IdentifierModal } from './DocumentEditor.js'
-import { TrainingDialog, TrainingPanel } from './Training.js'
-export type LibraryRole = RoleChoice & { error?: Diagnostic | null }
+import { Documents } from './DocumentEditor.js'
+import { TrainingPanel } from './Training.js'
+export type LibraryRole = RoleChoice & { error?: Diagnostic | null; empty?: boolean }
 export function RoleLibrary({
   roles,
   path,
@@ -14,10 +16,12 @@ export function RoleLibrary({
   path?: string
   changed: () => void
 }) {
-  const { t } = useUi(),
+  const { t, call } = useUi(),
+    [showProfile, toggle] = useState(true),
     [role, setRole] = useState(''),
-    [session, setSession] = useState(''),
+    [session, setSession] = useState<{ roleId: string; trainingId: string }>(),
     [modal, setModal] = useState(''),
+    [startError, setStartError] = useState(''),
     id = role || roles[0]?.id
   const active = roles.find((r) => r.id === id)
   return (
@@ -28,12 +32,12 @@ export function RoleLibrary({
           <small title={path}>{path}</small>
         </div>
         <div className="rt-row">
-          <button onClick={() => setModal('manual')}>{t('newRole')}</button>
-          <button className="rt-primary" onClick={() => setModal('chat')}>
-            {t('trainNew')}
+          <button className="rt-primary" onClick={() => setModal('create')}>
+            ＋ {t('newRole')}
           </button>
         </div>
       </header>
+      <Notice>{startError}</Notice>
       <div className="rt-library-grid">
         <aside className="rt-rolelist">
           {roles.map((r) => (
@@ -42,13 +46,13 @@ export function RoleLibrary({
               aria-pressed={id === r.id}
               onClick={() => {
                 setRole(r.id)
-                setSession('')
+                setSession(undefined)
               }}
             >
               <Avatar name={r.name} />
               <span>
                 <strong>{r.name}</strong>
-                <small>{r.revision ? 'r' + r.revision : t('trainingDraft')}</small>
+                {r.revision && <small>r{r.revision}</small>}
               </span>
             </button>
           ))}
@@ -57,22 +61,31 @@ export function RoleLibrary({
           <div className="rt-detail" key={id}>
             <header>
               <h2>{active?.name ?? id}</h2>
-              <small>{id}</small>
+              <button
+                className="rt-profile-toggle"
+                aria-expanded={showProfile}
+                onClick={() => toggle(!showProfile)}
+              >
+                {t('profile')}
+              </button>
             </header>
             {active?.error && (
               <Notice>
                 {active.error.file} · {t('line')} {active.error.line} · {active.error.message}
               </Notice>
             )}
-            <div className="rt-split">
-              <Documents roleId={id} revision={active?.revision ?? null} changed={changed} />
+            <div className="rt-split" data-expanded={showProfile}>
               <TrainingPanel
-                key={id + session}
+                key={id + (session?.roleId === id ? session.trainingId : '')}
                 roleId={id}
+                empty={active?.empty}
                 hasRole={active?.revision != null}
-                initialId={session}
+                initialId={session?.roleId === id ? session.trainingId : undefined}
                 changed={changed}
               />
+              {showProfile && (
+                <Documents roleId={id} revision={active?.revision ?? null} changed={changed} />
+              )}
             </div>
           </div>
         ) : (
@@ -82,30 +95,94 @@ export function RoleLibrary({
           </div>
         )}
       </div>
-      {modal === 'manual' && (
-        <IdentifierModal
-          title={t('newRole')}
-          label={t('roleId')}
+      {modal === 'create' && (
+        <CreateRole
           close={() => setModal('')}
-          submit={async (value) => {
-            if (roles.some((r) => r.id === value)) throw new Error(t('conflict'))
-            setRole(value)
-            setSession('')
-            setModal('')
-          }}
-        />
-      )}
-      {modal === 'chat' && (
-        <TrainingDialog
-          close={() => setModal('')}
-          done={(row) => {
-            setRole(row.roleId)
-            setSession(row.trainingId)
-            setModal('')
+          save={async (name, id) => {
+            if (roles.some((r) => r.id === id)) throw new Error(t('duplicateRole'))
+            const result = await call('saveDocument', {
+              roleId: id,
+              expectedHash: null,
+              text: serializeMarkdown({ id, name }, ''),
+            })
+            if (!result.ok)
+              throw new Error(result.code === 'conflict' ? t('duplicateRole') : result.error.message)
+            setRole(id)
+            setSession(undefined)
             changed()
+            setModal('')
+            // Keep a successfully created role visible even if its first conversation cannot start.
+            try {
+              const row = await call('createTraining', { roleId: id, mode: 'coach' })
+              setSession(row)
+            } catch (error) {
+              setStartError(String(error))
+            }
           }}
         />
       )}
     </section>
+  )
+}
+function CreateRole({
+  close,
+  save,
+}: {
+  close: () => void
+  save: (name: string, id: string) => Promise<void>
+}) {
+  const { t } = useUi(),
+    action = useAction()
+  const [name, setName] = useState(''),
+    [custom, setCustom] = useState('')
+  const [suffix] = useState(() =>
+    Array.from(crypto.getRandomValues(new Uint8Array(5)), (n) => n.toString(16).padStart(2, '0')).join(
+      '',
+    ),
+  )
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 112)
+  const generated = fileId.safeParse(slug).success ? slug : 'role-' + suffix
+  return (
+    <Modal title={t('newRole')} close={close} locked={action.busy}>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          void action.run(async () => {
+            const id = fileId.safeParse(custom.trim() || generated)
+            if (!id.success) throw new Error(t('idHint'))
+            await save(name.trim(), id.data)
+          })
+        }}
+      >
+        <label>
+          {t('name')}
+          <input
+            autoFocus
+            required
+            maxLength={160}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </label>
+        <details>
+          <summary>{t('customId')}</summary>
+          <label>
+            {t('roleId')}
+            <input placeholder={generated} value={custom} onChange={(e) => setCustom(e.target.value)} />
+          </label>
+        </details>
+        <Notice>{action.error}</Notice>
+        <footer>
+          <button className="rt-primary" disabled={action.busy || !name.trim()}>
+            {t('create')}
+          </button>
+        </footer>
+      </form>
+    </Modal>
   )
 }

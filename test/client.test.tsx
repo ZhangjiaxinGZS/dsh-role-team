@@ -1,14 +1,15 @@
 // @vitest-environment jsdom
+import { RoleLibrary } from '../src/client/roles/RoleLibrary.js'
 import { createContext, useContext, type ComponentProps, type ReactNode } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import en from '../locales/en-US.json' with { type: 'json' }
 import { Client, type Seat, type Ui } from '../src/client/ui.js'
 import { Workbench } from '../src/client/workbench/Workbench.js'
-import { SessionChat, targetId } from '../src/client/workbench/SessionPane.js'
+import { ChildControls, SessionChat, targetId } from '../src/client/workbench/SessionPane.js'
 import { LibrarySettings } from '../src/client/App.js'
 import { DocumentEditor } from '../src/client/roles/DocumentEditor.js'
-import { TrainingDetail, TrainingDialog, TrainingPanel } from '../src/client/roles/Training.js'
+import { TrainingDetail, TrainingPanel } from '../src/client/roles/Training.js'
 import { TeamSetup } from '../src/client/team-setup/TeamSetup.js'
 import { serializeMarkdown } from '../src/shared/markdown.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -45,6 +46,11 @@ function harness(call: ReturnType<typeof vi.fn>) {
           renderFactorySlot: () => (
             <div data-conversation-region="chat">
               stream:{id}
+              <ChildControls
+                {...({ sessionId: id, useProjection: () => undefined } as unknown as ComponentProps<
+                  typeof ChildControls
+                >)}
+              />
               {approvals.has(id) && <button>approve:{id}</button>}
             </div>
           ),
@@ -115,6 +121,11 @@ it('routes each column, guards the lead, and rebinds reset and read-only history
         return [run]
       case 'getTeam':
         return { run, seats: [lead, child] }
+      case 'seatModels':
+        return [{ model: 'flash', provider: 'demo', name: 'Flash', efforts: [] }]
+      case 'selectSeatModel':
+        child = { ...child, selection: input.selection }
+        return child
       case 'versionDecision':
         child = { ...child, pendingMemoryRev: null }
         return child
@@ -143,20 +154,23 @@ it('routes each column, guards the lead, and rebinds reset and read-only history
   await screen.findByText(en.ui.protectLead)
   fireEvent.click(screen.getByLabelText(en.ui.close))
   const scout = column('scout')
-  fireEvent.change(scout.getByRole('textbox'), { target: { value: 'inspect' } })
-  fireEvent.change(scout.getByRole('combobox'), { target: { value: 'steer' } })
-  fireEvent.click(scout.getByText(/Send/))
+  expect(scout.queryByRole('textbox')).toBeNull()
+  expect(scout.queryByRole('combobox')).toBeNull()
+  expect(scout.getByText(en.ui.followLeader)).toBeTruthy()
+  fireEvent.click(scout.getByTitle(en.ui.chooseModel))
+  const picker = within(screen.getByRole('dialog'))
+  const option = await picker.findByRole('option', { name: 'demo · Flash' })
+  fireEvent.change(picker.getByRole('combobox'), {
+    target: { value: (option as HTMLOptionElement).value },
+  })
+  fireEvent.click(picker.getByText(en.ui.save))
   await waitFor(() =>
-    expect(call).toHaveBeenCalledWith('promptSeat', {
+    expect(call).toHaveBeenCalledWith('selectSeatModel', {
       seatId: 'scout',
       generation: 1,
-      delivery: 'steer',
-      text: 'inspect',
-      requestId: expect.any(String),
+      selection: { provider: 'demo', model: 'flash', reasoningEffort: undefined },
     }),
   )
-  fireEvent.click(scout.getByText(en.ui.stop))
-  await waitFor(() => expect(h.stops.get('scout-session')).toHaveBeenCalledOnce())
   fireEvent.click(scout.getByText(en.ui.next))
   await waitFor(() =>
     expect(call).toHaveBeenCalledWith('versionDecision', {
@@ -238,7 +252,7 @@ it('reviews each proposal only in its training session', async () => {
   fireEvent.click(within(first).getByText(en.ui.approve))
   await waitFor(() => expect(screen.queryByText('+new role')).toBeNull())
   fireEvent.click(within(second).getByText(en.ui.reject))
-  await screen.findByText(en.ui.noProposals)
+  await waitFor(() => expect(screen.queryByText(en.ui.proposals)).toBeNull())
   expect(changed).toHaveBeenCalledOnce()
   expect(call).toHaveBeenCalledWith('confirmProposal', { trainingId: 'train-id', proposalId: 'one' })
   expect(call).toHaveBeenCalledWith('rejectProposal', { trainingId: 'train-id', proposalId: 'two' })
@@ -280,7 +294,7 @@ it('edits a memory through draft, published and archived metadata without changi
   harness(call).mount(<DocumentEditor file={file} initial={null} changed={() => {}} />)
   const status = screen.getByLabelText(en.ui.status)
   expect((status as HTMLSelectElement).value).toBe('draft')
-  fireEvent.change(screen.getByLabelText(en.ui.name), { target: { value: 'Review habit' } })
+  fireEvent.change(screen.getByLabelText(en.ui.memoryTitle), { target: { value: 'Review habit' } })
   fireEvent.change(status, { target: { value: 'published' } })
   fireEvent.click(screen.getByText(en.ui.save))
   await screen.findByText(en.ui.saved)
@@ -353,18 +367,30 @@ it('shows the effective library and writes the next path against the native sett
   expect(screen.getByText('/roles')).toBeTruthy()
 })
 
-it('opens conversational role creation with only a role ID and no team lookup', async () => {
-  const created = { trainingId: 't', sessionId: 's', roleId: 'author', mode: 'create' }
-  const call = vi.fn().mockResolvedValue(created),
-    done = vi.fn()
-  harness(call).mount(<TrainingDialog close={() => {}} done={done} />)
+it('creates and publishes the named role before opening its first independent conversation', async () => {
+  const changed = vi.fn()
+  const call = vi.fn(async (method: string) => {
+    if (method === 'saveDocument') return { ok: true }
+    if (method === 'createTraining') return { roleId: 'author', trainingId: 't' }
+    if (method === 'getTraining') return { sessionId: 's' }
+    return method === 'readDocument' ? null : []
+  })
+  harness(call).mount(<RoleLibrary roles={[]} changed={changed} />)
+  fireEvent.click(screen.getByRole('button', { name: /New role/ }))
   const form = within(screen.getByRole('dialog'))
-  expect(form.getAllByRole('textbox')).toHaveLength(1)
-  expect(form.queryByRole('combobox')).toBeNull()
-  fireEvent.change(form.getByLabelText(en.ui.roleId), { target: { value: 'author' } })
-  fireEvent.click(form.getByRole('button', { name: en.ui.startTraining }))
-  await waitFor(() => expect(done).toHaveBeenCalledWith(created))
-  expect(call.mock.calls).toEqual([['createTraining', { roleId: 'author', mode: 'create' }]])
+  fireEvent.change(form.getByLabelText(en.ui.name), { target: { value: 'Author' } })
+  fireEvent.click(form.getByText(en.ui.create))
+  await screen.findByText('stream:s')
+  expect(call.mock.calls[0]).toEqual([
+    'saveDocument',
+    expect.objectContaining({
+      roleId: 'author',
+      expectedHash: null,
+      text: expect.stringContaining('name: Author'),
+    }),
+  ])
+  expect(changed).toHaveBeenCalledOnce()
+  expect(call).toHaveBeenCalledWith('createTraining', { roleId: 'author', mode: 'coach' })
 })
 
 it('starts coaching immediately and only offers team selection for a debrief', async () => {

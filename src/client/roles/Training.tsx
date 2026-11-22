@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { fileId } from '../../shared/index.js'
 import { Modal, Notice, useAction, useLoad, useUi, type Training } from '../ui.js'
 import { SessionPane, sessionTarget } from '../workbench/SessionPane.js'
 
@@ -30,38 +29,33 @@ export function TrainingDialog({
   close,
   done,
 }: {
-  debriefRoleId?: string
+  debriefRoleId: string
   close: () => void
   done: (row: Training) => void
 }) {
   const { t, call } = useUi(),
     a = useAction(),
-    [id, setId] = useState(''),
     [run, setRun] = useState('')
   return (
-    <Modal title={t(debriefRoleId ? 'debrief' : 'trainNew')} close={close} locked={a.busy}>
+    <Modal title={t('debrief')} close={close} locked={a.busy}>
       <form
         onSubmit={(e) => {
           e.preventDefault()
           void a.run(async () => {
-            const request = debriefRoleId
-              ? { roleId: debriefRoleId, mode: 'debrief' as const, ...(run && { sourceRunId: run }) }
-              : { roleId: fileId.parse(id.trim()), mode: 'create' as const }
-            done(await call('createTraining', request))
+            done(
+              await call('createTraining', {
+                roleId: debriefRoleId,
+                mode: 'debrief',
+                ...(run && { sourceRunId: run }),
+              }),
+            )
           })
         }}
       >
-        {debriefRoleId ? (
-          <DebriefTeamField value={run} select={setRun} />
-        ) : (
-          <label>
-            {t('roleId')}
-            <input required autoFocus value={id} onChange={(e) => setId(e.target.value)} />
-          </label>
-        )}
+        <DebriefTeamField value={run} select={setRun} />
         <Notice>{a.error}</Notice>
         <footer>
-          <button className="rt-primary" disabled={a.busy || (!debriefRoleId && !id.trim())}>
+          <button className="rt-primary" disabled={a.busy}>
             {t('startTraining')}
           </button>
         </footer>
@@ -73,10 +67,12 @@ export function TrainingPanel({
   roleId,
   initialId,
   hasRole,
+  empty,
   changed,
 }: {
   roleId: string
   initialId?: string
+  empty?: boolean
   hasRole: boolean
   changed: () => void
 }) {
@@ -90,7 +86,7 @@ export function TrainingPanel({
     setDebrief(false)
     list.refresh()
   }
-  const id = selected || list.data?.[0]?.trainingId
+  const id = selected || list.data?.at(-1)?.trainingId
   return (
     <section className="rt-training">
       <header>
@@ -110,11 +106,12 @@ export function TrainingPanel({
               )
             }
           >
-            {t(hasRole ? 'newTraining' : 'trainNew')}
+            {t('newTraining')}
           </button>
         </div>
       </header>
       <Notice>{list.error || start.error}</Notice>
+      {(!id || empty) && <p className="rt-intro">{t('firstTopic')}</p>}
       {id && (
         <>
           <select
@@ -122,9 +119,9 @@ export function TrainingPanel({
             value={id}
             onChange={(e) => setSelected(e.target.value)}
           >
-            {list.data?.map((x) => (
+            {list.data?.map((x, i) => (
               <option key={x.trainingId} value={x.trainingId}>
-                {t(x.mode === 'create' ? 'createMode' : x.mode)} · {x.trainingId.slice(-8)}
+                {t(x.mode === 'debrief' ? 'debrief' : 'coach')} · {i + 1}
               </option>
             ))}
           </select>
@@ -169,26 +166,27 @@ export function TrainingDetail({ trainingId, changed }: { trainingId: string; ch
       {row && (
         <>
           <SessionPane target={sessionTarget(row.sessionId)} />
-          <section className="rt-proposals">
-            <h4>
-              {t('proposals')} <small>{pending?.length ?? 0}</small>
-            </h4>
-            {pending?.map((p) => (
-              <article key={p.id}>
-                <strong>{p.memoryId ? 'memories/' + p.memoryId + '.md' : 'role.md'}</strong>
-                <pre>{p.diff}</pre>
-                <div className="rt-row">
-                  <button className="rt-primary" disabled={a.busy} onClick={() => review(p.id, true)}>
-                    {t('approve')}
-                  </button>
-                  <button disabled={a.busy} onClick={() => review(p.id, false)}>
-                    {t('reject')}
-                  </button>
-                </div>
-              </article>
-            ))}
-            {!pending?.length && <small>{t('noProposals')}</small>}
-          </section>
+          {!!pending?.length && (
+            <section className="rt-proposals">
+              <h4>
+                {t('proposals')} <small>{pending?.length ?? 0}</small>
+              </h4>
+              {pending?.map((p) => (
+                <article key={p.id}>
+                  <strong>{t(p.memoryId ? 'memories' : 'card')}</strong>
+                  <pre>{p.diff}</pre>
+                  <div className="rt-row">
+                    <button className="rt-primary" disabled={a.busy} onClick={() => review(p.id, true)}>
+                      {t('approve')}
+                    </button>
+                    <button disabled={a.busy} onClick={() => review(p.id, false)}>
+                      {t('reject')}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </section>
+          )}
         </>
       )}
     </>

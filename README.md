@@ -21,7 +21,7 @@ Tested with DeepSeek Harness 0.2.2-rc.5 on macOS. Web and Electron Desktop use t
    "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop add "/absolute/path/dsh-role-team-0.1.0.tgz"
    ```
 
-3. **Create roles and a team.** Open **Role teams → Roles & training**. Choose **Create through chat** and enter a role ID, or write a role card manually. For an existing role, **Start coaching** opens a fresh 1:1 chat. To assemble a team, return to **Team workspace → New team**. Select the lead, members, and an existing workspace directory separate from the role library. For generated replies and conversational coaching, configure your DeepSeek key in the Host’s model settings.
+3. **Create roles and a team.** Open **Role teams → Roles & training**. Choose **New role**, enter a name and start talking. The role is immediately available. **New conversation** opens another 1:1 chat with the same role. Open **Role profile** to edit instructions and review long-term experience. To assemble a team, return to **Team workspace → New team**. Select the lead, members, and an existing workspace directory separate from the role library. For generated replies and conversational coaching, configure your DeepSeek key in the Host’s model settings.
 
 Read the [Chinese installation guide and Web/Desktop verification report](docs/VERIFICATION.md) for the tested workflows, screenshots and model coverage.
 
@@ -47,7 +47,7 @@ The typed `roleTeam` methods take a single `request` object for each team or tra
 - Call `createTeam` to open a fresh root. Use `addMember` with an optional `parentSeatId` to spawn a continuable child. Route user text via `promptSeat` with the displayed generation, a client-minted request ID, and `queue` or `steer`. `listTeams`, `getTeam`, `renameTeam`, and `archiveTeam` manage the run. Archiving retains its logs.
 - For a pending seat revision, send the displayed revision to `versionDecision` with `next-turn` or `keep`. A scheduled revision appears in `approved` until the first admitted step of the new turn. `addNote` stores run-wide or seat-specific notes. `listNotes` reads one run.
 - Call `resetSeat` with the displayed generation and selected handoff. The response supplies the new native session ID. A failed transfer leaves a durable reset intent. Retry the original generation and handoff to finish. Use `listGenerations` to find archived session IDs for read-only history.
-- The managed preset exposes native team messaging and task tools during collaboration, and proposal tools during training. General-purpose file, shell, code-execution and session search tools are excluded from model requests and denied at dispatch. Choose an existing project directory separate from the role library. The spawn depth limit is eight.
+- The managed preset exposes native team messaging and task tools during collaboration, and proposal tools during training. Team members can read and edit files inside the shared workspace. Shell execution and cross-session search remain restricted. Team composers follow each seat’s session, and children inherit the lead’s permission preset. Choose an existing project directory separate from the role library. The spawn depth limit is eight.
 
 ## Product roadmap
 

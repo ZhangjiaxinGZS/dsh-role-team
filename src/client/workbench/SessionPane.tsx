@@ -2,20 +2,20 @@ import {
   createContext,
   useContext,
   useEffect,
-  useRef,
   useState,
   useSyncExternalStore,
   type ReactNode,
 } from 'react'
+import type { ModelChoice } from '../../shared/index.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { PropsRuntime, PropsRenderFactories } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConversationViewsProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-agent/types'
-import { useUi, Notice, unwrap, useAction, type Seat, type SessionTarget } from '../ui.js'
+import { useUi, Modal, Notice, useLoad, useAction, type Seat, type SessionTarget } from '../ui.js'
 
-export type Pane = { target: SessionTarget; seat?: Seat; readOnly?: boolean }
+export type Pane = { target: SessionTarget; seat?: Seat; permission?: string; readOnly?: boolean }
 export function targetId(target: SessionTarget) {
   return typeof target === 'string' ? target : target.childSessionId
 }
@@ -26,7 +26,7 @@ export const sessionTarget = (id: string, parent?: string | null): SessionTarget
 export function SessionPane(props: Pane) {
   return <BoundPane key={targetId(props.target)} {...props} />
 }
-function BoundPane({ target, seat, readOnly = false }: Pane) {
+function BoundPane({ target, seat, permission, readOnly = false }: Pane) {
   const { retain, SessionProvider, chat, t } = useUi(),
     [reference, setReference] = useState<SessionReference>(),
     [error, setError] = useState(''),
@@ -76,13 +76,17 @@ function BoundPane({ target, seat, readOnly = false }: Pane) {
         <History reference={reference} />
       ) : (
         <section className="rt-session">
-          <PaneContext.Provider value={{ reference, seat }}>{chat()}</PaneContext.Provider>
+          <PaneContext.Provider value={{ reference, seat, permission }}>{chat()}</PaneContext.Provider>
         </section>
       )}
     </SessionProvider>
   )
 }
-const PaneContext = createContext<{ reference: SessionReference; seat?: Seat } | null>(null)
+const PaneContext = createContext<{
+  reference: SessionReference
+  seat?: Seat
+  permission?: string
+} | null>(null)
 function FixedChat({ renderSlot }: ConversationViewsProps) {
   return <>{renderSlot('conversation.session', { view: 'chat' })}</>
 }
@@ -96,91 +100,134 @@ export function SessionChat(props: PropsRuntime<'roleTeam.chat'> & PropsRenderFa
   } as const
   const { reference, seat } = useContext(PaneContext)!
   if (props.sessionId !== reference.sessionId) throw new Error('Mismatched SessionProvider')
-  const interaction = props.useSessionStatus((s) => s.get(props.sessionId)?.pendingInteraction)
-  const running = props.useSession((s) => s.running)
-  const model = props.useProjection('modelSelection')
-  const route = model?.next ?? model?.lastUsed
-  const { t, call } = useUi(),
-    a = useAction(),
-    stop = useAction(),
-    [text, setText] = useState(''),
-    [delivery, setDelivery] = useState<'queue' | 'steer'>('queue')
-  const pending = useRef<{ text: string; delivery: string; requestId: string }>()
   return (
-    <div className="rt-chat" data-own-composer={seat && !interaction ? 'true' : undefined}>
-      {seat && route && (
-        <small className="rt-model">
-          {route.provider} / {route.model}
-        </small>
-      )}
+    <div className="rt-chat" data-child={seat?.parentSeatId ? true : undefined}>
       <div className="rt-transcript">
         {props.renderFactorySlot('conversation.content', factoryInput, { slots: { views: FixedChat } })}
       </div>
-      {seat && !interaction && (
-        <form
-          className="rt-compose"
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (!text.trim()) return
-            void a.run(async () => {
-              if (pending.current?.text !== text || pending.current.delivery !== delivery) {
-                const requestId =
-                  crypto.randomUUID?.() ??
-                  Array.from(crypto.getRandomValues(new Uint8Array(16)), (n) =>
-                    n.toString(16).padStart(2, '0'),
-                  ).join('')
-                pending.current = { text, delivery, requestId }
-              }
-              await call('promptSeat', {
-                seatId: seat.seatId,
-                generation: seat.currentGeneration,
-                requestId: pending.current.requestId,
-                text,
-                delivery,
-              })
-              pending.current = undefined
-              setText('')
-            })
-          }}
-        >
-          <textarea
-            aria-label={t('message')}
-            placeholder={t('message') + '…'}
-            value={text}
-            disabled={a.busy}
-            onChange={(e) => setText(e.target.value)}
-          />
-          <div className="rt-row">
-            <select
-              aria-label={t('message')}
-              value={delivery}
-              onChange={(e) => setDelivery(e.target.value as typeof delivery)}
-            >
-              <option value="queue">{t('queue')}</option>
-              <option value="steer">{t('steer')}</option>
-            </select>
-            <span className="rt-grow" />
-            {running && (
-              <button
-                type="button"
-                disabled={stop.busy}
-                onClick={() =>
-                  stop.run(async () => {
-                    unwrap(await reference.binding.session.cancel())
-                  })
-                }
-              >
-                {t('stop')}
-              </button>
-            )}
-            <button className="rt-primary" disabled={a.busy || !text.trim()}>
-              {t('send')} ↑
-            </button>
-          </div>
-          <Notice>{a.error || stop.error}</Notice>
-        </form>
-      )}
     </div>
+  )
+}
+
+// rc.5 intentionally omits the ordinary model selector on addressed subagents.
+export function ChildControls(props: PropsRuntime<'conversation.input.right'>) {
+  const pane = useContext(PaneContext)
+  return pane?.seat?.parentSeatId && pane.reference.sessionId === props.sessionId ? (
+    <MemberSettings permission={pane.permission} seat={pane.seat} {...props} />
+  ) : null
+}
+function MemberSettings({
+  seat,
+  permission,
+  useProjection,
+}: PropsRuntime<'conversation.input.right'> & { seat: Seat; permission?: string }) {
+  const { t, call } = useUi(),
+    action = useAction()
+  const [open, toggle] = useState(false)
+  const models = useLoad(String(open), () => (open ? call('seatModels', {}) : Promise.resolve([])))
+  const projection = useProjection('modelSelection')
+  const current = seat.selection ?? projection?.next ?? projection?.lastUsed
+  const permissions = useProjection('permissions') as { currentValue: string } | undefined
+  const mode = permission ?? permissions?.currentValue
+  const modes = {
+    'workspace-write': t('workspaceWrite'),
+    'danger-full-access': t('fullAccess'),
+    'read-only': t('readOnlyMode'),
+    auto: t('autoMode'),
+  }
+  const [draft, setDraft] = useState<ModelChoice>()
+  const selected = models.data?.find((m) => m.provider === draft?.provider && m.model === draft?.model)
+  const apply = (provider: string, model: string, reasoningEffort?: string) =>
+    action.run(async () => {
+      await call('selectSeatModel', {
+        seatId: seat.seatId,
+        generation: seat.currentGeneration,
+        selection: { provider, model, reasoningEffort },
+      })
+      toggle(false)
+    })
+  return (
+    <span className="rt-child-settings">
+      <small title={t('followLeader')}>
+        {t('followLeader')}
+        {mode && ' · ' + (modes[mode as keyof typeof modes] ?? mode)}
+      </small>
+      <button
+        type="button"
+        title={t('chooseModel')}
+        onClick={() => {
+          setDraft(current ?? undefined)
+          toggle(true)
+        }}
+      >
+        {current?.model ?? t('chooseModel')}
+        {current?.reasoningEffort && ' · ' + current.reasoningEffort} ▾
+      </button>
+      {open && (
+        <Modal title={t('chooseModel')} close={() => toggle(false)} locked={action.busy}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (draft && selected) void apply(draft.provider, draft.model, draft.reasoningEffort)
+            }}
+          >
+            <label>
+              {t('chooseModel')}
+              <select
+                disabled={action.busy}
+                value={selected ? JSON.stringify([selected.provider, selected.model]) : ''}
+                onChange={(e) => {
+                  const [provider, model] = JSON.parse(e.target.value)
+                  setDraft({ provider, model })
+                }}
+              >
+                <option value="" disabled>
+                  {t('chooseModel')}
+                </option>
+                {models.data?.map((m) => (
+                  <option
+                    key={JSON.stringify([m.provider, m.model])}
+                    value={JSON.stringify([m.provider, m.model])}
+                  >
+                    {m.provider} · {m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {!!selected?.efforts.length && (
+              <label>
+                {t('effort')}
+                <select
+                  disabled={action.busy}
+                  value={draft?.reasoningEffort ?? ''}
+                  onChange={(e) =>
+                    setDraft({
+                      provider: selected.provider,
+                      model: selected.model,
+                      reasoningEffort: e.target.value || undefined,
+                    })
+                  }
+                >
+                  <option value="">{t('modelDefault')}</option>
+                  {selected.efforts.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {models.data?.length === 0 && <small>{t('noModels')}</small>}
+            <Notice>{models.error || action.error}</Notice>
+            <footer>
+              <button className="rt-primary" disabled={!selected || action.busy}>
+                {t('save')}
+              </button>
+            </footer>
+          </form>
+        </Modal>
+      )}
+    </span>
   )
 }
 function History({ reference }: { reference: SessionReference }) {

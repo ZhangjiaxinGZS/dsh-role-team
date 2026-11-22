@@ -3,12 +3,37 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-agent-team'
 import type { SessionPromptRequest } from '@deepseek-ai/dsh-api-session-controller'
+import type { ModelChoice } from '../../shared/index.js'
+import type {} from '@deepseek-ai/dsh-permission-presets'
 import type { Input } from '../../shared/runtime.js'
 import type {} from '@deepseek-ai/dsh-subagent'
 import type {} from '@deepseek-ai/dsh-workspace'
 
 export class NativeTeam {
   constructor(readonly ctx: Context) {}
+  async models() {
+    const catalog = await this.ctx.sessionController.modelCatalog()
+    return catalog.groups.flatMap((group) =>
+      group.models.map((model) => ({
+        provider: group.id,
+        model: model.id,
+        name: model.name,
+        efforts: (model.reasoning?.efforts ?? []).map(({ id, name }) => ({ id, name })),
+      })),
+    )
+  }
+  select(agent: Agent, choice: ModelChoice) {
+    agent.model.select(choice as Parameters<Agent['model']['select']>[0])
+  }
+  followPermission(rootId: string, child: Agent, saved?: string) {
+    const presets = this.ctx.get('permissionPresets')
+    if (!presets) return
+    const leader = this.ctx.agents.get(rootId as SessionId)
+    const mode = leader ? presets.current(leader.session) : saved
+    if (!mode) throw new Error('Team leader permission is unavailable')
+    if (mode === 'custom') throw new Error('Select a team permission preset on the lead')
+    presets.set(child.session, mode)
+  }
   async exists(id: string) {
     try {
       return await this.ctx.sessionQuery.inspectSession(id as SessionId, () => true)
@@ -56,7 +81,14 @@ export class NativeTeam {
     await this.ctx.workspaceRegistry.archiveSession(id as SessionId, { stopActivity: true })
     await live?.whenIdle()
   }
-  async spawn(rootId: string, parentId: string, childId: string, name: string, label: string) {
+  async spawn(
+    rootId: string,
+    parentId: string,
+    childId: string,
+    name: string,
+    label: string,
+    locale: 'zh' | 'en' = 'zh',
+  ) {
     const root = await this.root(rootId)
     const catalog = await this.ctx.subagents.listDescendants(root.id)
     const existing = catalog.find((entry) => entry.id === childId)
@@ -71,7 +103,13 @@ export class NativeTeam {
       await this.ctx.subagents.sendMessage(
         root,
         parentId as SessionId,
-        [{ type: 'text', text: 'Stand by for a team membership change.' }],
+        [
+          {
+            type: 'text',
+            text:
+              locale === 'zh' ? '即将有新成员加入，请待命。' : 'Stand by for a team membership change.',
+          },
+        ],
         { signal: new AbortController().signal },
       )
       parent = this.ctx.agents.get(parentId as SessionId)
@@ -93,7 +131,10 @@ export class NativeTeam {
       prompt: [
         {
           type: 'text',
-          text: 'You have joined the team. Acknowledge briefly and wait for your assignment.',
+          text:
+            locale === 'zh'
+              ? '你已加入团队，请用中文简短报到，并等待队长安排。'
+              : 'You have joined the team. Acknowledge briefly in English and wait for your assignment.',
         },
       ],
     })

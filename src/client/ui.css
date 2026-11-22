@@ -301,21 +301,10 @@
   flex: 1;
   min-height: 0;
 }
-.rt-chat[data-own-composer='true'] [data-conversation-region='composer'] {
+
+/* A member inherits the leader's native preset. The slot wrapper is rc.5's public styling seam. */
+.rt-chat[data-child] [data-slot='conversation.input.permission'] {
   display: none !important;
-}
-.rt-compose {
-  padding: 8px;
-  border-top: 1px solid var(--rt-line);
-  background: var(--rt-panel);
-}
-.rt-compose textarea {
-  width: 100%;
-  height: 60px;
-  resize: vertical;
-}
-.rt-compose .rt-row {
-  margin-top: 5px;
 }
 .rt-pane-status,
 .rt-empty {
@@ -403,7 +392,7 @@
 }
 .rt-split {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr);
+  grid-template-columns: minmax(0, 1fr) minmax(245px, 33%);
   gap: 8px;
   min-height: 0;
   flex: 1;
@@ -597,4 +586,35 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.rt-split[data-expanded='false'] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.rt-detail > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.rt-experiences {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--rt-line);
+}
+.rt-app .rt-text-button {
+  border: 0;
+  background: transparent;
+  justify-self: start;
+}
+.rt-intro {
+  padding: 12px;
+}
+.rt-child-settings {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.rt-child-settings select {
+  max-width: 12rem;
 }

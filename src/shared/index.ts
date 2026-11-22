@@ -91,11 +91,17 @@ export const proposal = z.strictObject({
   status: z.enum(['pending', 'confirmed', 'rejected']),
 })
 const key = z.string().min(1)
+export const conversationLocale = z.enum(['zh', 'en'])
+export const modelChoice = z.strictObject({ provider: key, model: key, reasoningEffort: key.optional() })
+export type ModelChoice = z.infer<typeof modelChoice>
 export const indexRecords = {
+  role_models: z.strictObject({ roleId: fileId, selection: modelChoice }),
   team_runs: z.strictObject({
     runId: key,
     title: key,
+    locale: conversationLocale.optional(),
     rootSessionId: key,
+    permissionPreset: key.optional(),
     leaderSeatId: key,
     workspaceCwd: key,
     status: z.enum(['creating', 'active', 'archived', 'failed']),
@@ -109,6 +115,7 @@ export const indexRecords = {
     displayName: key,
     currentGeneration: revision,
     currentSessionId: key,
+    selection: modelChoice.optional(),
     nativeAgentName: key,
     adoptedRoleRev: revision,
     adoptedMemoryRev: revision,
@@ -141,6 +148,7 @@ export const indexRecords = {
   }),
   training_sessions: z.strictObject({
     trainingId: key,
+    locale: conversationLocale.optional(),
     roleId: fileId,
     sessionId: key,
     mode: z.enum(['create', 'coach', 'debrief']),

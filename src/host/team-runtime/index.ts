@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SessionId } from '@deepseek-ai/dsh-session'
-import type { IndexRecord, RoleStatus, Snapshot } from '../../shared/index.js'
+import type { IndexRecord, RoleStatus, Snapshot, ModelChoice } from '../../shared/index.js'
 import type { Input } from '../../shared/runtime.js'
 import { RoleStore } from '../role-store/index.js'
 import { generationKey, type Index } from '../storage/index.js'
@@ -14,6 +14,7 @@ export type Seat = IndexRecord<'team_seats'>
 export class TeamRuntime {
   readonly training: TrainingRuntime
   private readonly queue = new Map<string, Promise<unknown>>()
+  private readonly restoringModel = new Set<string>()
   private readonly cache = new Map<string, Snapshot>()
   constructor(
     readonly index: Index,
@@ -74,6 +75,120 @@ export class TeamRuntime {
     if (run.status !== 'active') throw new Error('Team is not active')
     return run
   }
+  nativeName(parentId: string, label: string, roleId: string) {
+    const used = new Set(
+      this.index.seats
+        .list()
+        .filter((s) => s.parentSeatId === parentId)
+        .flatMap((s) =>
+          this.index.generations
+            .list()
+            .filter((g) => g.seatId === s.seatId)
+            .map((g) => g.nativeAgentName),
+        ),
+    )
+    const slug = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+    let base = slug(label) || slug(roleId)
+    if (/^role-[a-f0-9]{10}$/.test(base)) base = 'member'
+    if (!/^[a-z]/.test(base) || base === 'lead') base = 'member-' + base
+    base = base.slice(0, 26)
+    let name = base
+    for (let i = 2; used.has(name); i++) name = base + '-' + i
+    return name
+  }
+  async selectSeatModel(input: Input<'selectSeatModel'>) {
+    return this.ordered(this.seat(input.seatId).runId, async () => {
+      const s = this.seat(input.seatId)
+      this.active(s.runId)
+      if (
+        !s.parentSeatId ||
+        s.status !== 'active' ||
+        s.joining ||
+        s.currentGeneration !== input.generation
+      )
+        throw new Error('Seat generation is unavailable')
+      const choice = input.selection
+      const entry = (await this.native.models()).find(
+        (m) => m.provider === choice.provider && m.model === choice.model,
+      )
+      if (
+        !entry ||
+        (choice.reasoningEffort && !entry.efforts.some((e) => e.id === choice.reasoningEffort))
+      )
+        throw new Error('Model or reasoning effort is unavailable')
+      await this.native.ctx.llm.resolveCallConfig(
+        choice as Parameters<typeof this.native.ctx.llm.resolveCallConfig>[0],
+      )
+      const updated = await this.index.seats.update(s.seatId, (row) => ({ ...row, selection: choice }))
+      const live = this.native.ctx.agents.get(s.currentSessionId as SessionId)
+      if (live) this.native.select(live, choice)
+      await this.remember(s.roleId, choice)
+      return updated
+    })
+  }
+  private remember(roleId: string, selection: ModelChoice) {
+    return this.ordered('model/' + roleId, () => this.index.models.put({ roleId, selection }))
+  }
+  private async restoreModel(agent: Agent, roleId: string, selected?: ModelChoice) {
+    await this.queue.get('model/' + roleId)
+    const choice =
+      selected ?? (!agent.session.firstLiveSeq ? this.index.models.get(roleId)?.selection : undefined)
+    if (!choice) return
+    this.restoringModel.add(agent.id)
+    try {
+      this.native.select(agent, choice)
+    } finally {
+      this.restoringModel.delete(agent.id)
+    }
+  }
+  observeSessions() {
+    const { ctx } = this.native
+    ctx.on('session/event', (session, event) => {
+      if (!session.id.startsWith('rt-')) return
+      if (event.type === 'model/selection' || event.type === 'request/header') {
+        if (this.restoringModel.has(session.id)) return
+        const roleId =
+          this.index.seats.list().find((s) => s.currentSessionId === session.id && s.status === 'active')
+            ?.roleId ?? this.index.training.list().find((t) => t.sessionId === session.id)?.roleId
+        if (!roleId) return
+        const config = event.type === 'model/selection' ? event.data : event.data.header.config
+        if (event.type === 'request/header' && this.index.models.get(roleId)) return
+        void this.remember(roleId, {
+          provider: config.provider,
+          model: config.model,
+          reasoningEffort:
+            event.type === 'request/header' && event.data.header.adapterDefaults?.reasoningEffort
+              ? undefined
+              : config.reasoningEffort,
+        }).catch((e) => ctx.logger.warn(String(e)))
+      }
+      if (!['permission/preset', 'sandbox/mode', 'approval/policy'].includes(event.type)) return
+      const seat = this.index.seats.list().find((s) => s.currentSessionId === session.id)
+      if (!seat) return
+      if (!seat.parentSeatId && event.type === 'permission/preset')
+        void this.index.runs
+          .update(seat.runId, (run) => ({ ...run, permissionPreset: event.data.preset }))
+          .catch((e) => ctx.logger.warn(String(e)))
+      // The preset and its knobs are appended together. Reconcile after the complete native switch.
+      queueMicrotask(() => {
+        const { run, seats } = this.getTeam(seat.runId)
+        for (const s of seats.filter((s) => s.parentSeatId && s.status === 'active')) {
+          const live = ctx.agents.get(s.currentSessionId as SessionId)
+          if (live) {
+            try {
+              this.native.followPermission(run.rootSessionId, live, run.permissionPreset)
+            } catch (e) {
+              ctx.logger.warn(String(e))
+            }
+          }
+        }
+      })
+    })
+  }
   async reserve(
     runId: string,
     parentSeatId: string | null,
@@ -90,7 +205,9 @@ export class TeamRuntime {
       displayName: displayName ?? snap.role.meta.name,
       currentGeneration: 1,
       currentSessionId: sessionId,
-      nativeAgentName: parentSeatId ? 's-' + seatId.slice(0, 12) + '-1' : 'lead',
+      nativeAgentName: parentSeatId
+        ? this.nativeName(parentSeatId, displayName ?? snap.role.meta.name, snap.roleId)
+        : 'lead',
       adoptedRoleRev: snap.publishedRevision,
       adoptedMemoryRev: snap.publishedRevision,
       pendingRoleRev: null,
@@ -120,6 +237,7 @@ export class TeamRuntime {
     await this.index.runs.put({
       runId,
       title: input.title,
+      locale: input.locale,
       workspaceCwd: cwd,
       rootSessionId,
       leaderSeatId: seatId,
@@ -156,13 +274,43 @@ export class TeamRuntime {
           seat.currentSessionId,
           seat.nativeAgentName,
           seat.displayName,
+          run.locale,
         )
       } catch (error) {
         await this.index.seats.update(seat.seatId, (s) => ({ ...s, status: 'archived' }))
         throw error
       }
-      return this.index.seats.update(seat.seatId, ({ joining, ...ready }) => ready)
+      return this.finishJoin(seat)
     })
+  }
+  private async finishJoin(seat: Seat) {
+    const run = this.active(seat.runId)
+    const snap = await this.snapshot(seat.roleId, seat.adoptedRoleRev)
+    const duty =
+      snap.role.body
+        .split('\n')
+        .map((line) => line.trim())
+        .find((line) => line && !line.startsWith('#'))
+        ?.slice(0, 160) || (run.locale === 'en' ? 'Awaiting assignment' : '待队长安排')
+    const message =
+      run.locale === 'en'
+        ? `${seat.displayName} (${seat.nativeAgentName}) has joined and is ready. Responsibilities: ${duty}.`
+        : `成员「${seat.displayName}」已加入团队并就绪。职责：${duty}。协作名称：${seat.nativeAgentName}。`
+    const leader = await this.native.root(run.rootSessionId)
+    const child = this.native.ctx.agents.get(seat.currentSessionId as SessionId)
+    if (child)
+      await this.native.ctx.subagents.sendMessage(child, leader.id, [{ type: 'text', text: message }], {
+        signal: new AbortController().signal,
+      })
+    else
+      await this.native.prompt(leader.id, false, {
+        seatId: run.leaderSeatId,
+        generation: 1,
+        requestId: seat.seatId,
+        delivery: 'queue',
+        text: message,
+      })
+    return this.index.seats.update(seat.seatId, ({ joining, ...ready }) => ready)
   }
   /** Restore interrupted creation intents before the next UI operation addresses their seats. */
   async recover() {
@@ -196,8 +344,9 @@ export class TeamRuntime {
             seat.currentSessionId,
             seat.nativeAgentName,
             seat.displayName,
+            run.locale,
           )
-          await this.index.seats.update(seat.seatId, ({ joining, ...ready }) => ready)
+          await this.finishJoin(seat)
         })
       }
     }
@@ -264,7 +413,8 @@ export class TeamRuntime {
     const { index } = this
     const training = index.training.list().find((t) => t.sessionId === agent.id)
     if (training) {
-      isolate(agent, true, () => !!index.training.get(training.trainingId))
+      await this.restoreModel(agent, training.roleId)
+      isolate(agent, true, () => !!index.training.get(training.trainingId), training.locale)
       agent.ctx.systemPrompt.suppressRuntimeContext()
       await this.training.install(agent, training)
       return
@@ -288,9 +438,28 @@ export class TeamRuntime {
           : row.status === 'active' && row.currentSessionId === agent.id)
       )
     }
-    isolate(agent, false, active)
+    const run = this.getTeam(seat.runId).run
+    if (!seat.parentSeatId) {
+      const preset = this.native.ctx.get('permissionPresets')?.current(agent.session)
+      if (preset && preset !== run.permissionPreset)
+        await index.runs.update(seat.runId, (r) => ({ ...r, permissionPreset: preset }))
+    }
+    await this.restoreModel(agent, seat.roleId, seat.selection)
+    if (seat.parentSeatId)
+      this.native.followPermission(
+        run.rootSessionId,
+        agent,
+        this.getTeam(seat.runId).run.permissionPreset,
+      )
+    isolate(agent, false, active, run.locale, run.workspaceCwd)
     agent.ctx.on('tools/pre-execute', async (exec, next) => {
       if (exec.agent !== agent) return next()
+      if (seat.parentSeatId)
+        this.native.followPermission(
+          run.rootSessionId,
+          agent,
+          this.getTeam(seat.runId).run.permissionPreset,
+        )
       const args = exec.arguments as { agent?: unknown; owner?: unknown }
       const target =
         exec.name === 'send_message'
@@ -304,7 +473,13 @@ export class TeamRuntime {
           .list()
           .find((s) => s.runId === seat.runId && s.currentSessionId === id)
         if (recipient?.status !== 'active')
-          return { kind: 'deny', reason: 'Target is not an active seat in this team' }
+          return {
+            kind: 'deny',
+            reason:
+              run.locale === 'en'
+                ? 'Target is not an active seat in this team'
+                : '目标成员不在当前团队的活跃席位中。',
+          }
       }
       return next()
     })
@@ -374,7 +549,12 @@ export class TeamRuntime {
       order: 0,
       complete: true,
       interpolate: false,
-      text: () => view().role.role.body,
+      text: () =>
+        [
+          run.locale === 'en' ? 'Work and reply in English.' : '请用中文协作、报到并回复用户。',
+          seat.displayName,
+          view().role.role.body,
+        ].join('\n'),
     })
     agent.ctx.systemPrompt.context({
       name: 'role-team-memory',

@@ -61,6 +61,7 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     this.index = repository(domain)
     this.ctx.inject(
       [
+        'llm',
         'agents',
         'sessionController',
         'sessionQuery',
@@ -76,6 +77,7 @@ export default class RoleTeamService extends TypertRemoteService implements Role
         host.effect(() => () => {
           if (this.mounted === runtime) this.mounted = undefined
         })
+        runtime.observeSessions()
         await runtime.recover()
         await this.roles.rescan()
       },
@@ -119,6 +121,13 @@ export default class RoleTeamService extends TypertRemoteService implements Role
 
   @Remote async promptSeat(request: Input<'promptSeat'>) {
     return this.runtime.promptSeat(request)
+  }
+
+  @Remote async seatModels(_request: Input<'seatModels'>) {
+    return this.runtime.native.models()
+  }
+  @Remote async selectSeatModel(request: Input<'selectSeatModel'>) {
+    return this.runtime.selectSeatModel(request)
   }
 
   @Remote async resetSeat(request: Input<'resetSeat'>) {

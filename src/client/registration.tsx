@@ -13,7 +13,7 @@ import css from './ui.css'
 import { TYPERT_REMOTE } from '../shared/remote.js'
 import { Client, unwrap, type Labels, type Ui } from './ui.js'
 import { App, LibrarySettings } from './App.js'
-import { SessionChat } from './workbench/SessionPane.js'
+import { ChildControls, SessionChat } from './workbench/SessionPane.js'
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     'roleTeam.chat': { kind: 'single'; scope: 'session' }
@@ -52,8 +52,13 @@ function mount(ctx: Context) {
   const shared: Ui = {
     t,
     retain: (target) => ctx.sessions.retain(target, options),
-    call: (async (method, ...args) =>
-      unwrap(await Reflect.apply(ctx.remote.roleTeam[method], ctx.remote.roleTeam, args))) as Ui['call'],
+    call: (async (method, ...args) => {
+      const input =
+        method === 'createTeam' || method === 'createTraining'
+          ? [{ ...Object(args[0]), locale: ctx.locale.getLocale().active === 'zh' ? 'zh' : 'en' }]
+          : args
+      return unwrap(await Reflect.apply(ctx.remote.roleTeam[method], ctx.remote.roleTeam, input))
+    }) as Ui['call'],
     SessionProvider: ({ children }) => children,
     chat: () => null,
     pick: desktop?.pick
@@ -112,6 +117,15 @@ function mount(ctx: Context) {
     ),
   )
   ctx.slots.inject('roleTeam.chat', () => ctx.slots.register({ name: 'roleTeam.chat' }, SessionChat))
+  ctx.slots.inject('conversation.input.right', () =>
+    ctx.slots.register(
+      {
+        name: 'conversation.input.right',
+        id: 'role-team-member-settings',
+      },
+      ChildControls,
+    ),
+  )
   ctx.inject(['remote.settings'], (scope) => {
     const settings = scope.get(
       'remote.settings',

@@ -7,7 +7,7 @@ export function App() {
   const { call, t } = useUi(),
     [view, open] = useState<'teams' | 'library'>('teams')
   const [buffers] = useState(() => new Map()),
-    names = useRef(new Map<string, { name: string; revision: number }>())
+    names = useRef(new Map<string, { name: string; revision: number; empty: boolean }>())
   const catalog = useLoad(
     'library',
     async () => {
@@ -17,13 +17,23 @@ export function App() {
           let name = f.roleId
           if (f.publishedRevision) {
             const cached = names.current.get(f.roleId)
-            name =
-              cached?.revision === f.publishedRevision
-                ? cached.name
-                : (await call('readSnapshot', f.roleId, f.publishedRevision)).role.meta.name
-            names.current.set(f.roleId, { name, revision: f.publishedRevision })
+            if (cached?.revision !== f.publishedRevision) {
+              const snap = await call('readSnapshot', f.roleId, f.publishedRevision)
+              names.current.set(f.roleId, {
+                name: snap.role.meta.name,
+                revision: f.publishedRevision,
+                empty: !snap.role.body.trim(),
+              })
+            }
+            name = names.current.get(f.roleId)!.name
           }
-          return { id: f.roleId, name, revision: f.publishedRevision, error: f.error }
+          return {
+            id: f.roleId,
+            name,
+            revision: f.publishedRevision,
+            error: f.error,
+            empty: names.current.get(f.roleId)?.empty,
+          }
         }),
       )
       for (const { roleId } of trainings)
