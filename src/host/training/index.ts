@@ -208,7 +208,6 @@ export class TrainingRuntime {
     agent.ctx.systemPrompt.section({
       name: 'role-team-role',
       order: 0,
-      complete: true,
       interpolate: false,
       text: () =>
         [

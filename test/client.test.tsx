@@ -12,7 +12,7 @@ import {
   SessionChat,
   targetId,
 } from '../src/client/workbench/SessionPane.js'
-import { LibrarySettings } from '../src/client/App.js'
+import { App, LibrarySettings } from '../src/client/App.js'
 import { DocumentEditor, Documents } from '../src/client/roles/DocumentEditor.js'
 import { TeamSetup } from '../src/client/team-setup/TeamSetup.js'
 import { serializeMarkdown } from '../src/shared/markdown.js'
@@ -128,6 +128,12 @@ function harness(call: ReturnType<typeof vi.fn>) {
           useSession: () => true,
           useProjection: () => undefined,
           useSessionStatus: () => approvals.has(id),
+          useConversationViews: () => [
+            { id: 'chat', label: 'Chat' },
+            { id: 'trajectory', label: 'Trajectory:' + id },
+          ],
+          useStore: () => 'chat',
+          selectView: vi.fn(),
           renderFactorySlot: () => (
             <div data-conversation-region="chat">
               stream:{id}
@@ -465,7 +471,7 @@ it('shows the effective library and writes the next path against the native sett
 it('creates and publishes the named role before opening its first independent conversation', async () => {
   const changed = vi.fn()
   const call = vi.fn(async (method: string) => {
-    if (method === 'saveDocument') return { ok: true }
+    if (method === 'saveDocument') return { ok: true, status: { publishedRevision: 1 } }
     if (method === 'openTraining') return { roleId: 'author', trainingId: 't', sessionId: 's' }
     return method === 'readDocument' ? null : []
   })
@@ -617,4 +623,46 @@ it('confirms the selected role by name and hash, supports cancel and clears the 
   await screen.findByText(en.ui.emptyRoles)
   expect(changed).toHaveBeenCalledOnce()
   expect(call).toHaveBeenCalledWith('deleteRole', { roleId: 'writer', expectedHash: file.hash })
+})
+
+it('restores the last role, role view, page and team after leaving the panel', async () => {
+  const runs = ['North', 'South'].map((id) => ({
+    runId: id,
+    title: id,
+    status: 'active',
+    leaderSeatId: id,
+    rootSessionId: id + '-session',
+  }))
+  const call = vi.fn(async (method: string, input: any) => {
+    if (method === 'listRoles')
+      return ['Writer', 'Editor'].map((roleId) => ({ roleId, publishedRevision: 1 }))
+    if (method === 'readSnapshot') return { role: { meta: { name: input }, body: 'role' } }
+    if (method === 'listTeams') return runs
+    if (method === 'getTeam')
+      return { run: runs.find((r) => r.runId === input.runId), seats: [seat(input.runId, null)] }
+    if (method === 'openTraining')
+      return { trainingId: input.roleId, sessionId: input.roleId + '-session', roleId: input.roleId }
+    if (method === 'readDocument') return null
+    return []
+  })
+  const h = harness(call)
+  let panel = h.mount(<App />)
+  fireEvent.click(screen.getByRole('button', { name: en.ui.teams }))
+  fireEvent.click(await screen.findByRole('button', { name: 'South' }))
+  await screen.findByText('Trajectory:South-session')
+  fireEvent.click(screen.getByRole('button', { name: en.ui.library }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Editor' }))
+  await screen.findByText('Trajectory:Editor-session')
+  fireEvent.click(screen.getByRole('button', { name: en.ui.settingsOnly }))
+  panel.unmount()
+  panel = h.mount(<App />)
+  await screen.findByRole('heading', { name: 'Editor' })
+  expect(screen.getByRole('button', { name: en.ui.settingsOnly }).getAttribute('aria-pressed')).toBe(
+    'true',
+  )
+  fireEvent.click(screen.getByRole('button', { name: en.ui.teams }))
+  await screen.findByText('Trajectory:South-session')
+  panel.unmount()
+  h.mount(<App />)
+  await screen.findByText('Trajectory:South-session')
 })

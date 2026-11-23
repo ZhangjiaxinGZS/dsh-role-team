@@ -135,19 +135,31 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
             main: { kind: 'keyed', scope: 'root' },
             'sidebar.panellist': { kind: 'list', scope: 'root' },
             'settings.section': { kind: 'list', scope: 'root' },
+            'conversation.session.header': { kind: 'single', scope: 'session' },
           },
         },
         (
           _props: import('@deepseek-ai/dsh-client-ui-slots').PropsRenderSlots<
-            'main' | 'sidebar.panellist' | 'settings.section'
+            'main' | 'sidebar.panellist' | 'settings.section' | 'conversation.session.header'
           >,
         ) => null,
       )
       const clientFiber = await clientCtx.plugin(plugin)
       expect(clientCtx.slots.entriesOfSlot('main')).toHaveLength(0)
       clientCtx.provide('remote.roleTeam', {} as never)
+      const headerStore = {
+        spec: { init: () => ({ view: 'chat' }), actions: {} },
+        create() {
+          throw new Error('No session mounted in registry test')
+        },
+      }
+      clientCtx.slots.register(
+        { name: 'conversation.session.header', store: headerStore, inject: () => ({}) },
+        () => null,
+      )
       for (const key of ['main', 'sidebar.panellist', 'roleTeam.chat'] as const)
         await vi.waitFor(() => expect(clientCtx.slots.entriesOfSlot(key)).toHaveLength(1))
+      expect(clientCtx.slots.entriesOfSlot('roleTeam.chat')[0]?.store).toBe(headerStore)
       expect(clientCtx.slots.entriesOfSlot('settings.section')).toHaveLength(0)
       const settingsOwner = await clientCtx.plugin({
         apply(scope: Context) {

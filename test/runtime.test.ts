@@ -132,6 +132,21 @@ async function boot() {
   const pkg = await import('dsh-role-team')
   await ctx.plugin(pkg.default, { roleStoreDir: join(folder, 'roles') })
   service = ctx.roleTeam
+  for (const name of [
+    'mcp__chrome-devtools__list_pages',
+    'mcp__gefei__get_guide',
+    'bash',
+    'web_search',
+  ]) {
+    ctx.tools.register({
+      name,
+      description: name,
+      parameters: { type: 'object', properties: {} },
+      output: { schema: { type: 'string' }, render: () => [] },
+      execute: async () => name + ' fixture result',
+    })
+  }
+  ctx.systemPrompt.section({ name: 'mcp:fixture:tools', order: 30, text: 'On-demand tools: list_pages' })
   ctx.tools.register({
     name: 'session_search',
     description: 'Search transcripts',
@@ -166,6 +181,7 @@ function request(id: string) {
 }
 async function tool(id: string, name: string, args: Record<string, unknown>) {
   const agent = ctx.agents.get(id as SessionId)!
+  expect(agent, 'live tool caller ' + id).toBeDefined()
   const batch = await ctx.tools.execute({
     agent,
     signal: new AbortController().signal,
@@ -311,7 +327,7 @@ it('saves coaching changes and only shares the role profile across teams', async
     request(id)
       .tools?.map((t) => t.name)
       .sort(),
-  ).toEqual(['remember_experience', 'revise_experience', 'update_role'])
+  ).toEqual(expect.arrayContaining(['remember_experience', 'revise_experience', 'update_role']))
   expect(await tool(id, 'update_role', { name: 'Editor', body: 'confirmed-rule' })).toMatchObject({
     isError: false,
   })
@@ -642,7 +658,54 @@ it('delivers a localized membership notice and mirrors the lead permission to li
     await root.whenIdle()
   }
 })
-it('permits workspace file edits and rejects file targets outside the shared directory', async () => {
+it('admits MCP and host capabilities in training, team roots and child turns while fencing session lookup', async () => {
+  const a = await newTeam('Tools')
+  const child = await service.addMember({ runId: a.run.runId, roleId })
+  const training = await service.openTraining({ roleId })
+  const finish = Promise.withResolvers<void>()
+  await ctx.subagents.waitForTreeWork(ctx.agents.get(a.run.rootSessionId as SessionId)!)
+  model.pause = async (req) => {
+    if (req.sessionId === child.currentSessionId) await finish.promise
+  }
+  try {
+    for (const id of [training.sessionId, a.run.rootSessionId, child.currentSessionId]) {
+      if (id === child.currentSessionId) {
+        await service.promptSeat({
+          seatId: child.seatId,
+          generation: 1,
+          requestId: crypto.randomUUID(),
+          text: 'Check available tools',
+          delivery: 'queue',
+        })
+        await vi.waitFor(() =>
+          expect(JSON.stringify(request(id).messages)).toContain('Check available tools'),
+        )
+      } else await prompt(id, 'Check available tools')
+      const req = request(id),
+        names = req.tools?.map((t) => t.name)
+      expect(JSON.stringify(req.messages)).toContain('On-demand tools: list_pages')
+      for (const name of [
+        'mcp__chrome-devtools__list_pages',
+        'mcp__gefei__get_guide',
+        'bash',
+        'web_search',
+        'read',
+      ]) {
+        expect(names).toContain(name)
+        if (name !== 'read') expect((await tool(id, name, {})).isError).toBeFalsy()
+      }
+      expect(names).not.toContain('session_search')
+      expect((await tool(id, 'session_search', {})).isError).toBe(true)
+      expect(
+        (await tool(id, 'read', { file_path: join(folder, 'roles', roleId, 'role.md') })).isError,
+      ).toBe(true)
+    }
+  } finally {
+    finish.resolve()
+    await ctx.subagents.waitForTreeWork(ctx.agents.get(a.run.rootSessionId as SessionId)!)
+  }
+})
+it('permits ordinary file edits and protects the role library through direct and linked paths', async () => {
   const a = await newTeam('Files')
   const id = a.run.rootSessionId
   const path = join(cwd, 'result.md')
@@ -651,6 +714,9 @@ it('permits workspace file edits and rejects file targets outside the shared dir
   expect(
     (await tool(id, 'edit', { file_path: path, old_string: 'local', new_string: 'done' })).isError,
   ).toBeFalsy()
+  const extra = join(folder, 'outside.md')
+  await writeFile(extra, 'ordinary host file')
+  expect((await tool(id, 'read', { file_path: extra })).isError).toBeFalsy()
   const roleFile = join(folder, 'roles', roleId, 'role.md')
   await symlink(roleFile, join(cwd, 'linked.md'))
   for (const file_path of [roleFile, join(cwd, 'linked.md')]) {

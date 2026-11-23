@@ -330,6 +330,22 @@ html[data-platform='darwin'] .rt-top {
   flex: 1;
   min-height: 0;
 }
+.rt-transcript > .rt-view-navigation {
+  align-self: flex-start;
+  flex: none;
+  margin: 4px 10px;
+}
+.rt-view-navigation button {
+  background: transparent;
+  border: 0;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  font: inherit;
+}
+.rt-view-navigation button[aria-selected='true'] {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-active);
+}
 .rt-chat[data-read-only] [data-composer-seat] {
   display: none;
 }

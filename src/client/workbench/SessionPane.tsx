@@ -13,7 +13,7 @@ import type {
   PropsRenderFactories,
   PropsRenderSlots,
 } from '@deepseek-ai/dsh-client-ui-slots'
-import type { ConversationViewsProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { ConversationSessionHeaderSlotProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-agent/types'
 import { useUi, Notice, useLoad, useAction, type Seat, type SessionTarget } from '../ui.js'
@@ -159,11 +159,12 @@ const PaneContext = createContext<{
   seat?: Seat
   leaderSessionId?: string
 } | null>(null)
-function FixedChat({ renderSlot }: ConversationViewsProps) {
-  return <>{renderSlot('conversation.session', { view: 'chat' })}</>
-}
 // Instantiated by the DSH renderer underneath the retained reference, including its scoped interaction hook.
-export function SessionChat(props: PropsRuntime<'roleTeam.chat'> & PropsRenderFactories) {
+export function SessionChat(
+  props: PropsRuntime<'roleTeam.chat'> &
+    PropsRenderFactories &
+    Pick<ConversationSessionHeaderSlotProps, 'selectView' | 'useStore' | 'useConversationViews'>,
+) {
   const factoryInput = {
     variant: 'embedded',
     hero: false,
@@ -171,6 +172,10 @@ export function SessionChat(props: PropsRuntime<'roleTeam.chat'> & PropsRenderFa
     onWorkspaceSelected: async () => {},
   } as const
   const { reference, seat, readOnly } = useContext(PaneContext)!
+  const tabs = props
+    .useConversationViews((views) => views)
+    .filter((view) => view.id === 'chat' || view.id === 'trajectory')
+  const selected = props.useStore((state) => state.view) ?? 'chat'
   if (props.sessionId !== reference.sessionId) throw new Error('Mismatched SessionProvider')
   return (
     <div
@@ -179,7 +184,22 @@ export function SessionChat(props: PropsRuntime<'roleTeam.chat'> & PropsRenderFa
       data-child={seat?.parentSeatId ? true : undefined}
     >
       <div className="rt-transcript">
-        {props.renderFactorySlot('conversation.content', factoryInput, { slots: { views: FixedChat } })}
+        {tabs.length > 1 && (
+          <div className="rt-view-navigation rt-segment" role="tablist">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={tab.id === selected}
+                onClick={() => props.selectView(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {props.renderFactorySlot('conversation.content', factoryInput)}
       </div>
     </div>
   )

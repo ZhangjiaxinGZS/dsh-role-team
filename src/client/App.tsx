@@ -1,3 +1,4 @@
+import { useNavigation } from './navigation.js'
 import { useState, useRef } from 'react'
 import { Notice, useAction, useLoad, useUi } from './ui.js'
 import { RoleLibrary, type LibraryRole } from './roles/RoleLibrary.js'
@@ -5,7 +6,7 @@ import { EditorBuffers } from './roles/DocumentEditor.js'
 import { Workbench } from './workbench/Workbench.js'
 export function App() {
   const { call, t } = useUi(),
-    [view, open] = useState<'teams' | 'library'>('teams')
+    [view, open] = useNavigation('page')
   const [buffers] = useState(() => new Map()),
     names = useRef(new Map<string, { name: string; revision: number; empty: boolean }>())
   const catalog = useLoad(

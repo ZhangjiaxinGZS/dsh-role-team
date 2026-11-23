@@ -1,6 +1,7 @@
+import { useNavigation } from '../navigation.js'
 import { fileId } from '../../shared/index.js'
 import { serializeMarkdown } from '../../shared/markdown.js'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Diagnostic } from '../../shared/index.js'
 import { IconPlusOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { MoreMenu, Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
@@ -10,14 +11,20 @@ import { TrainingDetail } from './Training.js'
 export type LibraryRole = RoleChoice & { error?: Diagnostic | null; empty?: boolean }
 export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[]; changed: () => void }) {
   const { t, call } = useUi(),
-    [view, setView] = useState<RoleView>('splitView'),
-    [role, setRole] = useState(''),
+    [view, setView] = useNavigation('roleView'),
+    [role, setRole] = useNavigation('role'),
+    [created, setCreated] = useState<LibraryRole>(),
     [modal, setModal] = useState(''),
     [deleting, setDeleting] = useState<LibraryRole>(),
     [deleted, setDeleted] = useState<string[]>([]),
-    roles = catalog.filter((r) => !deleted.includes(r.id)),
-    id = role || roles[0]?.id
-  const active = roles.find((r) => r.id === id)
+    roles = (
+      created && !catalog.some((r) => r.id === created.id) ? [...catalog, created] : catalog
+    ).filter((r) => !deleted.includes(r.id)),
+    active = roles.find((r) => r.id === role) ?? roles[0],
+    id = active?.id
+  useEffect(() => {
+    if (created && catalog.some((r) => r.id === created.id)) setCreated(undefined)
+  }, [catalog, created])
   return (
     <section className="rt-library">
       <div className="rt-library-grid">
@@ -91,6 +98,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
             })
             if (!result.ok)
               throw new Error(result.code === 'conflict' ? t('duplicateRole') : result.error.message)
+            setCreated({ id, name, revision: result.status.publishedRevision, empty: true })
             setRole(id)
             if (view === 'settingsOnly') setView('splitView')
             changed()

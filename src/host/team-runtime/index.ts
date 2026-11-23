@@ -377,7 +377,7 @@ export class TeamRuntime {
       await this.restoreModel(agent, training.roleId)
       isolate(
         agent,
-        true,
+        this.roles.root,
         () => this.training.current(training.roleId).some((t) => t.trainingId === training.trainingId),
         training.locale,
       )
@@ -417,7 +417,7 @@ export class TeamRuntime {
         agent,
         this.getTeam(seat.runId).run.permissionPreset,
       )
-    isolate(agent, false, active, run.locale, run.workspaceCwd)
+    isolate(agent, this.roles.root, active, run.locale)
     agent.ctx.on('tools/pre-execute', async (exec, next) => {
       if (exec.agent !== agent) return next()
       if (seat.parentSeatId)
@@ -457,7 +457,8 @@ export class TeamRuntime {
     await this.snapshot(seat.roleId, seat.adoptedMemoryRev)
     if (seat.reset) await this.snapshot(seat.roleId, seat.reset.revision)
     let frozen:
-      { turn: number; role: Snapshot; memory: Snapshot; context: string; adopting: boolean } | undefined
+      | { turn: number; role: Snapshot; memory: Snapshot; context: string; adopting: boolean }
+      | undefined
     const view = () => {
       const turn = this.native.ctx.agents.turnBoundaryOf(agent.session).lastTurn
       if (frozen?.turn === turn) return frozen
@@ -493,7 +494,6 @@ export class TeamRuntime {
     agent.ctx.systemPrompt.section({
       name: 'role-team-role',
       order: 0,
-      complete: true,
       interpolate: false,
       text: () =>
         [

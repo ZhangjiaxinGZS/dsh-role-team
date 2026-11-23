@@ -1,23 +1,15 @@
 import type {} from '@deepseek-ai/dsh-working-directory'
 import type {} from '@deepseek-ai/dsh-fs'
 import { realpath, stat } from 'node:fs/promises'
+import { parsePatch } from '@deepseek-ai/dsh-fs-patch'
 import { homedir } from 'node:os'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { NativeToolExecutor } from '@deepseek-ai/dsh-tool-executor-native'
+import { scopeParentOf } from '@deepseek-ai/dsh-scope'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-tools'
 import type { UserMessage } from '@deepseek-ai/dsh-llm'
 
-const collaboration = [
-  'list_agents',
-  'send_message',
-  'wait_agent',
-  'team_task_create',
-  'team_task_list',
-  'team_task_update',
-  'team_task_get',
-]
 export const trainingTools = ['update_role', 'remember_experience', 'revise_experience'] as const
 
 function inside(base: string, target: string) {
@@ -41,62 +33,118 @@ export function safeInput(message: UserMessage) {
     !message.content.some((block) => block.type === 'text' && block.text.includes('dsh-session:'))
   )
 }
-const files = ['read', 'read_image', 'write', 'edit']
-export function isolate(
-  agent: Agent,
-  training: boolean,
-  active: () => boolean,
-  locale: 'zh' | 'en' = 'zh',
-  workspace?: string,
-) {
-  const allowed = new Set<string>(training ? trainingTools : [...collaboration, ...files])
+// DSH's session-query and workspace-list plugins expose logs and identities outside the current tree.
+const crossSession = new Set([
+  'session_search',
+  'session_event_search',
+  'session_trace',
+  'session_event_trace',
+  'session_event_read',
+  'session_reference',
+  'list_workspace',
+  'list_session',
+])
+function blockedTool(name: string) {
+  return crossSession.has(name.replaceAll('-', '_'))
+}
+
+function fileTargets(name: string, args: Record<string, unknown>): string[] {
+  switch (name) {
+    case 'read':
+    case 'read_image':
+    case 'write':
+    case 'edit':
+      return typeof args.file_path === 'string' ? [args.file_path] : []
+    case 'glob':
+    case 'grep':
+    case 'str_replace_editor':
+      return [typeof args.path === 'string' ? args.path : '.']
+    case 'apply_patch':
+      if (typeof args.input !== 'string') return []
+      return parsePatch(args.input).flatMap((op) =>
+        op.kind === 'update' && op.moveTo ? [op.path, op.moveTo] : [op.path],
+      )
+    default:
+      return []
+  }
+}
+export function isolate(agent: Agent, roles: string, active: () => boolean, locale: 'zh' | 'en' = 'zh') {
   const tools = agent.ctx.tools
-  const native = new NativeToolExecutor(agent.ctx)
-  tools.setExecutor({
-    describe: (definitions) => native.describe(definitions.filter((tool) => allowed.has(tool.name))),
-    execute: (input) => native.execute(input),
-  })
-  // Preset-local tools bypass registry restrictions. Filter the actual model schemas and dispatch.
+  // Mask inherited lookup tools for both native and PTC executors, including late registrations.
+  const masked = new Set<string>()
+  const restrictLookup = () => {
+    const names = tools
+      .definitions(scopeParentOf(agent))
+      .map((t) => t.name)
+      .filter((name) => blockedTool(name) && !masked.has(name))
+    if (!names.length) return
+    for (const name of names) masked.add(name)
+    tools.restrict({ deny: names })
+  }
+  restrictLookup()
+  agent.ctx.on('tools/change', restrictLookup)
   tools.guard((exec) => {
-    if (exec.agent !== agent) return
-    if (!active() || !allowed.has(exec.name))
+    if (exec.agent === agent && (!active() || blockedTool(exec.name)))
       return locale === 'en'
         ? 'Capability unavailable in this role session'
         : '当前角色会话无法使用此工具。'
   })
-  if (workspace)
-    agent.ctx.on('tools/pre-execute', async (exec, next) => {
-      if (exec.agent !== agent || !files.includes(exec.name)) return next()
-      const file = (exec.arguments as { file_path?: unknown }).file_path
-      const deny = {
-        kind: 'deny' as const,
-        reason:
-          locale === 'en'
-            ? 'File must be inside the shared workspace.'
-            : '仅允许访问团队工作目录内的文件。',
-      }
-      if (typeof file !== 'string') return deny
-      const dirs = agent.ctx.get('workingDirectory'),
-        fs = agent.ctx.get('fs')
-      if (!dirs || !fs) return deny
-      const cwd = await dirs.ensure(agent, exec.signal)
-      const target = await fs.resolve(file, { cwd, signal: exec.signal })
-      const physical = fs.processPath(target)
-      if (!physical || !isAbsolute(physical)) return deny
-      const home = resolve(process.env.DSH_HOME?.trim() || resolve(homedir(), '.dsh'))
-      const privateHome = await realpath(home).catch((e: NodeJS.ErrnoException) => {
+  // Preserve on-demand MCP catalogs alongside the role's own instructions.
+  agent.ctx.on('system-prompt/assemble', async (_assembly, context, next) => {
+    const result = await next()
+    if (context.scope !== agent) return result
+    return {
+      ...result,
+      sections: result.sections.filter(
+        (s) =>
+          s.name === 'role-team-role' ||
+          s.name.startsWith('mcp:') ||
+          s.name.startsWith('tools:') ||
+          (s.name.startsWith('tool:') && s.name !== 'tool:session-query'),
+      ),
+    }
+  })
+  agent.ctx.on('tools/pre-execute', async (exec, next) => {
+    if (exec.agent !== agent) return next()
+    const targets = fileTargets(exec.name, exec.arguments as Record<string, unknown>)
+    if (!targets.length) return next()
+    const deny = {
+      kind: 'deny' as const,
+      reason:
+        locale === 'en'
+          ? 'This path contains private role or session data.'
+          : '此路径包含受保护的角色或会话数据。',
+    }
+    const dirs = agent.ctx.get('workingDirectory'),
+      fs = agent.ctx.get('fs')
+    if (!dirs || !fs) return deny
+    const cwd = await dirs.ensure(agent, exec.signal)
+    const home = resolve(process.env.DSH_HOME?.trim() || resolve(homedir(), '.dsh'))
+    const protectedRoots = [
+      roles,
+      await realpath(home).catch((e: NodeJS.ErrnoException) => {
         if (e.code === 'ENOENT') return home
         throw e
+      }),
+    ]
+    const sandboxes = roles + '.training-sandboxes'
+    for (const file of targets) {
+      const physical = fs.processPath(await fs.resolve(file, { cwd, signal: exec.signal }))
+      if (!physical || !isAbsolute(physical)) return deny
+      if (protectedRoots.some((root) => inside(root, physical) || inside(physical, root))) return deny
+      if (
+        inside(physical, sandboxes) ||
+        (inside(sandboxes, physical) && !(inside(sandboxes, cwd) && inside(cwd, physical)))
+      )
+        return deny
+      const info = await stat(physical).catch((e: NodeJS.ErrnoException) => {
+        if (e.code === 'ENOENT') return undefined
+        throw e
       })
-      if (!inside(workspace, physical) || inside(privateHome, physical)) return deny
-      try {
-        const info = await stat(physical)
-        if (!info.isFile() || info.nlink > 1) return deny
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT' || exec.name !== 'write') return deny
-      }
-      return next()
-    })
+      if (info?.isFile() && info.nlink > 1) return deny
+    }
+    return next()
+  })
   // Prepend and inspect both ends. A plugin can have prepared its reference before inbox admission.
   agent.ctx.on(
     'agent/pre-step',
@@ -106,12 +154,7 @@ export function isolate(
       const result = await next()
       if (result.kind === 'reject') return result
       if (result.messages.some((message) => !safeInput(message))) return { kind: 'reject' }
-      return {
-        ...result,
-        messages: result.messages.filter(({ source }) =>
-          ['user', 'agent-message', 'subagent-settled', 'runtime-context'].includes(source.kind),
-        ),
-      }
+      return result
     },
     { prepend: true },
   )

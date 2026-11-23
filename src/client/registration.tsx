@@ -1,4 +1,9 @@
 import type {
+  ConversationStore,
+  ConversationSessionHeaderInjected,
+} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { BoundActions } from '@deepseek-ai/dsh-client-store'
+import type {
   PermissionSelectProps,
   PermissionSelectInjected,
 } from '@deepseek-ai/dsh-client-ui-permission-presets/client'
@@ -123,7 +128,37 @@ function mount(ctx: Context) {
       Main,
     ),
   )
-  ctx.slots.inject('roleTeam.chat', () => ctx.slots.register({ name: 'roleTeam.chat' }, SessionChat))
+  // Share the host's per-session view store and selection action. The host owns its header outlet.
+  ctx.slots.inject('roleTeam.chat', () => {
+    const slot = 'conversation.session.header'
+    let active: StoredEntry | undefined
+    let remove: (() => void) | undefined
+    const sync = () => {
+      const entry = ctx.slots.entriesOfSlot(slot)[0]
+      if (entry === active) return
+      remove?.()
+      remove = undefined
+      active = entry
+      if (!entry?.store || !entry.inject) return
+      remove = ctx.slots.register(
+        {
+          name: 'roleTeam.chat',
+          store: entry.store as ConversationStore,
+          inject: entry.inject as unknown as (
+            id: SessionId,
+            actions: BoundActions<ConversationStore>,
+          ) => ConversationSessionHeaderInjected,
+        },
+        SessionChat,
+      )
+    }
+    sync()
+    const unsubscribe = ctx.slots.subscribe(slot, sync)
+    return () => {
+      unsubscribe()
+      remove?.()
+    }
+  })
   ctx.slots.inject('conversation.input.left', () =>
     ctx.slots.register(
       {

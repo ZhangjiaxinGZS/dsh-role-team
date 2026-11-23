@@ -1,3 +1,4 @@
+import { useNavigation } from '../navigation.js'
 import {
   IconChevronRightOutlineRegular,
   IconPanelLeftOutlineRegular,
@@ -25,14 +26,14 @@ import { SessionPane, sessionTarget } from './SessionPane.js'
 export function Workbench({ roles }: { roles: RoleChoice[] }) {
   const { call, t } = useUi(),
     runs = useLoad('runs', () => call('listTeams', {}))
-  const [selected, setSelected] = useState(''),
+  const [selected, setSelected] = useNavigation('team'),
     [setup, setSetup] = useState(false)
   const [collapsed, setCollapsed] = useState(false),
     [archive, setArchive] = useState<Run>()
   const action = useAction()
   const list = runs.data ?? [],
     active = list.filter((r) => r.status === 'active')
-  const id = selected || active[0]?.runId
+  const id = list.find((r) => r.runId === selected)?.runId ?? active[0]?.runId
   const toggle = (
     <button
       className="rt-icon"
