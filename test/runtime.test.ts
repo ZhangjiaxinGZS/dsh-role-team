@@ -640,3 +640,64 @@ it('permits workspace file edits and rejects file targets outside the shared dir
   }
   expect(await readFile(roleFile, 'utf8')).toContain('rule-one')
 })
+it('deletes a role and its coaching entry while existing seats can run and reset from their snapshots', async () => {
+  const { run } = await newTeam('Keep team')
+  const child = await service.addMember({ runId: run.runId, roleId })
+  const training = await service.createTraining({ roleId, mode: 'coach' })
+  const original = await service.readDocument({ roleId })
+  await service.saveDocument({
+    roleId,
+    expectedHash: original!.hash,
+    text: role('last adopted instructions'),
+  })
+  async function send(seat: typeof child, text: string) {
+    await service.promptSeat({
+      seatId: seat.seatId,
+      generation: seat.currentGeneration,
+      text,
+      delivery: 'queue',
+      requestId: crypto.randomUUID(),
+    })
+    await vi.waitFor(() =>
+      expect(JSON.stringify(request(seat.currentSessionId).messages)).toContain(text),
+    )
+  }
+  await send(child, 'adopt-latest')
+  expect(await service.deleteRole({ roleId, expectedHash: original!.hash })).toMatchObject({
+    ok: false,
+    code: 'conflict',
+  })
+  expect(await service.listTrainings({ roleId })).toHaveLength(1)
+  const expectedHash = (await service.readDocument({ roleId }))!.hash
+  expect(await service.deleteRole({ roleId, expectedHash })).toMatchObject({ ok: true })
+  expect(await service.deleteRole({ roleId, expectedHash })).toMatchObject({ ok: true })
+  expect(await service.listRoles()).toEqual([])
+  expect(await service.listTrainings({})).toEqual([])
+  expect(ctx.workspaceRegistry.archivedSessionIds).toContain(training.sessionId)
+  await expect(newTeam('Unavailable')).rejects.toThrow()
+  await send(child, 'still here')
+  expect(JSON.stringify(request(child.currentSessionId).messages[0])).toContain(
+    'last adopted instructions',
+  )
+  await ctx.fiber.dispose()
+  await boot()
+  const reset = await service.resetSeat({ seatId: child.seatId, generation: 1, handoff: 'continue' })
+  await send(reset, 'after deletion')
+  expect(JSON.stringify(request(reset.currentSessionId).messages[0])).toContain(
+    'last adopted instructions',
+  )
+  expect(await service.listRoles()).toEqual([])
+})
+it('deletes a legacy coaching-only role without creating a profile or reviving the role at restart', async () => {
+  const id = 'unsaved-role'
+  const training = await service.createTraining({ roleId: id, mode: 'create' })
+  expect(await service.deleteRole({ roleId: id, expectedHash: null })).toMatchObject({ ok: true })
+  await expect(service.createTraining({ roleId: id, mode: 'create' })).rejects.toThrow(/retired/)
+  // A different profile or an interrupted cleanup can still own an old training row.
+  await service.index.training.put(training)
+  expect(await service.listTrainings({ roleId: id })).toEqual([])
+  await ctx.fiber.dispose()
+  await boot()
+  await vi.waitFor(() => expect(service.index.training.get(training.trainingId)).toBeUndefined())
+  expect(await service.listRoles()).toMatchObject([{ roleId }])
+})

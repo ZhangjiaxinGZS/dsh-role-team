@@ -189,6 +189,10 @@ export class RoleStore {
       true,
     )
   }
+  async isRetired(roleId: string) {
+    return !!(await this.retiredRole(roleId))
+  }
+
   private async retiredRole(roleId: string) {
     const dir = join(this.root, '.retired')
     if (!(await directory(dir))) return null
@@ -275,6 +279,8 @@ export class RoleStore {
         const status = await this.publish(entry.name)
         result.push(status)
       }
+      const present = new Set(result.map((row) => row.roleId))
+      for (const id of this.current.keys()) if (!present.has(id)) this.current.delete(id)
       return result
     })
   }
@@ -283,7 +289,30 @@ export class RoleStore {
     return this.change(edit, edit.text)
   }
   async deleteDocument(input: DeleteRequest) {
-    return this.change(deleteRequest.parse(input), null)
+    const ref = deleteRequest.parse(input)
+    return ref.memoryId === undefined ? this.retireRole(ref) : this.change(ref, null)
+  }
+  retireRole(
+    ref: { roleId: string; expectedHash: string | null },
+    trainingOnly = false,
+  ): Promise<EditResult> {
+    return this.locked(async () => {
+      const roleId = fileId.parse(ref.roleId)
+      const status = { roleId, publishedRevision: null, error: null }
+      if (!(await this.retiredRole(roleId))) {
+        const dir = await this.rolePath(roleId)
+        const current = await readFileText(join(dir, 'role.md'))
+        if ((current?.hash ?? null) !== ref.expectedHash)
+          return { ok: false, code: 'conflict', current, proposed: null }
+        const retired = join(this.root, '.retired')
+        await directory(retired, true)
+        if (await directory(dir)) await rename(dir, join(retired, roleId))
+        else if (trainingOnly) await directory(join(retired, roleId), true)
+        else throw new Error('Role not found: ' + roleId)
+      }
+      this.current.delete(roleId)
+      return { ok: true, status, hash: null }
+    })
   }
   private change(
     ref: FileRef & { expectedHash: string | null },
@@ -293,7 +322,6 @@ export class RoleStore {
     return this.locked(async () => {
       const create = ref.expectedHash === null
       const { roleId, memoryId } = ref
-      const retired = join(this.root, '.retired')
       if (await this.retiredRole(roleId)) throw new Error('Role ID is retired: ' + roleId)
       const existingPath = await this.documentPath(ref)
       const check = async (): Promise<EditResult | null> => {
@@ -340,12 +368,6 @@ export class RoleStore {
         } finally {
           await staged.discard()
         }
-      } else if (memoryId === undefined) {
-        await directory(retired, true)
-        const raced = await check()
-        if (raced) return raced
-        await rename(await this.rolePath(roleId), join(retired, roleId))
-        return { ok: true, status: { roleId, publishedRevision: null, error: null }, hash: null }
       } else {
         await unlink(existingPath)
       }

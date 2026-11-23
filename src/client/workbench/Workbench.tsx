@@ -23,7 +23,7 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
   const action = useAction()
   const list = runs.data ?? [],
     active = list.filter((r) => r.status === 'active')
-  const id = selected || active[0]?.runId || list.find((r) => r.status === 'archived')?.runId
+  const id = selected || active[0]?.runId
   const toggle = (
     <button
       className="rt-icon"

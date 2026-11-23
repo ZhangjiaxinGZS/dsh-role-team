@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import {
   Menu,
   Tooltip,
@@ -114,19 +107,24 @@ function BoundPane({
     )
   return (
     <SessionProvider session={reference}>
-      {readOnly ? (
-        <History reference={reference} />
-      ) : (
-        <section className="rt-session">
-          <PaneContext.Provider value={{ reference, seat, leaderSessionId, onSelection }}>
-            {chat()}
-          </PaneContext.Provider>
-        </section>
-      )}
+      <section className="rt-session" aria-label={readOnly ? t('readOnly') : undefined}>
+        <PaneContext.Provider
+          value={{
+            reference,
+            seat: readOnly ? undefined : seat,
+            leaderSessionId,
+            onSelection,
+            readOnly,
+          }}
+        >
+          {chat()}
+        </PaneContext.Provider>
+      </section>
     </SessionProvider>
   )
 }
 const PaneContext = createContext<{
+  readOnly: boolean
   reference: SessionReference
   onSelection?: () => void
   seat?: Seat
@@ -143,10 +141,14 @@ export function SessionChat(props: PropsRuntime<'roleTeam.chat'> & PropsRenderFa
     phase: 'active',
     onWorkspaceSelected: async () => {},
   } as const
-  const { reference, seat } = useContext(PaneContext)!
+  const { reference, seat, readOnly } = useContext(PaneContext)!
   if (props.sessionId !== reference.sessionId) throw new Error('Mismatched SessionProvider')
   return (
-    <div className="rt-chat" data-child={seat?.parentSeatId ? true : undefined}>
+    <div
+      className="rt-chat"
+      data-read-only={readOnly || undefined}
+      data-child={seat?.parentSeatId ? true : undefined}
+    >
       <div className="rt-transcript">
         {props.renderFactorySlot('conversation.content', factoryInput, { slots: { views: FixedChat } })}
       </div>
@@ -296,49 +298,5 @@ function MemberSettings({
       />
       <Notice>{action.error}</Notice>
     </span>
-  )
-}
-function History({ reference }: { reference: SessionReference }) {
-  const { t } = useUi(),
-    a = useAction(),
-    { eventSource, session } = reference.binding
-  const window = useSyncExternalStore(
-    (fn) => eventSource.subscribe(fn),
-    () => eventSource.getSnapshot(),
-  )
-  const rows: ReactNode[] = []
-  for (const { event } of window.entries) {
-    if (event.type === 'tool/call' || event.type === 'tool/result') {
-      rows.push(
-        <details key={event.seq}>
-          <summary>{event.type}</summary>
-          <pre>{JSON.stringify(event.data, null, 2)}</pre>
-        </details>,
-      )
-      continue
-    }
-    if (event.type !== 'assistant/message' && event.type !== 'user/message') continue
-    const message = event.type === 'assistant/message' ? event.data.message : event.data
-    rows.push(
-      <article key={event.seq}>
-        <b>{t(event.type === 'assistant/message' ? 'assistant' : 'self')}</b>
-        <pre>
-          {message.content
-            .map((b) => (b.type === 'text' ? b.text : JSON.stringify(b, null, 2)))
-            .join('\n')}
-        </pre>
-      </article>,
-    )
-  }
-  return (
-    <section className="rt-history" aria-label={t('readOnly')}>
-      {window.hasMore && (
-        <button disabled={a.busy} onClick={() => a.run(() => session.loadOlder())}>
-          {t('older')}
-        </button>
-      )}
-      <Notice>{a.error}</Notice>
-      {rows.length ? rows : <p>{t('noHistory')}</p>}
-    </section>
   )
 }

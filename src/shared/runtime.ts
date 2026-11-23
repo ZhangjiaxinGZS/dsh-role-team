@@ -18,6 +18,7 @@ const seat = z.strictObject({ seatId: id })
 const training = z.strictObject({ trainingId: id })
 const team = z.strictObject({ run: indexRecords.team_runs, seats: z.array(indexRecords.team_seats) })
 export const runtimeMethods = {
+  deleteRole: [z.strictObject({ roleId: fileId, expectedHash: hash.nullable() }), editResult],
   roleHistory: [
     z.strictObject({ roleId: fileId }),
     z.array(snapshotSchema.pick({ publishedRevision: true, publishedAt: true, role: true })).max(10),

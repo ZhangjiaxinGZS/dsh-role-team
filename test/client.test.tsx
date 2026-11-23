@@ -241,7 +241,9 @@ it('routes each column, guards the lead, and rebinds reset and read-only history
   fireEvent.change(scout.getByRole('combobox', { name: en.ui.history }), {
     target: { value: 'scout-session' },
   })
-  await scout.findByText('history:scout-session')
+  const history = await scout.findByRole('region', { name: en.ui.readOnly })
+  expect(await within(history).findByText('stream:scout-session')).toBeTruthy()
+  expect(within(history).queryByRole('button', { name: 'Access: chief-session' })).toBeNull()
   expect(scout.queryByRole('textbox')).toBeNull()
   expect(h.releases.get('scout-new')).toHaveBeenCalledOnce()
   fireEvent.click(screen.getByText(en.ui.focus))
@@ -249,6 +251,28 @@ it('routes each column, guards the lead, and rebinds reset and read-only history
   view.unmount()
   expect(h.releases.get('chief-session')).toHaveBeenCalledOnce()
   expect(h.releases.get('scout-session')).toHaveBeenCalledOnce()
+})
+it('opens an archived team only when selected, and uses the native transcript for history', async () => {
+  const run = {
+    runId: 'a',
+    title: 'Past team',
+    status: 'archived',
+    leaderSeatId: 'chief',
+    rootSessionId: 'chief-session',
+  }
+  const call = vi.fn(async (method: string) => {
+    if (method === 'listTeams') return [run]
+    if (method === 'getTeam') return { run, seats: [{ ...seat('chief', null), status: 'archived' }] }
+    throw Error(method)
+  })
+  harness(call).mount(<Workbench roles={[]} />)
+  await screen.findByText(en.ui.emptyTeams)
+  expect(call).not.toHaveBeenCalledWith('getTeam', { runId: 'a' })
+  fireEvent.click(screen.getByText(en.ui.archive))
+  fireEvent.click(screen.getByRole('button', { name: 'Past team' }))
+  const pane = await screen.findByRole('region', { name: en.ui.readOnly })
+  expect(await within(pane).findByText('stream:chief-session')).toBeTruthy()
+  expect(pane.querySelector('[data-read-only]')).toBeTruthy()
 })
 it('keeps both versions on a conflict and requires an explicit second save against the disk hash', async () => {
   const initial = {
@@ -516,4 +540,34 @@ it('keeps the role editor across views and restores the chosen revision against 
     revision: 1,
     expectedHash: file.hash,
   })
+})
+
+it('confirms the selected role by name and hash, supports cancel and clears the last role after deletion', async () => {
+  const changed = vi.fn()
+  const file = {
+    text: serializeMarkdown({ id: 'writer', name: 'Writer' }, 'Write'),
+    hash: 'a'.repeat(64),
+  }
+  const call = vi.fn(async (method: string) => {
+    if (method === 'readDocument') return file
+    if (method === 'deleteRole') return { ok: true }
+    return []
+  })
+  harness(call).mount(
+    <RoleLibrary roles={[{ id: 'writer', name: 'Writer', revision: 1 }]} changed={changed} />,
+  )
+  fireEvent.click(screen.getByRole('button', { name: en.ui.deleteRole }))
+  const dialog = within(screen.getByRole('dialog'))
+  expect(dialog.getByText('Writer')).toBeTruthy()
+  fireEvent.click(dialog.getByRole('button', { name: en.ui.cancel }))
+  expect(call.mock.calls.some(([method]) => method === 'deleteRole')).toBe(false)
+  fireEvent.click(screen.getByRole('button', { name: en.ui.deleteRole }))
+  const confirm = within(screen.getByRole('dialog')).getByRole('button', {
+    name: en.ui.deleteRole,
+  }) as HTMLButtonElement
+  await waitFor(() => expect(confirm.disabled).toBe(false))
+  fireEvent.click(confirm)
+  await screen.findByText(en.ui.emptyRoles)
+  expect(changed).toHaveBeenCalledOnce()
+  expect(call).toHaveBeenCalledWith('deleteRole', { roleId: 'writer', expectedHash: file.hash })
 })

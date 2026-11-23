@@ -292,11 +292,9 @@ export class TeamRuntime {
   }
   /** Restore interrupted creation intents before the next UI operation addresses their seats. */
   async recover() {
-    const interrupted = this.index.training
-      .list()
-      .filter((row) => row.initializing || row.replaces?.length)
+    const trainings = this.index.training.list()
     await Promise.all(
-      [...new Set(interrupted.map((row) => row.roleId))].map((roleId) =>
+      [...new Set(trainings.map((row) => row.roleId))].map((roleId) =>
         this.ordered('training/' + roleId, () => this.training.recover(roleId)),
       ),
     )
@@ -459,14 +457,14 @@ export class TeamRuntime {
     await this.snapshot(seat.roleId, seat.adoptedMemoryRev)
     if (seat.reset) await this.snapshot(seat.roleId, seat.reset.revision)
     let frozen:
-      | { turn: number; role: Snapshot; memory: Snapshot; context: string; adopting: boolean }
-      | undefined
+      { turn: number; role: Snapshot; memory: Snapshot; context: string; adopting: boolean } | undefined
     const view = () => {
       const turn = this.native.ctx.agents.turnBoundaryOf(agent.session).lastTurn
       if (frozen?.turn === turn) return frozen
       const row = current()
       const replacement = row.reset?.sessionId === agent.id ? row.reset.revision : undefined
       const published = replacement === undefined ? this.roles.published(row.roleId) : undefined
+      if (published) this.cache.set(row.roleId + '/' + published.publishedRevision, published)
       const read = (revision: number) => {
         const s = this.cache.get(row.roleId + '/' + revision)
         if (!s) throw new Error('Required role snapshot is unavailable')

@@ -18,7 +18,9 @@ export async function replaceSeat(
     throw new Error('Replace or archive active descendants first')
   const parent = runtime.seat(seat.parentSeatId)
   if (!seat.reset) {
-    const snap = await runtime.latest(seat.roleId)
+    const snap = (await runtime.roles.isRetired(seat.roleId))
+      ? await runtime.snapshot(seat.roleId, seat.adoptedRoleRev)
+      : await runtime.latest(seat.roleId)
     const intent = {
       sessionId: 'rt-child-' + randomUUID(),
       revision: snap.publishedRevision,

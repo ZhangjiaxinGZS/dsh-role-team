@@ -153,7 +153,7 @@ export default class RoleTeamService extends TypertRemoteService implements Role
   }
 
   @Remote async listTrainings(request: Input<'listTrainings'>) {
-    return this.runtime.training.current(request.roleId)
+    return this.runtime.training.listTrainings(request.roleId)
   }
 
   @Remote async confirmProposal(request: Input<'confirmProposal'>) {
@@ -180,6 +180,11 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     )
   }
 
+  @Remote async deleteRole(request: Input<'deleteRole'>) {
+    return this.runtime.ordered('training/' + request.roleId, () =>
+      this.runtime.training.deleteRole(request),
+    )
+  }
   @Remote async roleHistory({ roleId }: Input<'roleHistory'>) {
     return this.roles.roleHistory(roleId)
   }
@@ -199,7 +204,9 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     return this.roles.saveDocument(request)
   }
   @Remote deleteDocument(request: DeleteRequest) {
-    return this.roles.deleteDocument(request)
+    return request.memoryId === undefined && this.mounted
+      ? this.deleteRole(request)
+      : this.roles.deleteDocument(request)
   }
   @Remote readSnapshot(roleId: string, publishedRevision: number) {
     return this.roles.readSnapshot(roleId, publishedRevision)

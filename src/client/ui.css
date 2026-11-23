@@ -273,6 +273,11 @@
   min-height: 0;
 }
 
+/* Archived sessions keep the native transcript and its scrollport. */
+.rt-chat[data-read-only] [data-composer-seat] {
+  display: none;
+}
+
 /* A member inherits the leader's native preset. The slot wrapper is rc.5's public styling seam. */
 .rt-chat[data-child] [data-slot='conversation.input.permission'] {
   display: none !important;
@@ -295,8 +300,6 @@
   font-size: 36px;
   color: var(--rt-active);
 }
-.rt-history,
-.rt-history pre,
 .rt-diff pre,
 .rt-proposals pre {
   white-space: pre-wrap;
@@ -313,7 +316,6 @@
 .rt-modal > header {
   justify-content: space-between;
 }
-.rt-history article,
 .rt-proposals article {
   padding: 10px 0;
   border-bottom: 1px solid var(--rt-line);
@@ -738,4 +740,8 @@ html[data-platform='darwin'] .rt-top {
 }
 html[data-platform='darwin'] .rt-top {
   padding-inline-start: max(1rem, var(--dsh-frame-leading-clearance, 0px));
+}
+
+.rt-modal button.rt-destructive {
+  color: var(--dsw-alias-state-error, #b42318);
 }

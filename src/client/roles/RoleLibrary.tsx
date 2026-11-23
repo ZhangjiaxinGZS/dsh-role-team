@@ -2,13 +2,13 @@ import { fileId } from '../../shared/index.js'
 import { serializeMarkdown } from '../../shared/markdown.js'
 import { useState } from 'react'
 import type { Diagnostic } from '../../shared/index.js'
-import { Avatar, Modal, Notice, useAction, useUi } from '../ui.js'
+import { Avatar, Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
 import type { RoleChoice } from '../team-setup/TeamSetup.js'
 import { Documents } from './DocumentEditor.js'
 import { TrainingPanel } from './Training.js'
 export type LibraryRole = RoleChoice & { error?: Diagnostic | null; empty?: boolean }
 export function RoleLibrary({
-  roles,
+  roles: catalog,
   path,
   changed,
 }: {
@@ -21,7 +21,10 @@ export function RoleLibrary({
     [role, setRole] = useState(''),
     [session, setSession] = useState<{ roleId: string; trainingId: string }>(),
     [modal, setModal] = useState(''),
+    [deleting, setDeleting] = useState<LibraryRole>(),
+    [deleted, setDeleted] = useState<string[]>([]),
     [startError, setStartError] = useState(''),
+    roles = catalog.filter((r) => !deleted.includes(r.id)),
     id = role || roles[0]?.id
   const active = roles.find((r) => r.id === id)
   return (
@@ -59,7 +62,10 @@ export function RoleLibrary({
         {id ? (
           <div className="rt-detail" key={id}>
             <header>
-              <h2>{active?.name ?? id}</h2>
+              <div className="rt-row">
+                <h2>{active?.name ?? id}</h2>
+                {active && <button onClick={() => setDeleting(active)}>{t('deleteRole')}</button>}
+              </div>
               <div className="rt-segment" role="group" aria-label={t('roleView')}>
                 {(['chatOnly', 'splitView', 'settingsOnly'] as const).map((mode) => (
                   <button key={mode} aria-pressed={view === mode} onClick={() => setView(mode)}>
@@ -92,6 +98,20 @@ export function RoleLibrary({
           </div>
         )}
       </div>
+      {deleting && (
+        <DeleteRole
+          role={deleting}
+          close={() => setDeleting(undefined)}
+          done={() => {
+            setDeleted((previous) => [...previous, deleting.id])
+            setRole(roles.find((r) => r.id !== deleting.id)?.id ?? '')
+            setSession(undefined)
+            setStartError('')
+            setDeleting(undefined)
+            changed()
+          }}
+        />
+      )}
       {modal === 'create' && (
         <CreateRole
           close={() => setModal('')}
@@ -119,6 +139,46 @@ export function RoleLibrary({
         />
       )}
     </section>
+  )
+}
+function DeleteRole({ role, close, done }: { role: LibraryRole; close: () => void; done: () => void }) {
+  const { t, call } = useUi()
+  const file = useLoad(role.id, () => call('readDocument', { roleId: role.id }))
+  const action = useAction()
+  return (
+    <Modal title={t('deleteRole')} close={close} locked={action.busy}>
+      <p>
+        <strong>{role.name}</strong> · {role.id}
+      </p>
+      <p>{t('deleteRoleHint')}</p>
+      <Notice>{file.error || action.error}</Notice>
+      <footer>
+        <button autoFocus disabled={action.busy} onClick={close}>
+          {t('cancel')}
+        </button>
+        <button
+          className="rt-destructive"
+          disabled={action.busy || file.data === undefined}
+          onClick={() =>
+            action.run(async () => {
+              const result = await call('deleteRole', {
+                roleId: role.id,
+                expectedHash: file.data?.hash ?? null,
+              })
+              if (!result.ok) {
+                file.refresh()
+                throw new Error(
+                  result.code === 'conflict' ? t('roleDeleteConflict') : result.error.message,
+                )
+              }
+              done()
+            })
+          }
+        >
+          {t('deleteRole')}
+        </button>
+      </footer>
+    </Modal>
   )
 }
 function CreateRole({
@@ -153,7 +213,14 @@ function CreateRole({
           void action.run(async () => {
             const id = fileId.safeParse(custom.trim() || generated)
             if (!id.success) throw new Error(t('idHint'))
-            await save(name.trim(), id.data, summary.trim())
+            try {
+              await save(name.trim(), id.data, summary.trim())
+            } catch (error) {
+              if (!(error instanceof Error) || !error.message.includes('Role ID is retired:'))
+                throw error
+              if (custom.trim()) throw new Error(t('retiredId'))
+              await save(name.trim(), id.data + '-' + suffix, summary.trim())
+            }
           })
         }}
       >

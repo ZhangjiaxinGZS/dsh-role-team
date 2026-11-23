@@ -50,16 +50,36 @@ export class TrainingRuntime {
     for (const id of row.replaces) {
       const old = this.index.training.get(id)
       if (!old || old.roleId !== row.roleId || old.trainingId === row.trainingId) continue
-      try {
-        await this.native.archive(old.sessionId)
-      } catch (error) {
-        if (!(error instanceof Error && error.name === 'WorkspaceUnknownSessionError')) throw error
-      }
-      await this.index.training.delete(id)
+      await this.archiveTraining(old)
     }
     await this.index.training.update(row.trainingId, (state) => ({ ...state, replaces: undefined }))
   }
+  private async archiveTraining(row: Training) {
+    try {
+      await this.native.archive(row.sessionId)
+    } catch (error) {
+      if (!(error instanceof Error && error.name === 'WorkspaceUnknownSessionError')) throw error
+    }
+    await this.index.training.delete(row.trainingId)
+  }
+  private async endRoleTraining(roleId: string) {
+    for (const row of this.index.training.list())
+      if (row.roleId === roleId) await this.archiveTraining(row)
+  }
+  async deleteRole(request: Input<'deleteRole'>) {
+    const result = await this.roles.retireRole(request, this.current(request.roleId).length > 0)
+    if (result.ok) await this.endRoleTraining(request.roleId)
+    return result
+  }
+  async listTrainings(roleId?: string) {
+    const rows = this.current(roleId)
+    const retired = new Set<string>()
+    for (const id of new Set(rows.map((row) => row.roleId)))
+      if (await this.roles.isRetired(id)) retired.add(id)
+    return rows.filter((row) => !retired.has(row.roleId))
+  }
   async recover(roleId: string) {
+    if (await this.roles.isRetired(roleId)) return this.endRoleTraining(roleId)
     for (const row of this.index.training.list()) {
       if (row.roleId !== roleId || !row.initializing) continue
       if (await this.native.exists(row.sessionId)) {
@@ -76,6 +96,7 @@ export class TrainingRuntime {
   async createTraining(input: Input<'createTraining'>) {
     const { mode, sourceRunId } = input
     const roleId = fileId.parse(input.roleId)
+    if (await this.roles.isRetired(roleId)) throw new Error('Role ID is retired: ' + roleId)
     if (sourceRunId && this.index.runs.get(sourceRunId)?.status !== 'active')
       throw new Error('Unknown active team')
     if (mode !== 'create' && !(await this.roles.readDocument({ roleId })))
