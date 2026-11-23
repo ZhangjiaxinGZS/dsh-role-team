@@ -17,6 +17,7 @@ import type {
 import type { ConversationSessionHeaderSlotProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-agent/types'
+import type {} from '@deepseek-ai/dsh-tool-executor-ptc/types'
 import { useUi, Notice, useLoad, useAction, type Seat, type SessionTarget } from '../ui.js'
 
 export type Pane = {
@@ -164,7 +165,10 @@ const PaneContext = createContext<{
 export function SessionChat(
   props: PropsRuntime<'roleTeam.chat'> &
     PropsRenderFactories &
-    Pick<ConversationSessionHeaderSlotProps, 'selectView' | 'useStore' | 'useConversationViews'>,
+    Pick<
+      ConversationSessionHeaderSlotProps,
+      'actions' | 'selectView' | 'useStore' | 'useConversationViews'
+    >,
 ) {
   const factoryInput = {
     variant: 'embedded',
@@ -177,6 +181,18 @@ export function SessionChat(
     .useConversationViews((views) => views)
     .filter((view) => view.id === 'chat' || view.id === 'trajectory')
   const selected = props.useStore((state) => state.view) ?? 'chat'
+  function selectView(view: string) {
+    props.selectView(view)
+    if (view !== 'trajectory' || selected === view) return
+    // Focus the last dispatched call in this pane. The native ledger can otherwise open
+    // on session setup rows, with the tool and its result outside the visible page.
+    const entries = reference.binding.eventSource.getSnapshot().entries
+    const latest = entries.findLast(
+      ({ event }) => event.type === 'tool/call' || event.type === 'tool/ptc-dispatch-start',
+    )?.event
+    if (latest?.type === 'tool/call') props.actions.openView(view, String(latest.data.callId))
+    if (latest?.type === 'tool/ptc-dispatch-start') props.actions.openView(view, latest.data.subCallId)
+  }
   if (props.sessionId !== reference.sessionId) throw new Error('Mismatched SessionProvider')
   return (
     <div
@@ -195,7 +211,7 @@ export function SessionChat(
                   type="button"
                   role="tab"
                   aria-selected={tab.id === selected}
-                  onClick={() => props.selectView(tab.id)}
+                  onClick={() => selectView(tab.id)}
                 >
                   {tab.label}
                 </button>

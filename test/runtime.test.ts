@@ -1,3 +1,7 @@
+import NodePtcRuntime from '@deepseek-ai/dsh-ptc-runtime-node'
+import SubprocessLocal from '@deepseek-ai/dsh-subprocess-local'
+import SandboxLocal from '@deepseek-ai/dsh-sandbox-local'
+import SandboxPolicy from '@deepseek-ai/dsh-sandbox-policy'
 import Permissions from '@deepseek-ai/dsh-permission-presets'
 import { mkdtemp, mkdir, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -22,7 +26,7 @@ import {
   type GenerateOptions,
   type ToolCallId,
 } from '@deepseek-ai/dsh-llm'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import Storage from '@deepseek-ai/dsh-storage'
 import * as Json from '@deepseek-ai/dsh-storage-json'
 import * as Domain from '@deepseek-ai/dsh-storage-domain'
@@ -76,11 +80,23 @@ class Adapter extends LlmAdapter {
       },
     }
   }
+  program?: string
   requests: GenerateOptions[] = []
   pause?: (request: GenerateOptions) => Promise<void>
   async *stream(request: GenerateOptions): AsyncIterable<StreamChunk> {
     this.requests.push(request)
     await this.pause?.(request)
+    if (this.program !== undefined) {
+      const id = crypto.randomUUID() as ToolCallId
+      const name = 'run_code'
+      const args = JSON.stringify({ code: this.program, description: 'Test coaching bindings' })
+      this.program = undefined
+      yield { type: 'block-start', index: 0, blockType: 'tool-call' }
+      yield { type: 'tool-call-delta', index: 0, id, name, argumentsDelta: args }
+      yield { type: 'block-end', index: 0, block: { type: 'tool-call', id, name, arguments: args } }
+      yield { type: 'finish', reason: { kind: 'tool-calls' } }
+      return
+    }
     yield { type: 'block-start', index: 0, blockType: 'text' }
     yield { type: 'text-delta', index: 0, text: 'ok' }
     yield { type: 'block-end', index: 0, block: { type: 'text', text: 'ok' } }
@@ -875,4 +891,54 @@ it('asks once for the Chinese report when a coaching turn would close without it
   expect(requests).toHaveLength(2)
   expect(JSON.stringify(requests.at(-1)?.messages)).toContain('已记住经验「先确认来源。」')
   expect(await service.listMemories(roleId)).toHaveLength(1)
+})
+
+it('executes all coaching tools in the native PTC Node runtime and records successful and failed nested calls', async () => {
+  await ctx.plugin(SubprocessLocal)
+  await ctx.plugin(SandboxLocal)
+  await ctx.plugin(SandboxPolicy, { mode: 'workspace-write' })
+  await ctx.plugin(NodePtcRuntime, { executionMode: 'per-call' })
+  await ctx.plugin(AgentPreset, {
+    id: 'ptc',
+    plugins: [{ id: 'ptc-executor', name: '@deepseek-ai/dsh-tool-executor-ptc' }],
+  })
+  const coach = await service.createTraining({ roleId, mode: 'coach' })
+  const id = coach.sessionId as SessionId
+  const result = await ctx.sessionController.resolveAgent(id)
+  if ('error' in result) throw result.error
+  await ctx.agentPresets.select(result.agent, 'ptc')
+  const events: SessionEvent[] = []
+  ctx.on('session/event', (session, event) => {
+    if (session.id === id) events.push(event)
+  })
+  model.program = `
+    await tools.update_role({ body: "Check the evidence." })
+    await tools.remember_experience({ body: "Verify every source." })
+  `
+  await prompt(id, 'Save the role and lesson')
+  const [memoryId] = await service.listMemories(roleId)
+  expect(memoryId).toBeDefined()
+  model.program = `
+    await tools.revise_experience({
+      memoryId: ${JSON.stringify(memoryId)}, title: "Sources", body: "Prefer original sources."
+    })
+    await tools["mcp__chrome-devtools__list_pages"]({})
+  `
+  await prompt(id, 'Revise the lesson and list pages')
+  model.program = 'await tools.update_role({name:"lead",body:"Do not apply."})'
+  await prompt(id, 'Exercise the protected rename')
+  expect(JSON.stringify(await service.readDocument({ roleId, memoryId }))).toContain(
+    'Prefer original sources.',
+  )
+  expect(request(id).tools?.map((t) => t.name)).toEqual(['run_code'])
+  const calls = events.filter((e) => e.type === 'tool/ptc-dispatch').map((e) => e.data)
+  expect(calls.map((call) => [call.name, call.isError])).toEqual([
+    ['update_role', false],
+    ['remember_experience', false],
+    ['revise_experience', false],
+    ['mcp__chrome-devtools__list_pages', false],
+    ['update_role', true],
+  ])
+  expect(calls.at(-1)?.arguments).toMatchObject({ name: 'lead' })
+  expect(JSON.stringify(calls.at(-1)?.content)).toContain('系统名称')
 })

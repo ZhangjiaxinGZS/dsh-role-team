@@ -273,7 +273,8 @@ export class TrainingRuntime {
           'Remember a durable lesson for this role. Supply the lesson in plain text.',
           'Correct one saved lesson by its memoryId from your profile. Supply its revised title and full content.',
         ][i],
-        parameters: z.toJSONSchema(inputs[i]),
+        // Zod also attaches a non-enumerable ~standard validator. PTC accepts only JSON data.
+        parameters: { ...z.toJSONSchema(inputs[i]) },
         output: {
           schema: { type: 'string' },
           render: (_args, value) => [{ type: 'text', text: String(value) }],

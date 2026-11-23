@@ -115,6 +115,7 @@ function harness(call: ReturnType<typeof vi.fn>) {
   const releases = new Map<string, ReturnType<typeof vi.fn>>(),
     stops = new Map<string, ReturnType<typeof vi.fn>>(),
     approvals = new Set<string>()
+  const openView = vi.fn()
   function NativePermission({ locked }: { locked: boolean }) {
     const id = useContext(Scope)
     return <button disabled={locked} aria-label={'Access: ' + id} />
@@ -134,6 +135,7 @@ function harness(call: ReturnType<typeof vi.fn>) {
           ],
           useStore: () => 'chat',
           selectView: vi.fn(),
+          actions: { openView },
           renderFactorySlot: () => (
             <div data-conversation-region="chat">
               stream:{id}
@@ -181,6 +183,8 @@ function harness(call: ReturnType<typeof vi.fn>) {
               data: { content: [{ type: 'text', text: 'history:' + id }] },
             },
           },
+          { event: { seq: 2, type: 'tool/call', data: { callId: id + '-outer', name: 'run_code' } } },
+          { event: { seq: 3, type: 'tool/ptc-dispatch-start', data: { subCallId: id + '-nested' } } },
         ],
         hasMore: false,
       }
@@ -204,6 +208,7 @@ function harness(call: ReturnType<typeof vi.fn>) {
     releases,
     stops,
     approvals,
+    openView,
   }
 }
 it('routes each column, guards the lead, and rebinds reset and read-only history to distinct references', async () => {
@@ -652,7 +657,8 @@ it('restores the last role, role view, page and team after leaving the panel', a
   await screen.findByText('Trajectory:South-session')
   fireEvent.click(screen.getByRole('button', { name: en.ui.library }))
   fireEvent.click(await screen.findByRole('button', { name: 'Editor' }))
-  await screen.findByText('Trajectory:Editor-session')
+  fireEvent.click(await screen.findByText('Trajectory:Editor-session'))
+  expect(h.openView).toHaveBeenCalledWith('trajectory', 'Editor-session-nested')
   fireEvent.click(screen.getByRole('button', { name: en.ui.settingsOnly }))
   panel.unmount()
   panel = h.mount(<App />)
