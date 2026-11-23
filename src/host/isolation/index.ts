@@ -1,5 +1,6 @@
 import type {} from '@deepseek-ai/dsh-working-directory'
 import type {} from '@deepseek-ai/dsh-fs'
+import type {} from '@deepseek-ai/dsh-permission-presets'
 import { realpath, stat } from 'node:fs/promises'
 import { parsePatch } from '@deepseek-ai/dsh-fs-patch'
 import { homedir } from 'node:os'
@@ -101,6 +102,13 @@ export function isolate(agent: Agent, roles: string, active: () => boolean, loca
         ? 'Capability unavailable in this role session'
         : '当前角色会话无法使用此工具。'
   })
+  agent.ctx.systemPrompt.context({
+    name: 'role-team-tool-routing',
+    order: 0,
+    required: true,
+    text: () =>
+      'Use only tools offered by this DSH session. In PTC use the exact names in its SDK through run_code. Do not use a provider-private MCP client. If a requested server is missing, report that it is unavailable in DSH. Attribute a denial to the user only when a tool result records a rejection.',
+  })
   // Preserve on-demand MCP catalogs alongside the role's own instructions.
   agent.ctx.on('system-prompt/assemble', async (_assembly, context, next) => {
     const result = await next()
@@ -120,6 +128,24 @@ export function isolate(agent: Agent, roles: string, active: () => boolean, loca
   })
   agent.ctx.on('tools/pre-execute', async (exec, next) => {
     if (exec.agent !== agent) return next()
+    if (
+      exec.name.startsWith('mcp__chrome-devtools__') &&
+      exec.name !== 'mcp__chrome-devtools__load_tools'
+    ) {
+      const decision = await next()
+      const mode = agent.ctx.get('permissionPresets')?.current(agent.session)
+      if (decision.kind !== 'allow' || (mode !== 'workspace-write' && mode !== 'read-only'))
+        return decision
+      // A browser can expose data outside the workspace. Route the individual call to
+      // the host approval service, including when it is nested inside a PTC program.
+      const name = exec.name.slice('mcp__chrome-devtools__'.length)
+      const en = `Allow Chrome DevTools to run ${name} in this session?`
+      return {
+        kind: 'ask',
+        reason: en,
+        displayReason: { en, zh: `允许此会话调用 Chrome DevTools 的 ${name} 吗？` },
+      }
+    }
     const targets = fileTargets(exec.name, exec.arguments as Record<string, unknown>)
     if (!targets.length) return next()
     const deny = {

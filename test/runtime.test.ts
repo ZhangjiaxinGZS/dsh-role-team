@@ -1,6 +1,7 @@
 import NodePtcRuntime from '@deepseek-ai/dsh-ptc-runtime-node'
 import SubprocessLocal from '@deepseek-ai/dsh-subprocess-local'
 import SandboxLocal from '@deepseek-ai/dsh-sandbox-local'
+import Approval from '@deepseek-ai/dsh-user-approval'
 import SandboxPolicy from '@deepseek-ai/dsh-sandbox-policy'
 import Permissions from '@deepseek-ai/dsh-permission-presets'
 import { mkdtemp, mkdir, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
@@ -897,6 +898,13 @@ it('executes all coaching tools in the native PTC Node runtime and records succe
   await ctx.plugin(SubprocessLocal)
   await ctx.plugin(SandboxLocal)
   await ctx.plugin(SandboxPolicy, { mode: 'workspace-write' })
+  await ctx.plugin(Approval, { policy: 'ask' })
+  ctx.provide('shell', { sandboxMode: 'workspace-write' } as never)
+  await ctx.plugin(Permissions, {})
+  let browserDecision: 'rejected' | 'allowed-once' = 'rejected'
+  ctx.on('approval/request', (_request, next) =>
+    _request.toolName === 'mcp__chrome-devtools__list_pages' ? Promise.resolve(browserDecision) : next(),
+  )
   await ctx.plugin(NodePtcRuntime, { executionMode: 'per-call' })
   await ctx.plugin(AgentPreset, {
     id: 'ptc',
@@ -925,6 +933,20 @@ it('executes all coaching tools in the native PTC Node runtime and records succe
     await tools["mcp__chrome-devtools__list_pages"]({})
   `
   await prompt(id, 'Revise the lesson and list pages')
+  browserDecision = 'allowed-once'
+  model.program = 'await tools["mcp__chrome-devtools__list_pages"]({})'
+  await prompt(id, 'Approve the browser call')
+  ctx.permissionPresets.set(result.agent.session, 'danger-full-access')
+  model.program = 'await tools["mcp__chrome-devtools__list_pages"]({})'
+  await prompt(id, 'List pages with full access')
+  expect(events.filter((e) => e.type === 'approval/asked').map((e) => e.data.toolName)).toEqual([
+    'mcp__chrome-devtools__list_pages',
+    'mcp__chrome-devtools__list_pages',
+  ])
+  expect(events.filter((e) => e.type === 'approval/decided').map((e) => e.data.outcome)).toEqual([
+    'rejected',
+    'allowed-once',
+  ])
   model.program = 'await tools.update_role({name:"lead",body:"Do not apply."})'
   await prompt(id, 'Exercise the protected rename')
   expect(JSON.stringify(await service.readDocument({ roleId, memoryId }))).toContain(
@@ -936,9 +958,44 @@ it('executes all coaching tools in the native PTC Node runtime and records succe
     ['update_role', false],
     ['remember_experience', false],
     ['revise_experience', false],
+    ['mcp__chrome-devtools__list_pages', true],
+    ['mcp__chrome-devtools__list_pages', false],
     ['mcp__chrome-devtools__list_pages', false],
     ['update_role', true],
   ])
   expect(calls.at(-1)?.arguments).toMatchObject({ name: 'lead' })
   expect(JSON.stringify(calls.at(-1)?.content)).toContain('系统名称')
+})
+
+it('addresses each browser approval to the calling team seat', async () => {
+  await ctx.plugin(Approval, { policy: 'ask' })
+  ctx.provide('shell', { sandboxMode: 'workspace-write' } as never)
+  await ctx.plugin(Permissions, {})
+  const { run } = await newTeam('Browser approvals')
+  const child = await service.addMember({ runId: run.runId, roleId })
+  await ctx.subagents.waitForTreeWork(ctx.agents.get(run.rootSessionId as SessionId)!)
+  const owners: string[] = []
+  ctx.on('approval/request', async (req, next) => {
+    if (req.toolName !== 'mcp__chrome-devtools__list_pages') return next()
+    owners.push(req.agent.session.id)
+    return 'allowed-once'
+  })
+  for (const id of [run.rootSessionId, child.currentSessionId]) {
+    model.pause = async (req) => {
+      if (req.sessionId !== id) return
+      model.pause = undefined
+      expect((await tool(id, 'mcp__chrome-devtools__list_pages', {})).isError).toBeFalsy()
+      expect((await tool(id, 'mcp__gefei__get_guide', {})).isError).toBeFalsy()
+    }
+    await service.promptSeat({
+      seatId: id === run.rootSessionId ? run.leaderSeatId : child.seatId,
+      generation: 1,
+      requestId: crypto.randomUUID(),
+      text: 'Check the browser and guide',
+      delivery: 'queue',
+    })
+    await vi.waitFor(() => expect(owners).toContain(id))
+    await ctx.subagents.waitForTreeWork(ctx.agents.get(run.rootSessionId as SessionId)!)
+  }
+  expect(owners).toEqual([run.rootSessionId, child.currentSessionId])
 })
