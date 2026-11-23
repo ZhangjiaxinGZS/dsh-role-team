@@ -25,6 +25,7 @@ import zh from '../../locales/zh-CN.json' with { type: 'json' }
 import css from './ui.css'
 import { TYPERT_REMOTE } from '../shared/remote.js'
 import { Client, unwrap, type Labels, type Ui } from './ui.js'
+import { registerPreviewWorkspace } from './preview.js'
 import { App, LibrarySettings } from './App.js'
 import { ChildControls, ChildPermission, SessionChat } from './workbench/SessionPane.js'
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -133,17 +134,7 @@ function mount(ctx: Context) {
       ),
     ),
   )
-  ctx.slots.inject('main', () =>
-    ctx.slots.register(
-      {
-        name: 'main',
-        key: 'role-team',
-        locale: 'roleTeam',
-        children: { 'roleTeam.chat': { kind: 'single', scope: 'session' } },
-      },
-      Main,
-    ),
-  )
+  shared.preview = registerPreviewWorkspace(ctx, Main)
   // Share the host's per-session view store and selection action. The host owns its header outlet.
   ctx.slots.inject('roleTeam.chat', () => {
     const slot = 'conversation.session.header'

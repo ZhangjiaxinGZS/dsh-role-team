@@ -2,3 +2,6 @@
 - insert:
     - id: role-team
       name: dsh-role-team
+# Web rc.5 ships the native URL preview disabled by default. User profile overrides still apply last.
+- id: ui-sidebar-browser
+  disabled: false

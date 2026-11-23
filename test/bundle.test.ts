@@ -22,6 +22,7 @@ const require = createRequire(import.meta.url)
 it('loads the manifest-selected Host and renderer artifacts and disposes their resources', async () => {
   const manifest = require('dsh-role-team/package.json')
   const patch = parse(await readFile(join(process.cwd(), manifest.dsh.bundle.patch), 'utf8'))
+  expect(patch).toContainEqual({ id: 'ui-sidebar-browser', disabled: false })
   const moduleId = patch[0].insert[0].name
   expect(patch[0].insert).toEqual([{ id: 'role-team', name: manifest.name }])
   const host = (await import(pathToFileURL(require.resolve(moduleId)).href)) as {
@@ -99,7 +100,7 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
     })
     const injected = new Set<string>()
     const plugin = factory!((id) => {
-      expect(['@deepseek-ai/dsh-client-ui-primitives', 'react', 'react/jsx-runtime', 'zod']).toContain(
+      expect(['@deepseek-ai/dsh-client-ui-primitives', 'react', 'react-dom', 'react/jsx-runtime', 'zod']).toContain(
         id,
       )
       injected.add(id)
@@ -132,6 +133,7 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
         {
           name: 'root',
           children: {
+            'shell.overlay': { kind: 'list', scope: 'root' },
             main: { kind: 'keyed', scope: 'root' },
             'sidebar.panellist': { kind: 'list', scope: 'root' },
             'settings.section': { kind: 'list', scope: 'root' },
@@ -173,6 +175,7 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
       expect([...injected].sort()).toEqual([
         '@deepseek-ai/dsh-client-ui-primitives',
         'react',
+        'react-dom',
         'react/jsx-runtime',
         'zod',
       ])

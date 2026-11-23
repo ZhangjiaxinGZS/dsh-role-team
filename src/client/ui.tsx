@@ -34,6 +34,7 @@ export interface Ui {
   ): ReturnType<RoleTeamRpc[K]>
   retain(target: SessionTarget): SessionReference
   SessionProvider: SessionProviderComponent
+  preview?: { activate(target: SessionTarget): void; leave(id: string): void }
   chat(): ReactNode
   presets?: {
     list(): Promise<{ id: string; label: string; isDefault: boolean; broken?: string }[]>

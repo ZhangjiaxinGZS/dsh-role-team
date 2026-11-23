@@ -10,8 +10,12 @@ import {
   ChildControls,
   ChildPermission,
   SessionChat,
+  SessionPane,
+  sessionTarget,
   targetId,
 } from '../src/client/workbench/SessionPane.js'
+import { registerPreviewWorkspace } from '../src/client/preview.js'
+import type { Context } from '@deepseek-ai/cordis'
 import { App, LibrarySettings } from '../src/client/App.js'
 import { DocumentEditor, Documents } from '../src/client/roles/DocumentEditor.js'
 import { TeamSetup } from '../src/client/team-setup/TeamSetup.js'
@@ -671,4 +675,72 @@ it('restores the last role, role view, page and team after leaving the panel', a
   panel.unmount()
   h.mount(<App />)
   await screen.findByText('Trajectory:South-session')
+})
+
+it('routes preview gestures to the originating session before native actions run', async () => {
+  const { ui } = harness(vi.fn())
+  const activate = vi.fn()
+  const leave = vi.fn()
+  const observed: string[] = []
+  const child = sessionTarget('member-session', 'lead-session')
+  ui.preview = { activate, leave }
+  ui.chat = () => (
+    <div data-chat-flow="">
+      <button>Ordinary control</button>
+      <a href="https://example.org" onContextMenu={() => observed.push(targetId(activate.mock.lastCall![0]))}>URL</a>
+      <button tabIndex={0} onClick={() => observed.push(targetId(activate.mock.lastCall![0]))}>File</button>
+    </div>
+  )
+  const view = render(<Client.Provider value={ui}><SessionPane target={child} /></Client.Provider>)
+  fireEvent.click(await screen.findByText('Ordinary control'))
+  expect(activate).not.toHaveBeenCalled()
+  fireEvent.contextMenu(screen.getByText('URL'))
+  fireEvent.click(screen.getByText('File'))
+  fireEvent.keyDown(screen.getByText('URL'), { key: 'F10', shiftKey: true })
+  expect(activate.mock.calls).toEqual([[child], [child], [child]])
+  expect(observed).toEqual(['member-session', 'member-session'])
+  view.unmount()
+  expect(leave).toHaveBeenCalledWith('member-session')
+})
+
+it('releases the conversation outlet on native navigation and never closes another pane’s preview', () => {
+  let panel: string | null = 'role-team'
+  let pending = new AbortController()
+  const selectPanel = vi.fn((value: string | null) => { pending.abort(); panel = value })
+  const layout = {
+    panelInfo: { getSnapshot: () => ({ activePanelId: panel }) },
+    selectPanel,
+    beginNavigation: () => { pending.abort(); pending = new AbortController(); return pending.signal },
+  }
+  const openSession = vi.fn(() => selectPanel(null))
+  const remove = vi.fn()
+  const register = vi.fn(() => remove)
+  const services = { layout, uiWorkspace: { openSession }, sidebarRight: {} }
+  const ctx = {
+    get: (key: keyof typeof services) => services[key],
+    slots: { inject: vi.fn(), register },
+    effect: vi.fn(),
+  }
+  const preview = registerPreviewWorkspace(ctx as unknown as Context, () => null)
+  const root = sessionTarget('root')
+  const child = sessionTarget('child', 'root')
+  preview.activate(root)
+  preview.activate(child)
+  preview.activate(child)
+  expect(openSession.mock.calls).toHaveLength(2)
+  expect(openSession).toHaveBeenLastCalledWith(child)
+  expect(register).toHaveBeenCalledTimes(1)
+  preview.leave('root')
+  expect(panel).toBeNull()
+  selectPanel('settings')
+  expect(remove).toHaveBeenCalledTimes(1)
+  preview.leave('child')
+  preview.activate(root)
+  expect(panel).toBe('settings')
+  expect(register).toHaveBeenCalledTimes(1)
+  selectPanel('role-team')
+  preview.activate(child)
+  preview.leave('child')
+  expect(panel).toBe('role-team')
+  expect(remove).toHaveBeenCalledTimes(2)
 })

@@ -81,8 +81,19 @@ function BoundPane({
   onToolResult,
   focusOnOpen,
 }: Pane) {
-  const { SessionProvider, chat, t } = useUi()
+  const { SessionProvider, chat, t, preview } = useUi()
   const { reference, error, retry } = useRetainedSession(target)
+  const id = targetId(target)
+  useEffect(() => () => preview?.leave(id), [preview, id])
+  const preparePreview = (event: React.SyntheticEvent<HTMLElement>) => {
+    const element = event.target
+    if (!(element instanceof Element) || !event.currentTarget.contains(element)) return
+    // Host Markdown and tool rows expose contextual URL/file targets as focusable
+    // links or file buttons. Leave composer, trajectory and ordinary controls alone.
+    if (element.closest('a[href], [data-ref-chip="file"], [data-chat-flow] button[tabindex="0"], [data-presented-file] button[title]')) {
+      preview?.activate(target)
+    }
+  }
   const container = useRef<HTMLElement>(null)
   useEffect(() => {
     const pane = container.current
@@ -138,7 +149,16 @@ function BoundPane({
     )
   return (
     <SessionProvider session={reference}>
-      <section ref={container} className="rt-session" aria-label={readOnly ? t('readOnly') : undefined}>
+      <section
+        ref={container}
+        className="rt-session"
+        onClickCapture={preparePreview}
+        onContextMenuCapture={preparePreview}
+        onKeyDownCapture={(event) => {
+          if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) preparePreview(event)
+        }}
+        aria-label={readOnly ? t('readOnly') : undefined}
+      >
         <PaneContext.Provider
           value={{
             reference,
