@@ -68,6 +68,18 @@ function fileTargets(name: string, args: Record<string, unknown>): string[] {
       return []
   }
 }
+// Minimal mode owns a complete system prompt. Required context still reaches its model.
+export function installRolePrompt(agent: Agent, text: () => string) {
+  agent.ctx.systemPrompt.section({ name: 'role-team-role', order: 0, interpolate: false, text })
+  agent.ctx.systemPrompt.context({
+    name: 'role-team-minimal-profile',
+    order: 0,
+    interpolate: false,
+    required: true,
+    text: () => (agent.ctx.get('agentPresets')?.composedPreset(agent.ctx) === 'minimal' ? text() : ''),
+  })
+}
+
 export function isolate(agent: Agent, roles: string, active: () => boolean, locale: 'zh' | 'en' = 'zh') {
   const tools = agent.ctx.tools
   // Mask inherited lookup tools for both native and PTC executors, including late registrations.
@@ -98,6 +110,8 @@ export function isolate(agent: Agent, roles: string, active: () => boolean, loca
       sections: result.sections.filter(
         (s) =>
           s.name === 'role-team-role' ||
+          s.name === 'deployment:persona-prefix' ||
+          s.name === 'deployment:persona-suffix' ||
           s.name.startsWith('mcp:') ||
           s.name.startsWith('tools:') ||
           (s.name.startsWith('tool:') && s.name !== 'tool:session-query'),

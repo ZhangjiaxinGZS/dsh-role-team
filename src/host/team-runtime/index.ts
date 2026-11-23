@@ -5,7 +5,7 @@ import type { IndexRecord, Snapshot, ModelChoice } from '../../shared/index.js'
 import type { Input } from '../../shared/runtime.js'
 import { RoleStore } from '../role-store/index.js'
 import { generationKey, type Index } from '../storage/index.js'
-import { isolate, workspacePath } from '../isolation/index.js'
+import { isolate, workspacePath, installRolePrompt } from '../isolation/index.js'
 import { TrainingRuntime } from '../training/index.js'
 import { replaceSeat } from '../seat-reset/index.js'
 import { NativeTeam } from './native.js'
@@ -221,6 +221,7 @@ export class TeamRuntime {
       runId,
       title: input.title,
       locale: input.locale,
+      agentPreset: input.agentPreset,
       workspaceCwd: cwd,
       rootSessionId,
       leaderSeatId: seatId,
@@ -229,7 +230,7 @@ export class TeamRuntime {
     })
     try {
       await this.reserve(runId, null, snap, undefined, seatId, rootSessionId)
-      await this.native.create(rootSessionId, cwd)
+      await this.native.create(rootSessionId, cwd, input.agentPreset)
       await this.native.enable(rootSessionId)
       await this.index.runs.update(runId, (run) => ({ ...run, status: 'active' }))
       return this.getTeam(runId)
@@ -306,7 +307,7 @@ export class TeamRuntime {
           continue
         }
         if (!(await this.native.exists(run.rootSessionId)))
-          await this.native.create(run.rootSessionId, run.workspaceCwd)
+          await this.native.create(run.rootSessionId, run.workspaceCwd, run.agentPreset)
         await this.native.enable(run.rootSessionId)
         await this.index.runs.update(run.runId, (r) => ({ ...r, status: 'active' }))
       }
@@ -491,19 +492,15 @@ export class TeamRuntime {
       })
     }
     agent.ctx.systemPrompt.suppressRuntimeContext()
-    agent.ctx.systemPrompt.section({
-      name: 'role-team-role',
-      order: 0,
-      interpolate: false,
-      text: () =>
-        [
-          run.locale === 'en' ? 'Work and reply in English.' : '请用中文协作、报到并回复用户。',
-          seat.displayName,
-          ...(view().role.role.meta.name !== seat.displayName ? [view().role.role.meta.name] : []),
-          view().role.role.meta.summary,
-          view().role.role.body,
-        ].join('\n'),
-    })
+    installRolePrompt(agent, () =>
+      [
+        run.locale === 'en' ? 'Work and reply in English.' : '请用中文协作、报到并回复用户。',
+        seat.displayName,
+        ...(view().role.role.meta.name !== seat.displayName ? [view().role.role.meta.name] : []),
+        view().role.role.meta.summary,
+        view().role.role.body,
+      ].join('\n'),
+    )
     agent.ctx.systemPrompt.context({
       name: 'role-team-memory',
       order: 0,

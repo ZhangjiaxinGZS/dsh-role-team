@@ -35,6 +35,10 @@ export interface Ui {
   retain(target: SessionTarget): SessionReference
   SessionProvider: SessionProviderComponent
   chat(): ReactNode
+  presets?: {
+    list(): Promise<{ id: string; label: string; isDefault: boolean; broken?: string }[]>
+    select(sessionId: SessionReference['sessionId'], preset: string): Promise<string>
+  }
   pick?: () => Promise<string | null>
   settings?: {
     read(): Promise<{ revision: number; writable: boolean }>

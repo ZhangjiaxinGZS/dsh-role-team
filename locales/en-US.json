@@ -4,6 +4,7 @@
     "description": "Manage editable role cards, memories and published revisions."
   },
   "ui": {
+    "agentMode": "Agent mode",
     "teams": "Team workspace",
     "library": "Roles & training",
     "title": "Role teams",

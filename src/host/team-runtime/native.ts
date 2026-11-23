@@ -95,11 +95,12 @@ export class NativeTeam {
       await writer.close()
     }
   }
-  async create(id: string, cwd: string) {
+  async create(id: string, cwd: string, preset?: string) {
     const result = await this.ctx.sessionController.create({
       sessionId: id as SessionId,
       cwd,
-      ...(this.ctx.get('agentPresets')?.defaultId === 'role-team' && { agentPreset: 'standard' }),
+      agentPreset:
+        preset ?? (this.ctx.get('agentPresets')?.defaultId === 'role-team' ? 'standard' : undefined),
     })
     if (result.sessionId !== id) throw new Error('Session identity changed during creation')
   }

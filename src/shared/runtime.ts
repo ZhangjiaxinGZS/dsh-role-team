@@ -25,7 +25,13 @@ export const runtimeMethods = {
   ],
   restoreRole: [z.strictObject({ roleId: fileId, revision, expectedHash: hash }), editResult],
   createTeam: [
-    z.strictObject({ title, roleId: fileId, workspaceCwd, locale: conversationLocale.optional() }),
+    z.strictObject({
+      title,
+      roleId: fileId,
+      workspaceCwd,
+      agentPreset: id.optional(),
+      locale: conversationLocale.optional(),
+    }),
     team,
   ],
   listTeams: [z.strictObject({}), z.array(indexRecords.team_runs)],

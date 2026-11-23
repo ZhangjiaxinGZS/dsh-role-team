@@ -837,3 +837,42 @@ it('resumes legacy managed roots, children and coaching with the host default an
     ).toBe(true),
   )
 })
+
+it('applies the chosen native team preset to the root and its fresh child, and locks coaching after its first turn', async () => {
+  await ctx.plugin(AgentPreset, { id: 'minimal', plugins: [] })
+  const team = await service.createTeam({
+    title: 'Selected',
+    roleId,
+    workspaceCwd: cwd,
+    agentPreset: 'minimal',
+  })
+  const child = await service.addMember({ runId: team.run.runId, roleId })
+  expect(team.run.agentPreset).toBe('minimal')
+  for (const id of [team.run.rootSessionId, child.currentSessionId]) {
+    expect((await ctx.sessionPersistence.stat(id as SessionId))?.header.agentPreset).toBe('minimal')
+  }
+  const coach = await service.createTraining({ roleId, mode: 'coach' })
+  const result = await ctx.sessionController.resolveAgent(coach.sessionId as SessionId)
+  if ('error' in result) throw result.error
+  await ctx.agentPresets.select(result.agent, 'minimal')
+  await prompt(coach.sessionId, 'apply the new mode')
+  expect(JSON.stringify(request(coach.sessionId).messages)).toContain('rule-one')
+  expect(request(coach.sessionId).tools?.map((t) => t.name)).toContain('update_role')
+  await expect(ctx.agentPresets.select(result.agent, 'ordinary')).rejects.toThrow(/already started/)
+})
+
+it('asks once for the Chinese report when a coaching turn would close without it', async () => {
+  const coach = await service.createTraining({ roleId, mode: 'coach', locale: 'zh' })
+  let invoked = false
+  model.pause = async (req) => {
+    if (req.sessionId !== coach.sessionId || invoked) return
+    invoked = true
+    const saved = await tool(coach.sessionId, 'remember_experience', { body: '先确认来源。' })
+    expect(JSON.stringify(saved)).toContain('必须在本轮最终回复正文中用中文')
+  }
+  await prompt(coach.sessionId, '请记住经验')
+  const requests = model.requests.filter((r) => r.sessionId === coach.sessionId)
+  expect(requests).toHaveLength(2)
+  expect(JSON.stringify(requests.at(-1)?.messages)).toContain('已记住经验「先确认来源。」')
+  expect(await service.listMemories(roleId)).toHaveLength(1)
+})

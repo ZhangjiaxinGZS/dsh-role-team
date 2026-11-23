@@ -1,5 +1,15 @@
 import { useState } from 'react'
-import { Modal, PathInput, Notice, useAction, useUi, type Team, type Run, type Seat } from '../ui.js'
+import {
+  Modal,
+  PathInput,
+  Notice,
+  useAction,
+  useLoad,
+  useUi,
+  type Team,
+  type Run,
+  type Seat,
+} from '../ui.js'
 export type RoleChoice = { id: string; name: string; revision: number | null }
 export function TeamSetup({
   roles,
@@ -12,12 +22,14 @@ export function TeamSetup({
   onDone: (run: Run) => void
   close: () => void
 }) {
-  const { call, t } = useUi(),
+  const { call, presets, t } = useUi(),
     a = useAction(),
     eligible = roles.filter((r) => r.revision !== null)
   const [name, setName] = useState(''),
     [cwd, setCwd] = useState(team?.run.workspaceCwd ?? ''),
     [leader, setLeader] = useState(eligible[0]?.id ?? '')
+  const [preset, setPreset] = useState('')
+  const catalog = useLoad('presets', async () => (team ? [] : ((await presets?.list()) ?? [])))
   const [selected, choose] = useState<string[]>([]),
     [parents, setParents] = useState<Record<string, string>>({}),
     [parent, setParent] = useState(team?.run.leaderSeatId ?? '')
@@ -36,7 +48,12 @@ export function TeamSetup({
     }
     const current =
       partial ??
-      (await call('createTeam', { title: name.trim(), workspaceCwd: cwd.trim(), roleId: leader }))
+      (await call('createTeam', {
+        title: name.trim(),
+        workspaceCwd: cwd.trim(),
+        roleId: leader,
+        ...(preset && { agentPreset: preset }),
+      }))
     setPartial(current)
     const ids = { ...createdSeats, [leader]: current.run.leaderSeatId }
     for (const roleId of members) {
@@ -90,6 +107,23 @@ export function TeamSetup({
               ))}
             </select>
           </label>
+          {!team && !!catalog.data?.length && (
+            <label>
+              {t('agentMode')}
+              <select
+                aria-label={t('agentMode')}
+                value={preset || catalog.data.find((p) => p.isDefault)?.id || ''}
+                onChange={(e) => setPreset(e.target.value)}
+              >
+                {catalog.data.map((p) => (
+                  <option key={p.id} value={p.id} disabled={!!p.broken}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <Notice>{catalog.error}</Notice>
           {team ? (
             <label>
               {t('parent')}

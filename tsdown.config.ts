@@ -40,7 +40,11 @@ export default defineConfig([
       'zod',
       '@deepseek-ai/dsh-client-ui-primitives',
     ],
-    noExternal: [/^yaml/, /^@deepseek-ai\/dsh-typert-protocol/],
+    noExternal: [
+      /^yaml/,
+      '@deepseek-ai/dsh-agent-preset-registry/display',
+      /^@deepseek-ai\/dsh-typert-protocol/,
+    ],
     inputOptions: {
       moduleTypes: { '.css': 'text' },
       resolve: {

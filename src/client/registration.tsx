@@ -7,6 +7,8 @@ import type {
   PermissionSelectProps,
   PermissionSelectInjected,
 } from '@deepseek-ai/dsh-client-ui-permission-presets/client'
+import type {} from '@deepseek-ai/dsh-agent-preset-registry/remote'
+import { presetDisplayText } from '@deepseek-ai/dsh-agent-preset-registry/display'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SlotComponent, StoredEntry } from '@deepseek-ai/dsh-client-ui-slots'
 import type { Context } from '@deepseek-ai/cordis'
@@ -61,8 +63,22 @@ function mount(ctx: Context) {
     globalThis as typeof globalThis & { __DSH_DIRECTORY_PICKER__?: { pick(): Promise<string | null> } }
   ).__DSH_DIRECTORY_PICKER__
   const options = { source: 'roleTeam' as const, facets: { conversation: true } }
+  const presetRemote = () =>
+    ctx.get(
+      'remote.agentPresets',
+    ) as import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['agentPresets']
   const shared: Ui = {
     t,
+    presets: {
+      async list() {
+        const { presets } = unwrap(await presetRemote().list())
+        const labels = ctx.locale.bind('settings.agentPreset')
+        return presets.map((p) => ({ ...p, label: presetDisplayText(p, labels).name }))
+      },
+      async select(id, preset) {
+        return unwrap(await presetRemote().select(id, preset))
+      },
+    },
     retain: (target) => ctx.sessions.retain(target, options),
     call: (async (method, ...args) => {
       const input =

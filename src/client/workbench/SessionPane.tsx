@@ -5,6 +5,7 @@ import {
   IconDataOutlineRegular,
   IconChevronDownOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
+import type {} from '@deepseek-ai/dsh-agent-preset-registry/types'
 import type { ModelChoice } from '../../shared/index.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -184,24 +185,80 @@ export function SessionChat(
       data-child={seat?.parentSeatId ? true : undefined}
     >
       <div className="rt-transcript">
-        {tabs.length > 1 && (
-          <div className="rt-view-navigation rt-segment" role="tablist">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={tab.id === selected}
-                onClick={() => props.selectView(tab.id)}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="rt-session-bar">
+          <SessionPreset {...props} readOnly={readOnly} />
+          {tabs.length > 1 && (
+            <div className="rt-view-navigation rt-segment" role="tablist">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab.id === selected}
+                  onClick={() => props.selectView(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {props.renderFactorySlot('conversation.content', factoryInput)}
       </div>
     </div>
+  )
+}
+
+function SessionPreset({
+  sessionId,
+  readOnly,
+  useProjection,
+  useSession,
+}: PropsRuntime<'roleTeam.chat'> & { readOnly: boolean }) {
+  const { presets, t } = useUi()
+  const catalog = useLoad('presets', async () => (await presets?.list()) ?? [])
+  const current = useProjection('agentPreset')
+  const blank = useSession((s) => s.blank && !s.running && !s.awaitingFirstTurn && !s.removed)
+  const [open, setOpen] = useState(false)
+  const action = useAction()
+  const options = catalog.data ?? []
+  const selected =
+    options.find((p) => p.id === current) ?? (!current ? options.find((p) => p.isDefault) : undefined)
+  const label = selected?.label ?? current
+  if (!label) return <Notice>{catalog.error}</Notice>
+  if (!blank || readOnly || !presets) return <small className="rt-preset-label">{label}</small>
+  return (
+    <>
+      <Menu
+        open={open}
+        onClose={() => setOpen(false)}
+        portal
+        align="start"
+        selectedId={selected?.id}
+        items={options.map((p) => ({ id: p.id, label: p.label, disabled: !!p.broken }))}
+        onSelect={(id) => {
+          setOpen(false)
+          void action.run(async () => {
+            await presets.select(sessionId, id)
+          })
+        }}
+        anchor={
+          <button
+            className="rt-preset-button"
+            aria-label={t('agentMode') + ' · ' + label}
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={open}
+            disabled={action.busy || !options.length}
+            onClick={() => setOpen(!open)}
+          >
+            {label}
+            <IconChevronDownOutlineRegular size={12} />
+          </button>
+        }
+      />
+      <Notice>{action.error || catalog.error}</Notice>
+    </>
   )
 }
 

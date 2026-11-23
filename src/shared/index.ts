@@ -107,6 +107,7 @@ export const indexRecords = {
     locale: conversationLocale.optional(),
     rootSessionId: key,
     permissionPreset: key.optional(),
+    agentPreset: key.optional(),
     leaderSeatId: key,
     workspaceCwd: key,
     status: z.enum(['creating', 'active', 'archived', 'failed']),

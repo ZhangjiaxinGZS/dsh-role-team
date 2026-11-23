@@ -3,16 +3,24 @@ import { mkdtemp, rmdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { directory } from '../role-store/files.js'
 import { z } from 'zod'
+import { createUserMessage, type ContextFormed } from '@deepseek-ai/dsh-llm'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { fileId, roleMeta, memoryMeta, type EditResult, type IndexRecord } from '../../shared/index.js'
 import type { Input } from '../../shared/runtime.js'
 import { RoleStore } from '../role-store/index.js'
 import { digest, parseMarkdown, serializeMarkdown } from '../role-store/markdown.js'
 import type { Index } from '../storage/index.js'
-import { trainingTools, workspacePath } from '../isolation/index.js'
+import { trainingTools, workspacePath, installRolePrompt } from '../isolation/index.js'
 import type { NativeTeam } from '../team-runtime/native.js'
 
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'role-team-update': { kind: 'role-team-update' } & ContextFormed
+  }
+}
 type Training = IndexRecord<'training_sessions'>
+const reportChanges =
+  '更新工具执行成功后，必须在本轮最终回复正文中用中文向用户简要总结具体改动。分别说明改动的设定、新增或修订的经验；只列实际成功的改动。'
 const text = z.string().trim().min(1).max(24000)
 const inputs = [
   z.strictObject({
@@ -205,25 +213,58 @@ export class TrainingRuntime {
         : undefined
     }
     let snapshot = await loadSnapshot()
-    agent.ctx.systemPrompt.section({
-      name: 'role-team-role',
-      order: 0,
-      interpolate: false,
-      text: () =>
-        [
-          row.locale === 'en'
-            ? 'Reply in English. In this private coaching chat, update your own role with update_role when learning a lasting responsibility or preference. Preserve unrelated settings. Keep the current role name unless the user explicitly requests a rename. Use remember_experience for reusable lessons and revise_experience to correct a saved lesson. Briefly tell the user what you saved after success. Keep one-off requests and team-specific details out of the role profile.'
-            : '请用中文回复。在这次一对一培养中，学到持久的职责或偏好时，用 update_role 直接更新自己的角色设定，保留其他设定。只有用户明确要求改名才传 name，不要使用 lead、root 等系统名称。值得复用的经验用 remember_experience 记住，纠正已有经验用 revise_experience。写入成功后简短告诉用户记住了什么。临时要求和团队专属细节留在本次对话或关联团队。',
-          snapshot?.role.meta.name ?? row.roleId,
-          snapshot?.role.meta.summary,
-          snapshot?.role.body,
-          ...(snapshot?.memories.map((m) => '[' + m.meta.id + '] ' + m.meta.title + '\n' + m.body) ??
-            []),
-        ]
-          .filter(Boolean)
-          .join('\n')
-          .slice(0, 32000),
+    let pendingTurn = -1
+    let remindedTurn = -1
+    const receipts = new Set<string>()
+    agent.ctx.on('session/event', (session, event) => {
+      if (
+        session !== agent.session ||
+        event.type !== 'assistant/message' ||
+        pendingTurn !== event.data.turn
+      )
+        return
+      if (
+        event.data.message.content.some(
+          (block) => block.type === 'text' && /\p{Script=Han}/u.test(block.text),
+        )
+      )
+        receipts.clear()
     })
+    agent.ctx.on('agent/turn-stopping', ({ agent: owner, turn, signal }) => {
+      if (
+        owner !== agent ||
+        signal.aborted ||
+        turn !== pendingTurn ||
+        turn === remindedTurn ||
+        !receipts.size
+      )
+        return
+      remindedTurn = turn
+      const summary = Array.from(receipts).join(' ')
+      agent.steer(
+        createUserMessage({
+          source: { kind: 'role-team-update', form: 'notice', summary },
+          content: [
+            { type: 'text', text: summary + ' ' + reportChanges + ' 已保存，无需重复调用工具。' },
+          ],
+        }),
+      )
+    })
+    installRolePrompt(agent, () =>
+      [
+        row.locale === 'en'
+          ? 'Reply in English. In this private coaching chat, update your own role with update_role when learning a lasting responsibility or preference. Preserve unrelated settings. Keep the current role name unless the user explicitly requests a rename. Use remember_experience for reusable lessons and revise_experience to correct a saved lesson. Report successful profile changes in Chinese. Keep one-off requests and team-specific details out of the role profile.'
+          : '请用中文回复。在这次一对一培养中，学到持久的职责或偏好时，用 update_role 直接更新自己的角色设定，保留其他设定。只有用户明确要求改名才传 name，不要使用 lead、root 等系统名称。值得复用的经验用 remember_experience 记住，纠正已有经验用 revise_experience。写入成功后简短告诉用户记住了什么。临时要求和团队专属细节留在本次对话或关联团队。',
+        reportChanges,
+        snapshot?.role.meta.name ?? row.roleId,
+        snapshot?.role.meta.summary,
+        snapshot?.role.body,
+        ...(snapshot?.memories.map((m) => '[' + m.meta.id + '] ' + m.meta.title + '\n' + m.body) ?? []),
+      ]
+        .filter(Boolean)
+        .join('\n')
+        .slice(0, 32000),
+    )
     trainingTools.forEach((name, i) =>
       agent.ctx.tools.register({
         name,
@@ -244,6 +285,7 @@ export class TrainingRuntime {
             !this.current(row.roleId).some((t) => t.trainingId === row.trainingId)
           )
             throw new Error('Training session mismatch')
+          let receipt: string
           if (name === 'update_role') {
             const { name: displayName, summary, body } = inputs[0].parse(args)
             const meta = base
@@ -273,6 +315,7 @@ export class TrainingRuntime {
             }
             const { hash } = saved(result)
             base = { text: next, hash: hash! }
+            receipt = '已保存「' + (displayName ?? meta.name) + '」的角色设定。'
           } else if (name === 'revise_experience') {
             const { memoryId, title, body } = inputs[2].parse(args)
             const known = snapshot?.memories.find((m) => m.meta.id === memoryId)
@@ -296,11 +339,18 @@ export class TrainingRuntime {
                 text: serializeMarkdown({ ...current.meta, title }, body),
               }),
             )
+            receipt = '已修订经验「' + title + '」。'
           } else {
-            await this.rememberExperience(row.roleId, inputs[1].parse(args).body)
+            const { body } = inputs[1].parse(args)
+            await this.rememberExperience(row.roleId, body)
+            receipt = '已记住经验「' + Array.from(body.split('\n')[0]).slice(0, 80).join('') + '」。'
           }
           snapshot = await loadSnapshot()
-          return row.locale === 'en' ? 'Saved to your role profile.' : '已记入角色档案。'
+          const turn = agent.ctx.agents.turnBoundaryOf(agent.session).lastTurn
+          if (turn !== pendingTurn) receipts.clear()
+          pendingTurn = turn
+          receipts.add(receipt)
+          return receipt + reportChanges
         },
       }),
     )
