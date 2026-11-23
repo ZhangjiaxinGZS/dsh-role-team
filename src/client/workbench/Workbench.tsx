@@ -1,6 +1,15 @@
+import {
+  IconChevronRightOutlineRegular,
+  IconPanelLeftOutlineRegular,
+  IconPlusOutlineRegular,
+  IconClockOutlineRegular,
+  IconFullscreenOutlineRegular,
+  IconRefreshOutlineRegular,
+  IconCompareSplitOutlineRegular,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import { useState } from 'react'
 import {
-  Avatar,
+  MoreMenu,
   Modal,
   Notice,
   useAction,
@@ -32,51 +41,48 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
       aria-expanded={!collapsed}
       onClick={() => setCollapsed(!collapsed)}
     >
-      ☰
+      <IconPanelLeftOutlineRegular size={16} />
     </button>
   )
   const teamRow = (r: Run) => (
-    <div key={r.runId} className="rt-team-item">
+    <div key={r.runId} className="rt-list-row">
       <button aria-current={id === r.runId ? 'page' : undefined} onClick={() => setSelected(r.runId)}>
         {r.title}
       </button>
       {r.status === 'active' && (
-        <button
-          title={t('archiveTeam')}
-          aria-label={t('archiveTeam') + ' · ' + r.title}
-          onClick={() => {
+        <MoreMenu
+          name={r.title}
+          action="archiveTeam"
+          onAction={() => {
             action.clear()
             setArchive(r)
           }}
-        >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path d="M2 2.5h12v3H2zM3.5 5.5v8h9v-8M6 8h4" />
-          </svg>
-        </button>
+        />
       )}
     </div>
   )
   return (
     <section className="rt-work">
       {!collapsed && (
-        <aside className="rt-team-list" aria-label={t('teamsList')}>
+        <aside className="rt-team-list rt-list" aria-label={t('teamsList')}>
           <header>
             <h3>{t('teamsList')}</h3>
-            <button title={t('newTeam')} aria-label={t('newTeam')} onClick={() => setSetup(true)}>
-              ＋
+            <button
+              className="rt-icon"
+              title={t('newTeam')}
+              aria-label={t('newTeam')}
+              onClick={() => setSetup(true)}
+            >
+              <IconPlusOutlineRegular size={16} />
             </button>
           </header>
           {active.map(teamRow)}
           {list.some((r) => r.status === 'archived') && (
             <details>
-              <summary>{t('archive')}</summary>
+              <summary>
+                <IconChevronRightOutlineRegular size={14} />
+                {t('archive')}
+              </summary>
               {list.filter((r) => r.status === 'archived').map(teamRow)}
             </details>
           )}
@@ -192,7 +198,7 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
           )}
         </div>
         <button className="rt-add-member" disabled={!active} onClick={() => setAdd(true)}>
-          ＋ {t('addMember')}
+          <IconPlusOutlineRegular size={14} /> {t('addMember')}
         </button>
       </header>
       <div className="rt-floor">
@@ -258,7 +264,6 @@ function MemberColumn({
   return (
     <article className="rt-column" id={'seat-' + s.seatId}>
       <header>
-        <Avatar name={s.displayName} />
         <div className="rt-grow">
           <h3>
             {s.displayName} {!parent && <span aria-label={t('leader')}>♛</span>}
@@ -270,7 +275,11 @@ function MemberColumn({
           aria-label={t(single ? 'columns' : 'focus')}
           onClick={toggleFocus}
         >
-          ⛶
+          {single ? (
+            <IconCompareSplitOutlineRegular size={16} />
+          ) : (
+            <IconFullscreenOutlineRegular size={16} />
+          )}
         </button>
         <button
           className="rt-icon"
@@ -282,7 +291,7 @@ function MemberColumn({
             setVersion('')
           }}
         >
-          ◷
+          <IconClockOutlineRegular size={16} />
         </button>
         <button
           className="rt-icon"
@@ -291,7 +300,7 @@ function MemberColumn({
           disabled={team.run.status !== 'active'}
           onClick={() => setReset(true)}
         >
-          ↺
+          <IconRefreshOutlineRegular size={16} />
         </button>
       </header>
       {showHistory && (

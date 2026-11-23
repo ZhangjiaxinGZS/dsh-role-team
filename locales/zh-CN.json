@@ -153,6 +153,8 @@
     "noVersions": "暂无历史设定",
     "finishEditing": "请先保存当前修改，再恢复历史设定。",
     "restoreConflict": "角色设定刚刚发生变化，请重新打开历史版本核对。",
+    "rolesList": "角色",
+    "moreActions": "更多操作",
     "teamsList": "团队列表",
     "expandTeams": "展开团队栏",
     "collapseTeams": "折叠团队栏",

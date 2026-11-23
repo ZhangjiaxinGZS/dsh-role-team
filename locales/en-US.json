@@ -153,6 +153,8 @@
     "noVersions": "No previous settings yet.",
     "finishEditing": "Save your edits before restoring settings.",
     "restoreConflict": "The settings changed. Reopen history to review the latest version.",
+    "rolesList": "Roles",
+    "moreActions": "More actions",
     "teamsList": "Teams",
     "expandTeams": "Expand team list",
     "collapseTeams": "Collapse team list",

@@ -42,7 +42,6 @@ export function App() {
     },
     6000,
   )
-  const path = useLoad('path', () => call('libraryInfo', {}))
   return (
     <main className="rt-app">
       <header className="rt-top" data-window-drag>
@@ -55,16 +54,12 @@ export function App() {
           ))}
         </nav>
       </header>
-      <Notice>{catalog.error || path.error}</Notice>
+      <Notice>{catalog.error}</Notice>
       {view === 'teams' ? (
         <Workbench roles={catalog.data ?? []} />
       ) : (
         <EditorBuffers.Provider value={buffers}>
-          <RoleLibrary
-            roles={catalog.data ?? []}
-            changed={catalog.refresh}
-            path={path.data?.activePath}
-          />
+          <RoleLibrary roles={catalog.data ?? []} changed={catalog.refresh} />
         </EditorBuffers.Provider>
       )}
     </main>

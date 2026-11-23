@@ -2,20 +2,13 @@ import { fileId } from '../../shared/index.js'
 import { serializeMarkdown } from '../../shared/markdown.js'
 import { useState } from 'react'
 import type { Diagnostic } from '../../shared/index.js'
-import { Avatar, Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
+import { IconPlusOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { MoreMenu, Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
 import type { RoleChoice } from '../team-setup/TeamSetup.js'
 import { Documents } from './DocumentEditor.js'
 import { TrainingPanel } from './Training.js'
 export type LibraryRole = RoleChoice & { error?: Diagnostic | null; empty?: boolean }
-export function RoleLibrary({
-  roles: catalog,
-  path,
-  changed,
-}: {
-  roles: LibraryRole[]
-  path?: string
-  changed: () => void
-}) {
+export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[]; changed: () => void }) {
   const { t, call } = useUi(),
     [view, setView] = useState<'chatOnly' | 'splitView' | 'settingsOnly'>('splitView'),
     [role, setRole] = useState(''),
@@ -29,34 +22,33 @@ export function RoleLibrary({
   const active = roles.find((r) => r.id === id)
   return (
     <section className="rt-library">
-      <header className="rt-toolbar">
-        <div>
-          <h2>{t('library')}</h2>
-          <small title={path}>{path}</small>
-        </div>
-        <div className="rt-row">
-          <button className="rt-primary" onClick={() => setModal('create')}>
-            ＋ {t('newRole')}
-          </button>
-        </div>
-      </header>
       <Notice>{startError}</Notice>
       <div className="rt-library-grid">
-        <aside className="rt-rolelist">
-          {roles.map((r) => (
+        <aside className="rt-rolelist rt-list" aria-label={t('rolesList')}>
+          <header>
+            <h3>{t('rolesList')}</h3>
             <button
-              key={r.id}
-              aria-pressed={id === r.id}
-              onClick={() => {
-                setRole(r.id)
-                setSession(undefined)
-              }}
+              className="rt-icon"
+              aria-label={t('newRole')}
+              title={t('newRole')}
+              onClick={() => setModal('create')}
             >
-              <Avatar name={r.name} />
-              <span>
-                <strong>{r.name}</strong>
-              </span>
+              <IconPlusOutlineRegular size={16} />
             </button>
+          </header>
+          {roles.map((r) => (
+            <div key={r.id} className="rt-list-row">
+              <button
+                aria-current={id === r.id ? 'page' : undefined}
+                onClick={() => {
+                  setRole(r.id)
+                  setSession(undefined)
+                }}
+              >
+                {r.name}
+              </button>
+              <MoreMenu name={r.name} action="deleteRole" onAction={() => setDeleting(r)} />
+            </div>
           ))}
         </aside>
         {id ? (
@@ -64,7 +56,6 @@ export function RoleLibrary({
             <header>
               <div className="rt-row">
                 <h2>{active?.name ?? id}</h2>
-                {active && <button onClick={() => setDeleting(active)}>{t('deleteRole')}</button>}
               </div>
               <div className="rt-segment" role="group" aria-label={t('roleView')}>
                 {(['chatOnly', 'splitView', 'settingsOnly'] as const).map((mode) => (
@@ -73,6 +64,9 @@ export function RoleLibrary({
                   </button>
                 ))}
               </div>
+              {active && (
+                <MoreMenu name={active.name} action="deleteRole" onAction={() => setDeleting(active)} />
+              )}
             </header>
             {active?.error && (
               <Notice>
@@ -104,8 +98,10 @@ export function RoleLibrary({
           close={() => setDeleting(undefined)}
           done={() => {
             setDeleted((previous) => [...previous, deleting.id])
-            setRole(roles.find((r) => r.id !== deleting.id)?.id ?? '')
-            setSession(undefined)
+            if (deleting.id === id) {
+              setRole(roles.find((r) => r.id !== deleting.id)?.id ?? '')
+              setSession(undefined)
+            }
             setStartError('')
             setDeleting(undefined)
             changed()
@@ -153,7 +149,7 @@ function DeleteRole({ role, close, done }: { role: LibraryRole; close: () => voi
       <p>{t('deleteRoleHint')}</p>
       <Notice>{file.error || action.error}</Notice>
       <footer>
-        <button autoFocus disabled={action.busy} onClick={close}>
+        <button data-modal-autofocus disabled={action.busy} onClick={close}>
           {t('cancel')}
         </button>
         <button
@@ -227,7 +223,7 @@ function CreateRole({
         <label>
           {t('name')}
           <input
-            autoFocus
+            data-modal-autofocus
             required
             maxLength={160}
             value={name}

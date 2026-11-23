@@ -259,7 +259,7 @@ function ExperienceForm({
           {t('experienceBody')}
           <textarea
             required
-            autoFocus
+            data-modal-autofocus
             maxLength={24000}
             rows={4}
             value={body}

@@ -1,11 +1,17 @@
 import {
+  Menu,
+  Modal as NativeModal,
+  IconEllipsisOutlineRegular,
+  IconTrashOutlineRegular,
+  IconArchiveOutlineRegular,
+} from '@deepseek-ai/dsh-client-ui-primitives'
+import {
   createContext,
   useContext,
   useEffect,
   useRef,
   useState,
   useCallback,
-  useId,
   type ReactNode,
 } from 'react'
 import type { ISessions, SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -127,37 +133,63 @@ export function Modal({
   close: () => void
   locked?: boolean
 }) {
-  const ref = useRef<HTMLDialogElement>(null),
-    id = useId()
   const { t } = useUi()
-  useEffect(() => {
-    const dialog = ref.current!
-    const previous = document.activeElement as HTMLElement | null
-    if (dialog.showModal) dialog.showModal()
-    else dialog.setAttribute('open', '')
-    return () => {
-      dialog.close?.()
-      previous?.focus?.()
-    }
-  }, [])
   return (
-    <dialog
-      ref={ref}
-      className="rt-modal"
-      aria-labelledby={id}
-      onCancel={(e) => {
-        e.preventDefault()
+    <NativeModal
+      open
+      title={title}
+      closeLabel={t('close')}
+      onClose={() => {
         if (!locked) close()
       }}
+      className="rt-modal"
+      contentClassName="rt-modal-content"
     >
-      <header>
-        <h2 id={id}>{title}</h2>
-        <button aria-label={t('close')} disabled={locked} onClick={close} type="button">
-          ×
-        </button>
-      </header>
       {children}
-    </dialog>
+    </NativeModal>
+  )
+}
+export function MoreMenu({
+  name,
+  action,
+  onAction,
+}: {
+  name: string
+  action: 'deleteRole' | 'archiveTeam'
+  onAction: () => void
+}) {
+  const { t } = useUi()
+  const [open, setOpen] = useState(false)
+  const Icon = action === 'deleteRole' ? IconTrashOutlineRegular : IconArchiveOutlineRegular
+  const label = t('moreActions') + ' · ' + name
+  return (
+    <Menu
+      open={open}
+      align="end"
+      portal
+      autoFocus
+      anchor={
+        <button
+          type="button"
+          className="rt-icon"
+          aria-label={label}
+          title={label}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
+          <IconEllipsisOutlineRegular size={16} />
+        </button>
+      }
+      items={[
+        { id: action, label: t(action), icon: <Icon size={16} />, danger: action === 'deleteRole' },
+      ]}
+      onClose={() => setOpen(false)}
+      onSelect={() => {
+        setOpen(false)
+        onAction()
+      }}
+    />
   )
 }
 export function PathInput({ value, onChange }: { value: string; onChange: (path: string) => void }) {
@@ -193,15 +225,5 @@ export function PathInput({ value, onChange }: { value: string; onChange: (path:
       <small>{t('dirHint')}</small>
       <Notice>{a.error}</Notice>
     </>
-  )
-}
-export function Avatar({ name }: { name: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={'rt-avatar tone-' + (Array.from(name).reduce((n, c) => n + c.codePointAt(0)!, 0) % 4)}
-    >
-      {Array.from(name.trim())[0]?.toUpperCase()}
-    </span>
   )
 }

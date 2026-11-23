@@ -20,6 +20,32 @@ import { serializeMarkdown } from '../src/shared/markdown.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 // The browser supplies the shared menu. Exercise the catalog and selection callbacks here.
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
+  IconEllipsisOutlineRegular: () => null,
+  IconTrashOutlineRegular: () => null,
+  IconArchiveOutlineRegular: () => null,
+  IconPlusOutlineRegular: () => null,
+  IconChevronRightOutlineRegular: () => null,
+  IconPanelLeftOutlineRegular: () => null,
+  IconClockOutlineRegular: () => null,
+  IconFullscreenOutlineRegular: () => null,
+  IconRefreshOutlineRegular: () => null,
+  IconCompareSplitOutlineRegular: () => null,
+  Modal: ({
+    title,
+    children,
+    closeLabel,
+    onClose,
+  }: {
+    title: string
+    children: ReactNode
+    closeLabel: string
+    onClose: () => void
+  }) => (
+    <div role="dialog" aria-label={title}>
+      <button aria-label={closeLabel} onClick={onClose} />
+      {children}
+    </div>
+  ),
   IconDataOutlineRegular: () => null,
   Tooltip: ({ label, children }: { label: string; children: ReactNode }) => (
     <span title={label}>{children}</span>
@@ -33,7 +59,7 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
   }: {
     anchor: ReactNode
     open: boolean
-    items: { id: string; submenu?: { id: string; label: string }[] }[]
+    items: { id: string; label: string; submenu?: { id: string; label: string }[] }[]
     onSelect: (id: string) => void
   }) => (
     <>
@@ -41,7 +67,7 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
       {open && (
         <div role="menu">
           {items
-            .flatMap((i) => i.submenu ?? [])
+            .flatMap((i) => i.submenu ?? [i])
             .map((i) => (
               <button key={i.id} role="menuitem" onClick={() => onSelect(i.id)}>
                 {i.label}
@@ -556,12 +582,22 @@ it('confirms the selected role by name and hash, supports cancel and clears the 
   harness(call).mount(
     <RoleLibrary roles={[{ id: 'writer', name: 'Writer', revision: 1 }]} changed={changed} />,
   )
-  fireEvent.click(screen.getByRole('button', { name: en.ui.deleteRole }))
+  fireEvent.click(
+    within(screen.getByRole('complementary', { name: en.ui.rolesList })).getByRole('button', {
+      name: /More actions/,
+    }),
+  )
+  fireEvent.click(screen.getByRole('menuitem', { name: en.ui.deleteRole }))
   const dialog = within(screen.getByRole('dialog'))
   expect(dialog.getByText('Writer')).toBeTruthy()
   fireEvent.click(dialog.getByRole('button', { name: en.ui.cancel }))
   expect(call.mock.calls.some(([method]) => method === 'deleteRole')).toBe(false)
-  fireEvent.click(screen.getByRole('button', { name: en.ui.deleteRole }))
+  fireEvent.click(
+    within(document.querySelector<HTMLElement>('.rt-detail > header')!).getByRole('button', {
+      name: /More actions/,
+    }),
+  )
+  fireEvent.click(screen.getByRole('menuitem', { name: en.ui.deleteRole }))
   const confirm = within(screen.getByRole('dialog')).getByRole('button', {
     name: en.ui.deleteRole,
   }) as HTMLButtonElement
