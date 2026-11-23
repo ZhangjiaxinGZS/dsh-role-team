@@ -16,7 +16,7 @@ import {
 } from '../src/client/workbench/SessionPane.js'
 import { registerPreviewWorkspace } from '../src/client/preview.js'
 import type { Context } from '@deepseek-ai/cordis'
-import { App, LibrarySettings } from '../src/client/App.js'
+import { App, LibrarySettings, PreviewToggle } from '../src/client/App.js'
 import { DocumentEditor, Documents } from '../src/client/roles/DocumentEditor.js'
 import { TeamSetup } from '../src/client/team-setup/TeamSetup.js'
 import { serializeMarkdown } from '../src/shared/markdown.js'
@@ -683,7 +683,8 @@ it('routes preview gestures to the originating session before native actions run
   const leave = vi.fn()
   const observed: string[] = []
   const child = sessionTarget('member-session', 'lead-session')
-  ui.preview = { activate, leave }
+  ui.preview = { activate, leave, setDefault: () => () => {}, subscribe: () => () => {},
+    state: () => 'closed', shortcut: () => undefined, toggle: vi.fn() }
   ui.chat = () => (
     <div data-chat-flow="">
       <button>Ordinary control</button>
@@ -743,4 +744,48 @@ it('releases the conversation outlet on native navigation and never closes anoth
   preview.leave('child')
   expect(panel).toBe('role-team')
   expect(remove).toHaveBeenCalledTimes(2)
+})
+
+it('opens the default session, follows native collapse, and reopens the last member preview', async () => {
+  let expanded = false
+  let signal = new AbortController()
+  const listeners = new Set<() => void>()
+  const layout = {
+    panelInfo: {
+      getSnapshot: () => ({ activePanelId: 'role-team' }),
+      subscribe(listener: () => void) { listeners.add(listener); return () => listeners.delete(listener) },
+    },
+    beginNavigation() { signal.abort(); signal = new AbortController(); return signal.signal },
+  }
+  const sidebarRight = {
+    isExpanded: () => expanded,
+    toggleExpanded() { expanded = !expanded; for (const listener of listeners) listener() },
+  }
+  const openSession = vi.fn()
+  const services = { layout, sidebarRight, uiWorkspace: { openSession } }
+  const preview = registerPreviewWorkspace({
+    get: (key: keyof typeof services) => services[key],
+    slots: { inject: vi.fn(), register: () => () => {} },
+    effect: vi.fn(),
+  } as unknown as Context, () => null)
+  const root = sessionTarget('lead')
+  const member = sessionTarget('child', 'lead')
+  preview.setDefault(root)
+  const { mount } = harness(vi.fn())
+  mount(<><PreviewToggle preview={preview} />
+    <button onClick={sidebarRight.toggleExpanded}>Native collapse</button>
+    <button onClick={() => preview.activate(member)}>Member preview</button></>)
+  const reopen = () => screen.getByRole('button', { name: en.ui.openPreview })
+  fireEvent.click(reopen())
+  expect(openSession).toHaveBeenCalledWith(root)
+  const collapse = () => screen.getByRole('button', { name: en.ui.closePreview })
+  expect(collapse().getAttribute('aria-expanded')).toBe('true')
+  fireEvent.click(collapse())
+  expect(reopen().getAttribute('aria-expanded')).toBe('false')
+  fireEvent.click(screen.getByText('Member preview'))
+  fireEvent.click(reopen())
+  fireEvent.click(screen.getByText('Native collapse'))
+  fireEvent.click(reopen())
+  expect(collapse().getAttribute('aria-expanded')).toBe('true')
+  expect(openSession.mock.calls).toEqual([[root], [member]])
 })

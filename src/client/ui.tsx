@@ -27,6 +27,16 @@ export type Run = IndexRecord<'team_runs'>
 export type Training = IndexRecord<'training_sessions'>
 export type Team = { run: Run; seats: Seat[] }
 export type SessionTarget = Parameters<ISessions['retain']>[0]
+export type PreviewState = 'unavailable' | 'closed' | 'open'
+export interface WorkspacePreview {
+  activate(target: SessionTarget): void
+  leave(id: string): void
+  setDefault(target: SessionTarget): () => void
+  subscribe(listener: () => void): () => void
+  state(): PreviewState
+  shortcut(): { readonly keys?: readonly string[]; readonly aria?: string } | undefined
+  toggle(): void
+}
 export interface Ui {
   call<K extends keyof RoleTeamRpc>(
     method: K,
@@ -34,7 +44,7 @@ export interface Ui {
   ): ReturnType<RoleTeamRpc[K]>
   retain(target: SessionTarget): SessionReference
   SessionProvider: SessionProviderComponent
-  preview?: { activate(target: SessionTarget): void; leave(id: string): void }
+  preview?: WorkspacePreview
   chat(): ReactNode
   presets?: {
     list(): Promise<{ id: string; label: string; isDefault: boolean; broken?: string }[]>

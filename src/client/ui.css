@@ -112,6 +112,13 @@ html[data-platform='darwin'] .rt-top {
 .rt-top button {
   -webkit-app-region: no-drag;
 }
+.rt-preview-toggle {
+  margin-inline-start: auto;
+  flex: none;
+  -webkit-app-region: no-drag;
+}
+.rt-preview-toggle button { width: 28px; padding: 0; }
+.rt-preview-toggle svg { transform: scaleX(-1); }
 .rt-top h1 {
   font-size: 16px;
   font-weight: 600;

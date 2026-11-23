@@ -1,11 +1,29 @@
 import { useNavigation } from './navigation.js'
-import { useState, useRef } from 'react'
-import { Notice, useAction, useLoad, useUi } from './ui.js'
+import { Button, IconPanelLeftOutlineRegular, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useState, useRef, useSyncExternalStore } from 'react'
+import { type WorkspacePreview, Notice, useAction, useLoad, useUi } from './ui.js'
 import { RoleLibrary, type LibraryRole } from './roles/RoleLibrary.js'
 import { EditorBuffers } from './roles/DocumentEditor.js'
 import { Workbench } from './workbench/Workbench.js'
+export function PreviewToggle({ preview }: { preview: WorkspacePreview }) {
+  const { t } = useUi()
+  const state = useSyncExternalStore(preview.subscribe, preview.state)
+  const shortcut = useSyncExternalStore(preview.subscribe, preview.shortcut)
+  const label = t(state === 'open' ? 'closePreview' : 'openPreview')
+  return (
+    <div className="rt-preview-toggle">
+      <Tooltip label={label} shortcutKeys={shortcut?.keys} side="bottom" delayMs={500}>
+        <Button size="sm" aria-label={label} aria-keyshortcuts={shortcut?.aria}
+          aria-expanded={state === 'open'} disabled={state === 'unavailable'} onClick={preview.toggle}>
+          <IconPanelLeftOutlineRegular size={16} aria-hidden="true" />
+        </Button>
+      </Tooltip>
+    </div>
+  )
+}
+
 export function App() {
-  const { call, t } = useUi(),
+  const { call, t, preview } = useUi(),
     [view, open] = useNavigation('page')
   const [buffers] = useState(() => new Map()),
     names = useRef(new Map<string, { name: string; revision: number; empty: boolean }>())
@@ -54,6 +72,7 @@ export function App() {
             </button>
           ))}
         </nav>
+        {preview && <PreviewToggle preview={preview} />}
       </header>
       <Notice>{catalog.error}</Notice>
       {view === 'teams' ? (

@@ -26,6 +26,7 @@ export type Pane = {
   leaderSessionId?: string
   readOnly?: boolean
   onSelection?: () => void
+  defaultPreview?: boolean
   focusOnOpen?: boolean
   onToolResult?: () => void
 }
@@ -80,10 +81,15 @@ function BoundPane({
   onSelection,
   onToolResult,
   focusOnOpen,
+  defaultPreview = true,
 }: Pane) {
   const { SessionProvider, chat, t, preview } = useUi()
   const { reference, error, retry } = useRetainedSession(target)
   const id = targetId(target)
+  const parent = typeof target === 'string' ? null : target.parentSessionId
+  useEffect(() => {
+    if (reference && defaultPreview) return preview?.setDefault(sessionTarget(id, parent))
+  }, [preview, reference, defaultPreview, id, parent])
   useEffect(() => () => preview?.leave(id), [preview, id])
   const preparePreview = (event: React.SyntheticEvent<HTMLElement>) => {
     const element = event.target

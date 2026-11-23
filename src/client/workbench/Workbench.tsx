@@ -331,6 +331,7 @@ function MemberColumn({
       ) : (
         <SessionPane
           target={sessionTarget(version || s.currentSessionId, parent?.currentSessionId)}
+          defaultPreview={single || s.seatId === team.run.leaderSeatId}
           leaderSessionId={team.run.rootSessionId}
           onSelection={refresh}
           readOnly={readOnly}

@@ -4,6 +4,8 @@
     "description": "管理可直接编辑的角色卡、记忆和发布版本。"
   },
   "ui": {
+    "openPreview": "打开右侧边栏",
+    "closePreview": "收起右侧边栏",
     "agentMode": "对话模式",
     "teams": "团队工作台",
     "library": "角色库与培养",
