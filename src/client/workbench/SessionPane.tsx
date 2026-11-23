@@ -15,7 +15,13 @@ import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-agent/types'
 import { useUi, Modal, Notice, useLoad, useAction, type Seat, type SessionTarget } from '../ui.js'
 
-export type Pane = { target: SessionTarget; seat?: Seat; permission?: string; readOnly?: boolean }
+export type Pane = {
+  target: SessionTarget
+  seat?: Seat
+  permission?: string
+  readOnly?: boolean
+  onToolResult?: () => void
+}
 export function targetId(target: SessionTarget) {
   return typeof target === 'string' ? target : target.childSessionId
 }
@@ -26,7 +32,7 @@ export const sessionTarget = (id: string, parent?: string | null): SessionTarget
 export function SessionPane(props: Pane) {
   return <BoundPane key={targetId(props.target)} {...props} />
 }
-function BoundPane({ target, seat, permission, readOnly = false }: Pane) {
+function BoundPane({ target, seat, permission, readOnly = false, onToolResult }: Pane) {
   const { retain, SessionProvider, chat, t } = useUi(),
     [reference, setReference] = useState<SessionReference>(),
     [error, setError] = useState(''),
@@ -57,6 +63,19 @@ function BoundPane({ target, seat, permission, readOnly = false }: Pane) {
       ref?.release()
     }
   }, [id, parent, retain, attempt])
+  useEffect(() => {
+    if (!reference || !onToolResult) return
+    const source = reference.binding.eventSource
+    let last = source.getSnapshot().entries.at(-1)?.event.seq ?? -1
+    return source.subscribe(() => {
+      const entries = source.getSnapshot().entries
+      const newest = entries.at(-1)?.event.seq ?? -1
+      if (newest <= last) return
+      const finished = entries.some(({ event }) => event.seq > last && event.type === 'tool/result')
+      last = newest
+      if (finished) onToolResult()
+    })
+  }, [reference, onToolResult])
   if (!reference || error)
     return (
       <div className="rt-pane-status">

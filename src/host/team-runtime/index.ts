@@ -314,6 +314,10 @@ export class TeamRuntime {
   }
   /** Restore interrupted creation intents before the next UI operation addresses their seats. */
   async recover() {
+    const interrupted = this.index.training.list().filter((row) => row.initializing || row.replaces?.length)
+    await Promise.all([...new Set(interrupted.map((row) => row.roleId))].map((roleId) =>
+      this.ordered('training/' + roleId, () => this.training.recover(roleId)),
+    ))
     for (const run of this.index.runs.list()) {
       if (run.status === 'creating') {
         const leader = this.index.seats.get(run.leaderSeatId)
@@ -414,7 +418,12 @@ export class TeamRuntime {
     const training = index.training.list().find((t) => t.sessionId === agent.id)
     if (training) {
       await this.restoreModel(agent, training.roleId)
-      isolate(agent, true, () => !!index.training.get(training.trainingId), training.locale)
+      isolate(
+        agent,
+        true,
+        () => this.training.current(training.roleId).some((t) => t.trainingId === training.trainingId),
+        training.locale,
+      )
       agent.ctx.systemPrompt.suppressRuntimeContext()
       await this.training.install(agent, training)
       return

@@ -149,8 +149,14 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     return this.index.notes.list().filter((n) => n.runId === request.runId)
   }
 
+  @Remote async rememberExperience({ roleId, body, title }: Input<'rememberExperience'>) {
+    return this.runtime.training.rememberExperience(roleId, body, title)
+  }
+
   @Remote async createTraining(request: Input<'createTraining'>) {
-    return this.runtime.training.createTraining(request)
+    return this.runtime.ordered('training/' + request.roleId, () =>
+      this.runtime.training.createTraining(request),
+    )
   }
 
   @Remote async getTraining(request: Input<'getTraining'>) {
@@ -158,7 +164,7 @@ export default class RoleTeamService extends TypertRemoteService implements Role
   }
 
   @Remote async listTrainings(request: Input<'listTrainings'>) {
-    return this.index.training.list().filter((t) => !request.roleId || t.roleId === request.roleId)
+    return this.runtime.training.current(request.roleId)
   }
 
   @Remote async confirmProposal(request: Input<'confirmProposal'>) {

@@ -8,7 +8,7 @@ import { Client, type Seat, type Ui } from '../src/client/ui.js'
 import { Workbench } from '../src/client/workbench/Workbench.js'
 import { ChildControls, SessionChat, targetId } from '../src/client/workbench/SessionPane.js'
 import { LibrarySettings } from '../src/client/App.js'
-import { DocumentEditor } from '../src/client/roles/DocumentEditor.js'
+import { DocumentEditor, Documents } from '../src/client/roles/DocumentEditor.js'
 import { TrainingDetail, TrainingPanel } from '../src/client/roles/Training.js'
 import { TeamSetup } from '../src/client/team-setup/TeamSetup.js'
 import { serializeMarkdown } from '../src/shared/markdown.js'
@@ -222,6 +222,7 @@ it('keeps both versions on a conflict and requires an explicit second save again
   expect(call.mock.calls[0][1].expectedHash).toBe(initial.hash)
   fireEvent.click(screen.getByText(en.ui.merge))
   expect(call).toHaveBeenCalledTimes(1)
+  fireEvent.click(screen.getByRole('button', { name: en.ui.source }))
   const source = screen.getByRole('textbox')
   fireEvent.change(source, { target: { value: '---\nid: [\n---\n' } })
   expect(screen.getByRole('alert').textContent).toMatch(/editor\/role.md · Line \d+/)
@@ -420,4 +421,37 @@ it('starts coaching immediately and only offers team selection for a debrief', a
       sourceRunId: 'run',
     }),
   )
+})
+
+it('records a plain-language experience with one field, including for a legacy training-only role', async () => {
+  const changed = vi.fn()
+  const call = vi.fn(async (method: string) => (method === 'rememberExperience' ? 'note-id' : null))
+  harness(call).mount(<Documents roleId="scout" revision={null} changed={changed} />)
+  fireEvent.click(screen.getByRole('button', { name: en.ui.newMemory }))
+  fireEvent.change(screen.getByLabelText(en.ui.experienceBody), {
+    target: { value: '  Check the source.  ' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: en.ui.remember }))
+  await waitFor(() => expect(changed).toHaveBeenCalledOnce())
+  expect(call).toHaveBeenCalledWith('rememberExperience', { roleId: 'scout', body: 'Check the source.' })
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(screen.queryByText(en.ui.savedDirty)).toBeNull()
+  expect(screen.queryByLabelText(en.ui.memoryTitle)).toBeNull()
+})
+
+it('rebinds the only visible training chat and releases the previous session', async () => {
+  let current = { roleId: 'scout', trainingId: 'old', sessionId: 'previous' }
+  const call = vi.fn(async (method: string) => {
+    if (method === 'listTrainings') return [current]
+    if (method === 'createTraining') current = { ...current, trainingId: 'new', sessionId: 'fresh' }
+    return current
+  })
+  const h = harness(call)
+  h.mount(<TrainingPanel roleId="scout" hasRole changed={() => {}} />)
+  await screen.findByText('stream:previous')
+  fireEvent.click(screen.getByRole('button', { name: en.ui.newTraining }))
+  await screen.findByText('stream:fresh')
+  expect(screen.queryByText('stream:previous')).toBeNull()
+  expect(screen.queryByRole('combobox')).toBeNull()
+  expect(h.releases.get('previous')).toHaveBeenCalledOnce()
 })

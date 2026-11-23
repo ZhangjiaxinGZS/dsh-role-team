@@ -289,7 +289,7 @@ it('pins each team until the next confirmed turn and restores adopted snapshots 
   expect(JSON.stringify(request(b.run.rootSessionId).messages)).not.toContain('rule-two')
   expect((await service.getTeam({ runId: a.run.runId })).seats[0].adoptedRoleRev).toBe(2)
 })
-it('keeps training proposals reviewable and routes temporary requirements only to the linked run', async () => {
+it('saves training changes directly and routes temporary requirements only to the linked run', async () => {
   const a = await newTeam('A'),
     b = await newTeam('B')
   const training = await service.createTraining({
@@ -304,34 +304,20 @@ it('keeps training proposals reviewable and routes temporary requirements only t
     request(id)
       .tools?.map((t) => t.name)
       .sort(),
-  ).toEqual(['propose_role_memory', 'propose_role_update', 'record_temporary_note'])
-  expect(
-    await tool(id, 'propose_role_update', { name: 'Editor', body: 'confirmed-rule' }),
-  ).toMatchObject({ isError: false })
-  expect(
-    await tool(id, 'propose_role_memory', { title: 'Verify', body: 'confirmed-habit' }),
-  ).toMatchObject({ isError: false })
+  ).toEqual(['record_temporary_note', 'remember_experience', 'revise_experience', 'update_role'])
+  expect(await tool(id, 'update_role', { name: 'Editor', body: 'confirmed-rule' })).toMatchObject({
+    isError: false,
+  })
+  expect(await tool(id, 'remember_experience', { body: 'confirmed-habit' })).toMatchObject({
+    isError: false,
+  })
   expect(await tool(id, 'record_temporary_note', { content: 'alpha task only' })).toMatchObject({
     isError: false,
   })
-  const proposals = (await service.getTraining({ trainingId: training.trainingId })).proposals!
-  expect(proposals[0].diff).toContain('+confirmed-rule')
-  expect((await service.readDocument({ roleId }))?.text).not.toContain('confirmed-rule')
-  expect((await service.readDocument({ roleId, memoryId: proposals[1].memoryId }))?.text).toContain(
-    'status: draft',
-  )
-  for (const p of proposals)
-    expect(
-      await service.confirmProposal({ trainingId: training.trainingId, proposalId: p.id }),
-    ).toMatchObject({ ok: true })
-  await tool(id, 'propose_role_memory', { title: 'Rejected', body: 'unapproved-habit' })
-  const last = (await service.getTraining({ trainingId: training.trainingId })).proposals!.at(-1)!
-  const review = { trainingId: training.trainingId, proposalId: last.id }
-  await service.rejectProposal(review)
-  await expect(service.confirmProposal(review)).rejects.toThrow(/unavailable/)
-  expect((await service.readDocument({ roleId, memoryId: last.memoryId }))?.text).toContain(
-    'status: draft',
-  )
+  expect((await service.readDocument({ roleId }))?.text).toContain('confirmed-rule')
+  const [memoryId] = await service.listMemories(roleId)
+  expect((await service.readDocument({ roleId, memoryId }))?.text).toContain('status: published')
+  expect((await service.getTraining({ trainingId: training.trainingId })).proposals).toBeUndefined()
   const fresh = await newTeam('C')
   await prompt(fresh.run.rootSessionId, 'test')
   const content = JSON.stringify(request(fresh.run.rootSessionId).messages)
@@ -381,27 +367,55 @@ it('rejects traversal and a role sandbox linked to another role', async () => {
   expect(await service.listTrainings({ roleId: 'author' })).toEqual([])
 })
 
-it('creates a role and its first memory only after their separate confirmations', async () => {
-  const newId = 'apprentice'
-  const { sessionId, trainingId } = await service.createTraining({
-    roleId: newId,
-    mode: 'create',
-    workspaceCwd: cwd,
-  })
-  await tool(sessionId, 'propose_role_update', { name: 'Apprentice', body: 'Observe carefully.' })
-  await tool(sessionId, 'propose_role_memory', { title: 'Check', body: 'Ask for evidence.' })
-  expect(await service.readDocument({ roleId: newId })).toBe(null)
-  const [role, memory] = (await service.getTraining({ trainingId })).proposals!
-  expect(memory.before).toContain('status: draft')
-  await expect(service.confirmProposal({ trainingId, proposalId: memory.id })).rejects.toThrow(
-    'Confirm the role',
-  )
-  expect(await service.confirmProposal({ trainingId, proposalId: role.id })).toMatchObject({ ok: true })
-  expect((await service.readDocument({ roleId: newId, memoryId: memory.memoryId }))?.text).toContain(
-    'status: draft',
-  )
-  expect(await service.confirmProposal({ trainingId, proposalId: memory.id })).toMatchObject({
-    ok: true,
+it('replaces only the selected role chat and carries its self-authored profile into a fresh context', async () => {
+  const other = await service.createTraining({ roleId, mode: 'coach' })
+  const apprentice = 'apprentice'
+  const first = await service.createTraining({ roleId: apprentice, mode: 'create' })
+  await prompt(first.sessionId, 'discard-old-dialog-9527')
+  expect(
+    await tool(first.sessionId, 'update_role', { name: 'Apprentice', body: 'Observe carefully.' }),
+  ).toMatchObject({ isError: false })
+  expect(
+    await tool(first.sessionId, 'remember_experience', { body: 'Ask for evidence.' }),
+  ).toMatchObject({ isError: false })
+  await service.rememberExperience({ roleId: apprentice, body: 'Ask for evidence.' })
+  const ids = await service.listMemories(apprentice)
+  expect(ids).toHaveLength(1)
+  expect(
+    await tool(first.sessionId, 'revise_experience', {
+      memoryId: ids[0],
+      title: 'Sources',
+      body: 'Ask for primary evidence.',
+    }),
+  ).toMatchObject({ isError: false })
+  expect(await service.listMemories(apprentice)).toEqual(ids)
+  const second = await service.createTraining({ roleId: apprentice, mode: 'coach' })
+  expect(second.sessionId).not.toBe(first.sessionId)
+  expect(ctx.workspaceRegistry.archivedSessionIds).toContain(first.sessionId)
+  expect(await service.listTrainings({ roleId: apprentice })).toMatchObject([
+    { trainingId: second.trainingId },
+  ])
+  await expect(service.getTraining({ trainingId: first.trainingId })).rejects.toThrow()
+  expect(await service.getTraining({ trainingId: other.trainingId })).toMatchObject(other)
+  await prompt(second.sessionId, 'Hello')
+  const messages = JSON.stringify(request(second.sessionId).messages)
+  expect(messages).toContain('Observe carefully.')
+  expect(messages).toContain('Ask for primary evidence.')
+  expect(messages).not.toContain('Ask for evidence.')
+  expect(messages).not.toContain('discard-old-dialog-9527')
+})
+it('finishes retiring an interrupted chat replacement on cold start', async () => {
+  const first = await service.createTraining({ roleId, mode: 'coach' })
+  const second = await service.createTraining({ roleId, mode: 'coach' })
+  await service.index.training.put(first)
+  await service.index.training.update(second.trainingId, (row) => ({ ...row, replaces: [first.trainingId] }))
+  await ctx.fiber.dispose()
+  await boot()
+  expect(await service.listTrainings({ roleId })).toMatchObject([{ trainingId: second.trainingId }])
+  await expect(service.getTraining({ trainingId: first.trainingId })).rejects.toThrow()
+  await vi.waitFor(() => {
+    expect(service.index.training.get(first.trainingId)).toBeUndefined()
+    expect(service.index.training.get(second.trainingId)?.replaces).toBeUndefined()
   })
 })
 it('archives a child, transfers open tasks, preserves audit history and serializes resets', async () => {

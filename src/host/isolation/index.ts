@@ -19,9 +19,10 @@ const collaboration = [
   'team_task_get',
 ]
 export const trainingTools = [
-  'propose_role_update',
-  'propose_role_memory',
+  'update_role',
+  'remember_experience',
   'record_temporary_note',
+  'revise_experience',
 ] as const
 
 function inside(base: string, target: string) {

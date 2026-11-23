@@ -28,9 +28,9 @@ export function Documents({
   changed: () => void
 }) {
   const { call, t } = useUi()
-  const [memoryId, select] = useState('')
   const [version, refresh] = useState(0)
-  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [entry, setEntry] = useState<{ id: string; file: FileContents; remove: boolean }>()
+  const [adding, setAdding] = useState(false)
   const action = useAction()
   const updated = () => {
     refresh((n) => n + 1)
@@ -41,93 +41,158 @@ export function Documents({
     return Promise.all(
       (await call('listMemories', roleId)).map(async (id) => {
         const file = await call('readDocument', { roleId, memoryId: id })
-        if (!file) return { id, title: id }
-        try {
-          const { meta } = parseMarkdown(file.text, memoryMeta, id, id + '.md')
-          return { id, title: meta.title, status: meta.status }
-        } catch {
-          return { id, title: id }
-        }
+        if (!file) return null
+        const parsed = parseMarkdown(file.text, memoryMeta, id, id + '.md')
+        return { id, file, ...parsed }
       }),
     )
   })
   const role = useLoad(JSON.stringify([roleId, revision, version]), () =>
     call('readDocument', { roleId }),
   )
-  const memory = useLoad(JSON.stringify([roleId, memoryId, revision, version]), () =>
-    memoryId ? call('readDocument', { roleId, memoryId }) : Promise.resolve(null),
-  )
   return (
     <aside className="rt-docs">
       <header>
         <h3>{t('card')}</h3>
       </header>
-      <Notice>{role.error || memories.error || memory.error || action.error}</Notice>
+      <Notice>{role.error || memories.error}</Notice>
       {role.data !== undefined && (
         <DocumentEditor key={roleId} file={{ roleId }} initial={role.data} changed={updated} />
       )}
       <section className="rt-experiences">
-        <h3>{t('memories')}</h3>
-        {memories.data?.map((m) => (
-          <button
-            key={m.id}
-            aria-pressed={memoryId === m.id}
-            onClick={() => {
-              select(memoryId === m.id ? '' : m.id)
-              setConfirmDelete(false)
-            }}
-          >
-            {m.title} {m.status && <small>{t(m.status)}</small>}
-          </button>
-        ))}
-        {memoryId && memory.data !== undefined && (
-          <>
-            <DocumentEditor
-              key={memoryId}
-              file={{ roleId, memoryId }}
-              initial={memory.data}
-              changed={updated}
-            />
-            {memory.data && <button onClick={() => setConfirmDelete(true)}>{t('deleteMemory')}</button>}
-          </>
+        <header className="rt-row">
+          <h3>{t('memories')}</h3>
+          <button onClick={() => setAdding(true)}>{t('newMemory')}</button>
+        </header>
+        {memories.data?.map(
+          (m) =>
+            m && (
+              <article key={m.id} className="rt-experience-card">
+                {m.meta.title !== m.body && <strong>{m.meta.title}</strong>}
+                <p>{m.body}</p>
+                <footer className="rt-row">
+                  {m.meta.status !== 'published' && <small>{t(m.meta.status)}</small>}
+                  <button onClick={() => setEntry({ ...m, remove: false })}>{t('edit')}</button>
+                  <button
+                    onClick={() => {
+                      action.clear()
+                      setEntry({ ...m, remove: true })
+                    }}
+                  >
+                    {t('deleteMemory')}
+                  </button>
+                </footer>
+              </article>
+            ),
         )}
-        <button
-          className="rt-text-button"
-          disabled={!revision}
-          onClick={() => {
-            select('memory-' + crypto.getRandomValues(new Uint32Array(2)).join('-'))
-            setConfirmDelete(false)
-          }}
-        >
-          ＋ {t('newMemory')}
-        </button>
+        {!memories.data?.some(Boolean) && <small>{t('rememberHint')}</small>}
       </section>
-      {confirmDelete && (
-        <Modal title={t('deleteMemory')} locked={action.busy} close={() => setConfirmDelete(false)}>
-          <p>{t('deleteHint')}</p>
-          <Notice>{action.error}</Notice>
-          <button
-            disabled={action.busy}
-            onClick={() =>
-              action.run(async () => {
-                if (!memory.data) return
-                const result = await call('deleteDocument', {
-                  roleId,
-                  memoryId,
-                  expectedHash: memory.data.hash,
-                })
-                if (!result.ok) throw new Error(t('conflict'))
-                select('')
-                setConfirmDelete(false)
-                updated()
-              })
-            }
-          >
-            {t('deleteMemory')}
-          </button>
-        </Modal>
+      {adding && (
+        <ExperienceForm
+          roleId={roleId}
+          close={() => setAdding(false)}
+          done={() => {
+            setAdding(false)
+            updated()
+          }}
+        />
       )}
+      {entry &&
+        (entry.remove ? (
+          <Modal title={t('deleteMemory')} locked={action.busy} close={() => setEntry(undefined)}>
+            <p>{t('deleteHint')}</p>
+            <Notice>{action.error}</Notice>
+            <button
+              disabled={action.busy}
+              onClick={() =>
+                action.run(async () => {
+                  const result = await call('deleteDocument', {
+                    roleId,
+                    memoryId: entry.id,
+                    expectedHash: entry.file.hash,
+                  })
+                  if (!result.ok) {
+                    updated()
+                    throw new Error(t('conflict'))
+                  }
+                  setEntry(undefined)
+                  updated()
+                })
+              }
+            >
+              {t('deleteMemory')}
+            </button>
+          </Modal>
+        ) : (
+          <Modal title={t('editExperience')} close={() => setEntry(undefined)}>
+            <DocumentEditor
+              file={{ roleId, memoryId: entry.id }}
+              initial={entry.file}
+              changed={() => {
+                setEntry(undefined)
+                updated()
+              }}
+            />
+          </Modal>
+        ))}
     </aside>
+  )
+}
+function ExperienceForm({
+  roleId,
+  close,
+  done,
+}: {
+  roleId: string
+  close: () => void
+  done: () => void
+}) {
+  const { call, t } = useUi(),
+    action = useAction()
+  const [body, setBody] = useState(''),
+    [title, setTitle] = useState('')
+  return (
+    <Modal title={t('newMemory')} locked={action.busy} close={close}>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          void action.run(async () => {
+            await call('rememberExperience', {
+              roleId,
+              body: body.trim(),
+              ...(title.trim() && { title: title.trim() }),
+            })
+            done()
+          })
+        }}
+      >
+        <label>
+          {t('experienceBody')}
+          <textarea
+            required
+            autoFocus
+            maxLength={24000}
+            rows={4}
+            value={body}
+            placeholder={t('experienceExample')}
+            onChange={(e) => setBody(e.target.value)}
+          />
+        </label>
+        <details>
+          <summary>{t('optionalTitle')}</summary>
+          <label>
+            {t('memoryTitle')}
+            <input maxLength={160} value={title} onChange={(e) => setTitle(e.target.value)} />
+          </label>
+        </details>
+        <Notice>{action.error}</Notice>
+        <footer>
+          <button className="rt-primary" disabled={action.busy || !body.trim()}>
+            {t('remember')}
+          </button>
+        </footer>
+      </form>
+    </Modal>
   )
 }
 export function DocumentEditor({
@@ -194,6 +259,21 @@ export function DocumentEditor({
         : String(e)
   }
   const doc = parsed
+  const dirty = text !== (base?.text ?? template)
+  const readable = (value: string) => {
+    if (source) return value
+    try {
+      const data = file.memoryId
+        ? parseMarkdown(value, memoryMeta, id, path)
+        : parseMarkdown(value, roleMeta, id, path)
+      return [
+        'name' in data.meta ? data.meta.name : data.meta.title + ' · ' + t(data.meta.status),
+        data.body,
+      ].join('\n')
+    } catch {
+      return value
+    }
+  }
   const raw = source || !parsed,
     edit = (value: string) => {
       write(value)
@@ -277,11 +357,11 @@ export function DocumentEditor({
           <div className="rt-diff">
             <div>
               {t('disk')}
-              <pre>{conflict.current?.text ?? t('deleted')}</pre>
+              <pre>{conflict.current ? readable(conflict.current.text) : t('deleted')}</pre>
             </div>
             <div>
               {t('mine')}
-              <pre>{text}</pre>
+              <pre>{readable(text)}</pre>
             </div>
           </div>
           <button
@@ -296,7 +376,6 @@ export function DocumentEditor({
           <button
             onClick={() => {
               setBase(conflict.current)
-              setSource(true)
               setConflict(undefined)
             }}
           >
@@ -305,10 +384,10 @@ export function DocumentEditor({
         </section>
       )}
       <footer>
-        <small>{t(saved ? 'saved' : text !== base?.text ? 'savedDirty' : 'editNext')}</small>
+        <small>{t(saved ? 'saved' : dirty ? 'savedDirty' : 'editNext')}</small>
         <button
           className="rt-primary"
-          disabled={a.busy || !!diagnosis || !!conflict}
+          disabled={a.busy || !dirty || !!diagnosis || !!conflict}
           onClick={() =>
             a.run(async () => {
               const result = await call('saveDocument', {
@@ -330,6 +409,7 @@ export function DocumentEditor({
                   )
                 return
               }
+              buffers?.delete(path)
               setBase(result.hash ? { text, hash: result.hash } : null)
               setSaved(true)
               changed()

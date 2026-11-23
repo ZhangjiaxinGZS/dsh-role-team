@@ -261,6 +261,12 @@ export class RoleStore {
       const existingPath = await this.documentPath(ref)
       const check = async (): Promise<EditResult | null> => {
         const current = await readFileText(existingPath)
+        if (current && (memoryId !== undefined || ref.expectedHash !== null) && proposed === current.text) {
+          const status = await this.publish(roleId)
+          await this.observed?.(status)
+          if (status.error) return { ok: false, code: 'invalid', error: status.error }
+          return { ok: true, hash: current.hash, status }
+        }
         return (current?.hash ?? null) === ref.expectedHash
           ? null
           : { ok: false, code: 'conflict', current, proposed }

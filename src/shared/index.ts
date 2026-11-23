@@ -153,6 +153,8 @@ export const indexRecords = {
     sessionId: key,
     mode: z.enum(['create', 'coach', 'debrief']),
     sourceRunId: key.nullish(),
+    initializing: z.literal(true).optional(),
+    replaces: z.array(key).optional(),
     proposals: z.array(proposal).optional(),
   }),
 }

@@ -77,7 +77,7 @@ export function TrainingPanel({
   changed: () => void
 }) {
   const { t, call } = useUi(),
-    list = useLoad(roleId + ':' + initialId, () => call('listTrainings', { roleId })),
+    list = useLoad(roleId + ':' + initialId, () => call('listTrainings', { roleId }), 2400),
     [selected, setSelected] = useState(initialId ?? ''),
     [debrief, setDebrief] = useState(false),
     start = useAction()
@@ -86,7 +86,8 @@ export function TrainingPanel({
     setDebrief(false)
     list.refresh()
   }
-  const id = selected || list.data?.at(-1)?.trainingId
+  const latest = list.data?.at(-1)?.trainingId
+  const id = latest || selected
   return (
     <section className="rt-training">
       <header>
@@ -99,6 +100,7 @@ export function TrainingPanel({
           )}
           <button
             className="rt-primary"
+            title={t('freshChatHint')}
             disabled={start.busy}
             onClick={() =>
               start.run(async () =>
@@ -112,22 +114,7 @@ export function TrainingPanel({
       </header>
       <Notice>{list.error || start.error}</Notice>
       {(!id || empty) && <p className="rt-intro">{t('firstTopic')}</p>}
-      {id && (
-        <>
-          <select
-            aria-label={t('trainingSession')}
-            value={id}
-            onChange={(e) => setSelected(e.target.value)}
-          >
-            {list.data?.map((x, i) => (
-              <option key={x.trainingId} value={x.trainingId}>
-                {t(x.mode === 'debrief' ? 'debrief' : 'coach')} · {i + 1}
-              </option>
-            ))}
-          </select>
-          <TrainingDetail key={id} trainingId={id} changed={changed} />
-        </>
-      )}
+      {id && <TrainingDetail key={id} trainingId={id} changed={changed} />}
       {debrief && (
         <TrainingDialog debriefRoleId={roleId} close={() => setDebrief(false)} done={opened} />
       )}
@@ -165,7 +152,7 @@ export function TrainingDetail({ trainingId, changed }: { trainingId: string; ch
       <Notice>{record.error || a.error}</Notice>
       {row && (
         <>
-          <SessionPane target={sessionTarget(row.sessionId)} />
+          <SessionPane target={sessionTarget(row.sessionId)} onToolResult={changed} />
           {!!pending?.length && (
             <section className="rt-proposals">
               <h4>

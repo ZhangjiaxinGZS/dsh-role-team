@@ -618,3 +618,27 @@
 .rt-child-settings select {
   max-width: 12rem;
 }
+
+.rt-experiences > header {
+  justify-content: space-between;
+}
+.rt-experience-card {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--rt-line);
+  border-radius: 7px;
+  overflow-wrap: anywhere;
+}
+.rt-experience-card p {
+  white-space: pre-wrap;
+}
+.rt-experience-card footer {
+  justify-content: flex-end;
+}
+.rt-experience-card button {
+  font-size: 12px;
+}
+.rt-conflict .rt-diff {
+  grid-template-columns: 1fr;
+}

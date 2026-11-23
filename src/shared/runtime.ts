@@ -57,6 +57,14 @@ export const runtimeMethods = {
   listGenerations: [seat, z.array(indexRecords.seat_generations)],
   addNote: [run.extend({ seatId: id.optional(), content: note }), indexRecords.team_local_notes],
   listNotes: [run, z.array(indexRecords.team_local_notes)],
+  rememberExperience: [
+    z.strictObject({
+      roleId: fileId,
+      title: title.optional(),
+      body: z.string().trim().min(1).max(24000),
+    }),
+    fileId,
+  ],
   createTraining: [
     z.strictObject({
       roleId: fileId,

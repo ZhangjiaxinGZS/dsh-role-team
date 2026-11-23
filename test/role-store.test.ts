@@ -86,6 +86,19 @@ it('returns both texts when a manual edit races a UI save or deletion', async ()
   })
   expect(await store.readDocument({ roleId })).toEqual(current)
 })
+it('acknowledges an identical retry without creating a conflict or a new revision', async () => {
+  await save(card)
+  const note = memory('published')
+  await save(note, null, 'budget')
+  expect(await save(note, null, 'budget')).toMatchObject({ ok: true, hash: digest(note) })
+  const next = card + 'new rule'
+  await save(next, digest(card))
+  expect(await save(next, digest(card))).toMatchObject({
+    ok: true,
+    hash: digest(next),
+    status: { publishedRevision: 3 },
+  })
+})
 it('serializes competing hosts, publishes once and atomically replaces the inode', async () => {
   await save(card)
   const before = await stat(join(root, roleId, 'role.md'))
