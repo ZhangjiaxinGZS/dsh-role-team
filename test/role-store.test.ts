@@ -229,3 +229,30 @@ it('restores a recent distinct role setting as a new revision, preserving experi
   expect(restored.role).toMatchObject({ meta: { summary: 'Duty 4' }, body: 'Details 4' })
   expect(restored.memories).toHaveLength(1)
 })
+
+it('allocates fresh role IDs and reserves active display names across simultaneous hosts', async () => {
+  const other = await RoleStore.open(root)
+  try {
+    const results = await Promise.all([store.createRole(' Writer '), other.createRole('wRiTeR')])
+    const first = results.find((r) => r.ok)
+    if (!first?.ok || !first.hash) throw new Error('Expected a published role')
+    expect(first.status.roleId).toMatch(/^role-[a-f0-9-]{36}$/)
+    expect(results.find((r) => !r.ok)).toMatchObject({ code: 'invalid', error: { message: '已存在同名角色，请重新输入' } })
+    const second = await store.createRole('Editor')
+    if (!second.ok || !second.hash) throw new Error('Expected a second published role')
+    expect(second.status.roleId).not.toBe(first.status.roleId)
+    const rename = await other.saveDocument({
+      roleId: second.status.roleId,
+      expectedHash: second.hash,
+      text: serializeMarkdown({ id: second.status.roleId, name: ' writer ' }, ''),
+    })
+    expect(rename).toMatchObject({ code: 'invalid' })
+    expect((await store.readDocument({ roleId: second.status.roleId }))?.hash).toBe(second.hash)
+    await store.retireRole({ roleId: first.status.roleId, expectedHash: first.hash })
+    const reused = await other.createRole('Writer')
+    if (!reused.ok) throw new Error('Expected released name to be reusable')
+    expect(reused.status.roleId).not.toBe(first.status.roleId)
+  } finally {
+    await other.close()
+  }
+})

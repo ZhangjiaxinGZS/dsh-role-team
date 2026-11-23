@@ -1,6 +1,5 @@
 import { rememberRoleView, useNavigation, useRoleView } from '../navigation.js'
-import { fileId } from '../../shared/index.js'
-import { serializeMarkdown } from '../../shared/markdown.js'
+import { duplicateRoleName, roleNameKey } from '../../shared/index.js'
 import { useEffect, useState } from 'react'
 import type { Diagnostic } from '../../shared/index.js'
 import { IconPlusOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -21,6 +20,8 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
     ).filter((r) => !deleted.includes(r.id)),
     active = roles.find((r) => r.id === role) ?? roles[0],
     id = active?.id
+  const nameTaken = (name: string, except?: string) =>
+    roles.some((r) => r.id !== except && roleNameKey(r.name) === roleNameKey(name))
   useEffect(() => {
     if (created && catalog.some((r) => r.id === created.id)) setCreated(undefined)
   }, [catalog, created])
@@ -56,6 +57,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
             key={id}
             id={id}
             active={active}
+            nameTaken={(name) => nameTaken(name, id)}
             changed={changed}
           />
         ) : (
@@ -82,16 +84,15 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
       {modal === 'create' && (
         <CreateRole
           close={() => setModal('')}
-          save={async (name, id, summary) => {
-            if (roles.some((r) => r.id === id)) throw new Error(t('duplicateRole'))
-            const result = await call('saveDocument', {
-              roleId: id,
-              expectedHash: null,
-              text: serializeMarkdown({ id, name, ...(summary && { summary }) }, ''),
-            })
-            if (!result.ok)
-              throw new Error(result.code === 'conflict' ? t('duplicateRole') : result.error.message)
-            rememberRoleView(id, 'settingsOnly')
+          nameTaken={nameTaken}
+          save={async (name, summary) => {
+            const result = await call('createRole', { name, summary })
+            if (!result.ok) {
+              if (result.code === 'conflict') throw new Error(t('conflict'))
+              throw new Error(result.error.message === duplicateRoleName ? t('duplicateRole') : result.error.message)
+            }
+            const id = result.status.roleId
+            rememberRoleView(id, 'splitView')
             setCreated({ id, name, revision: result.status.publishedRevision, empty: true })
             setRole(id)
             changed()
@@ -105,9 +106,11 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
 function RoleDetail({
   id,
   active,
+  nameTaken,
   changed,
 }: {
   id: string
+  nameTaken: (name: string) => boolean
   active?: LibraryRole
   changed: () => void
 }) {
@@ -115,50 +118,28 @@ function RoleDetail({
   const [view, setView] = useRoleView(id)
   const training = useLoad(id, () => call('openTraining', { roleId: id }), 2400)
   const start = useAction()
+  const chatActions = (
+    <div className="rt-chat-actions">
+      <button
+        title={t('freshChatHint')}
+        disabled={start.busy || !training.data?.trainingId}
+        onClick={() =>
+          start.run(async () => {
+            await call('createTraining', {
+              roleId: id,
+              mode: active?.revision == null && active ? 'create' : 'coach',
+            })
+            training.refresh()
+          })
+        }
+      >
+        {t('newTraining')}
+      </button>
+      {view === 'chatOnly' && <button onClick={() => setView('splitView')}>{t('card')}</button>}
+    </div>
+  )
   return (
     <div className="rt-detail">
-      <header>
-        <div className="rt-row">
-          <h2>{active?.name ?? id}</h2>
-        </div>
-        <button
-          className="rt-primary"
-          title={t('freshChatHint')}
-          disabled={start.busy || !training.data?.trainingId}
-          onClick={() =>
-            start.run(async () => {
-              await call('createTraining', {
-                roleId: id,
-                mode: active?.revision == null && active ? 'create' : 'coach',
-              })
-              if (view === 'settingsOnly') setView('splitView')
-              training.refresh()
-            })
-          }
-        >
-          {t('newTraining')}
-        </button>
-        <div className="rt-segment" role="group" aria-label={t('roleView')}>
-          <button
-            aria-pressed={view !== 'settingsOnly'}
-            aria-disabled={view === 'chatOnly'}
-            onClick={() => {
-              if (view !== 'chatOnly') setView(view === 'splitView' ? 'settingsOnly' : 'splitView')
-            }}
-          >
-            {t('showChat')}
-          </button>
-          <button
-            aria-pressed={view !== 'chatOnly'}
-            aria-disabled={view === 'settingsOnly'}
-            onClick={() => {
-              if (view !== 'settingsOnly') setView(view === 'splitView' ? 'chatOnly' : 'splitView')
-            }}
-          >
-            {t('showProfile')}
-          </button>
-        </div>
-      </header>
       {active?.error && (
         <Notice>
           {active.error.file} · {t('line')} {active.error.line} · {active.error.message}
@@ -168,17 +149,26 @@ function RoleDetail({
         <section className="rt-training">
           <Notice>{training.error || start.error}</Notice>
           {training.error && <button onClick={training.refresh}>{t('retry')}</button>}
-          {active?.empty && <p className="rt-intro">{t('firstTopic')}</p>}
-          {training.data?.trainingId && (
+          {training.data?.trainingId ? (
             <TrainingDetail
               key={training.data.trainingId}
+              toolbarActions={chatActions}
+              chatHint={active?.empty ? t('firstTopic') : undefined}
               row={training.data}
               refresh={training.refresh}
               changed={changed}
             />
-          )}
+          ) : chatActions}
         </section>
-        <Documents roleId={id} revision={active?.revision ?? null} changed={changed} />
+        <Documents
+          roleId={id}
+          revision={active?.revision ?? null}
+          changed={changed}
+          nameTaken={nameTaken}
+          fullscreen={view === 'settingsOnly'}
+          toggleSize={() => setView(view === 'settingsOnly' ? 'splitView' : 'settingsOnly')}
+          collapse={() => setView('chatOnly')}
+        />
       </div>
     </div>
   )
@@ -226,44 +216,21 @@ function DeleteRole({ role, close, done }: { role: LibraryRole; close: () => voi
 function CreateRole({
   close,
   save,
+  nameTaken,
 }: {
   close: () => void
-  save: (name: string, id: string, summary: string) => Promise<void>
+  save: (name: string, summary: string) => Promise<void>
+  nameTaken: (name: string) => boolean
 }) {
-  const { t } = useUi(),
-    action = useAction()
-  const [name, setName] = useState(''),
-    [custom, setCustom] = useState(''),
-    [summary, setSummary] = useState('')
-  const [suffix] = useState(() =>
-    Array.from(crypto.getRandomValues(new Uint8Array(5)), (n) => n.toString(16).padStart(2, '0')).join(
-      '',
-    ),
-  )
-  const slug = name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 112)
-  const generated = fileId.safeParse(slug).success ? slug : 'role-' + suffix
+  const { t } = useUi(), action = useAction()
+  const [name, setName] = useState(''), [summary, setSummary] = useState('')
+  const duplicate = nameTaken(name)
   return (
     <Modal title={t('newRole')} close={close} locked={action.busy}>
       <form
         onSubmit={(event) => {
           event.preventDefault()
-          void action.run(async () => {
-            const id = fileId.safeParse(custom.trim() || generated)
-            if (!id.success) throw new Error(t('idHint'))
-            try {
-              await save(name.trim(), id.data, summary.trim())
-            } catch (error) {
-              if (!(error instanceof Error) || !error.message.includes('Role ID is retired:'))
-                throw error
-              if (custom.trim()) throw new Error(t('retiredId'))
-              await save(name.trim(), id.data + '-' + suffix, summary.trim())
-            }
-          })
+          if (!duplicate && name.trim()) void action.run(() => save(name.trim(), summary.trim()))
         }}
       >
         <label>
@@ -280,16 +247,9 @@ function CreateRole({
           {t('duty')}
           <input maxLength={160} value={summary} onChange={(e) => setSummary(e.target.value)} />
         </label>
-        <details>
-          <summary>{t('customId')}</summary>
-          <label>
-            {t('roleId')}
-            <input placeholder={generated} value={custom} onChange={(e) => setCustom(e.target.value)} />
-          </label>
-        </details>
-        <Notice>{action.error}</Notice>
+        <Notice>{duplicate ? t('duplicateRole') : action.error}</Notice>
         <footer>
-          <button className="rt-primary" disabled={action.busy || !name.trim()}>
+          <button className="rt-primary" disabled={action.busy || !name.trim() || duplicate}>
             {t('create')}
           </button>
         </footer>

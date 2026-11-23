@@ -1,11 +1,15 @@
 import {
   Button,
-  IconClockOutlineRegular,
+  IconFullscreenOutlineRegular,
+  IconCompareSplitOutlineRegular,
+  IconCloseOutlineRegular,
+  Tooltip,
   IconPlusOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { z } from 'zod'
 import { createContext, useContext, useEffect, useState } from 'react'
 import {
+  duplicateRoleName,
   memoryMeta,
   roleMeta,
   type EditResult,
@@ -27,8 +31,16 @@ export function Documents({
   roleId,
   revision,
   changed,
+  nameTaken,
+  fullscreen,
+  toggleSize,
+  collapse,
 }: {
   roleId: string
+  nameTaken?: (name: string) => boolean
+  fullscreen?: boolean
+  toggleSize?: () => void
+  collapse?: () => void
   revision: number | null
   changed: () => void
 }) {
@@ -61,25 +73,42 @@ export function Documents({
     <aside className="rt-docs">
       <header>
         <h3>{t('card')}</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          icon={<IconClockOutlineRegular size={14} />}
-          disabled={!role.data}
-          onClick={() => showHistory(role.data!.hash)}
-        >
-          {t('roleHistory')}
-        </Button>
+        <div className="rt-row">
+          {toggleSize && (
+            <Tooltip label={t(fullscreen ? 'restoreSplit' : 'expandProfile')} side="bottom">
+              <button className="rt-icon" onClick={toggleSize} aria-label={t(fullscreen ? 'restoreSplit' : 'expandProfile')}>
+                {fullscreen ? <IconCompareSplitOutlineRegular size={16} /> : <IconFullscreenOutlineRegular size={16} />}
+              </button>
+            </Tooltip>
+          )}
+          {collapse && (
+            <Tooltip label={t('collapseProfile')} side="bottom">
+              <button className="rt-icon" onClick={collapse} aria-label={t('collapseProfile')}>
+                <IconCloseOutlineRegular size={16} />
+              </button>
+            </Tooltip>
+          )}
+        </div>
       </header>
       <Notice>{role.error || memories.error}</Notice>
       {role.data !== undefined && (
-        <DocumentEditor key={roleId} file={{ roleId }} initial={role.data} changed={updated} />
+        <DocumentEditor
+          key={roleId}
+          nameTaken={nameTaken}
+          file={{ roleId }}
+          initial={role.data}
+          changed={updated}
+          history={{
+            active: !!historyHash,
+            open: () => showHistory(role.data?.hash ?? ''),
+            close: () => showHistory(''),
+          }}
+        />
       )}
       {historyHash && (
         <RoleHistory
           roleId={roleId}
           hash={historyHash}
-          close={() => showHistory('')}
           dirty={() => !!buffers?.has(roleId + '/role.md')}
           done={() => {
             showHistory('')
@@ -87,41 +116,43 @@ export function Documents({
           }}
         />
       )}
-      <section className="rt-experiences">
-        <header className="rt-row">
-          <h3>{t('memories')}</h3>
-          <Button
-            size="sm"
-            variant="outline"
-            icon={<IconPlusOutlineRegular size={14} />}
-            onClick={() => setAdding(true)}
-          >
-            {t('newMemory')}
-          </Button>
-        </header>
-        {memories.data?.map(
-          (m) =>
-            m && (
-              <article key={m.id} className="rt-experience-card">
-                <div>
-                  {m.meta.title !== m.body && <strong>{m.meta.title}</strong>}
-                  <p>{m.body}</p>
-                </div>
-                <MoreMenu
-                  name={m.meta.title}
-                  actions={{
-                    edit: () => setEntry({ ...m, remove: false }),
-                    deleteMemory: () => {
-                      action.clear()
-                      setEntry({ ...m, remove: true })
-                    },
-                  }}
-                />
-              </article>
-            ),
-        )}
-        {!memories.data?.some(Boolean) && <small>{t('rememberHint')}</small>}
-      </section>
+      {!historyHash && (
+        <section className="rt-experiences">
+          <header className="rt-row">
+            <h3>{t('memories')}</h3>
+            <Button
+              size="sm"
+              variant="outline"
+              icon={<IconPlusOutlineRegular size={14} />}
+              onClick={() => setAdding(true)}
+            >
+              {t('newMemory')}
+            </Button>
+          </header>
+          {memories.data?.map(
+            (m) =>
+              m && (
+                <article key={m.id} className="rt-experience-card">
+                  <div>
+                    {m.meta.title !== m.body && <strong>{m.meta.title}</strong>}
+                    <p>{m.body}</p>
+                  </div>
+                  <MoreMenu
+                    name={m.meta.title}
+                    actions={{
+                      edit: () => setEntry({ ...m, remove: false }),
+                      deleteMemory: () => {
+                        action.clear()
+                        setEntry({ ...m, remove: true })
+                      },
+                    }}
+                  />
+                </article>
+              ),
+          )}
+          {!memories.data?.some(Boolean) && <small>{t('rememberHint')}</small>}
+        </section>
+      )}
       {adding && (
         <ExperienceForm
           roleId={roleId}
@@ -176,13 +207,11 @@ export function Documents({
 function RoleHistory({
   roleId,
   hash,
-  close,
   dirty,
   done,
 }: {
   roleId: string
   hash: string
-  close: () => void
   dirty: () => boolean
   done: () => void
 }) {
@@ -192,20 +221,23 @@ function RoleHistory({
   const [revision, select] = useState<number>()
   const entry = rows.data?.find((r) => r.publishedRevision === revision) ?? rows.data?.[0]
   return (
-    <Modal title={t('roleHistory')} close={close} locked={action.busy}>
+    <section className="rt-history" aria-label={t('roleHistory')}>
       <Notice>{rows.error || action.error}</Notice>
       {entry ? (
         <>
-          <label>
-            {t('revision')}
-            <select value={entry.publishedRevision} onChange={(e) => select(Number(e.target.value))}>
-              {rows.data?.map((r) => (
-                <option key={r.publishedRevision} value={r.publishedRevision}>
-                  {new Date(r.publishedAt).toLocaleString()} · {r.role.meta.summary || r.role.meta.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ol className="rt-history-list" aria-label={t('revision')}>
+            {rows.data?.map((r) => (
+              <li key={r.publishedRevision}>
+                <button
+                  aria-pressed={r.publishedRevision === entry.publishedRevision}
+                  onClick={() => select(r.publishedRevision)}
+                >
+                  {t('revision')} {r.publishedRevision} · {new Date(r.publishedAt).toLocaleString()}
+                  <small>{r.role.meta.summary || r.role.meta.name}</small>
+                </button>
+              </li>
+            ))}
+          </ol>
           <article className="rt-history-preview">
             <h3>{entry.role.meta.name}</h3>
             <p>{entry.role.meta.summary}</p>
@@ -239,7 +271,7 @@ function RoleHistory({
       ) : (
         <p>{t(rows.data ? 'noVersions' : 'loading')}</p>
       )}
-    </Modal>
+    </section>
   )
 }
 function ExperienceForm({
@@ -303,7 +335,11 @@ export function DocumentEditor({
   file,
   initial,
   changed,
+  history,
+  nameTaken,
 }: {
+  nameTaken?: (name: string) => boolean
+  history?: { active: boolean; open: () => void; close: () => void }
   file: FileRef
   initial: FileContents | null
   changed: () => void
@@ -361,6 +397,7 @@ export function DocumentEditor({
         ? e.detail.file + ' · ' + t('line') + ' ' + e.detail.line + ' · ' + e.message
         : String(e)
   }
+  if (!diagnosis && parsed && 'name' in parsed.meta && nameTaken?.(parsed.meta.name)) diagnosis = t('duplicateRole')
   const doc = parsed
   const dirty = text !== (base?.text ?? template)
   const readable = (value: string) => {
@@ -379,22 +416,33 @@ export function DocumentEditor({
       write(value)
       setSaved(false)
     }
+  const controls = (
+    <div className="rt-segment">
+      {(['visual', 'source'] as const).map((k) => (
+        <button
+          key={k}
+          aria-pressed={!history?.active && (k === 'source') === raw}
+          disabled={k === 'visual' && !parsed}
+          onClick={() => {
+            history?.close()
+            setSource(k === 'source')
+          }}
+        >
+          {t(k)}
+        </button>
+      ))}
+      {history && (
+        <button aria-pressed={history.active} disabled={!initial} onClick={history.open}>
+          {t('roleHistory')}
+        </button>
+      )}
+    </div>
+  )
+  const navigation = <div className="rt-row">{controls}</div>
+  if (history?.active) return <div className="rt-editor">{navigation}</div>
   return (
     <div className="rt-editor">
-      <div className="rt-row">
-        <div className="rt-segment">
-          {(['visual', 'source'] as const).map((k) => (
-            <button
-              key={k}
-              aria-pressed={(k === 'source') === raw}
-              disabled={k === 'visual' && !parsed}
-              onClick={() => setSource(k === 'source')}
-            >
-              {t(k)}
-            </button>
-          ))}
-        </div>
-      </div>
+      {navigation}
       {raw ? (
         <label>
           {t('source')}
@@ -491,6 +539,7 @@ export function DocumentEditor({
               })
               if (!result.ok) {
                 if (result.code === 'conflict') setConflict(result)
+                else if (result.error.message === duplicateRoleName) throw new Error(t('duplicateRole'))
                 else
                   throw new Error(
                     result.error.file +

@@ -200,6 +200,9 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     )
   }
 
+  @Remote createRole({ name, summary }: Input<'createRole'>) {
+    return this.roles.createRole(name, summary)
+  }
   @Remote async deleteRole(request: Input<'deleteRole'>) {
     return this.runtime.ordered('training/' + request.roleId, () =>
       this.runtime.training.deleteRole(request),

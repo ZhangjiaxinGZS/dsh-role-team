@@ -47,6 +47,7 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
   IconChevronRightOutlineRegular: () => null,
   IconPanelLeftOutlineRegular: () => null,
   IconClockOutlineRegular: () => null,
+  IconCloseOutlineRegular: () => null,
   IconFullscreenOutlineRegular: () => null,
   IconRefreshOutlineRegular: () => null,
   IconCompareSplitOutlineRegular: () => null,
@@ -477,40 +478,50 @@ it('shows the effective library and writes the next path against the native sett
   expect(screen.getByText('/roles')).toBeTruthy()
 })
 
-function roleToggle(which: 'showChat' | 'showProfile') {
-  return within(screen.getByRole('group', { name: en.ui.roleView })).getByRole('button', { name: en.ui[which] })
+function profileView() {
+  return document.querySelector('.rt-split')?.getAttribute('data-view')
 }
 
 it('creates and publishes the named role before opening its first independent conversation', async () => {
   const changed = vi.fn()
   const call = vi.fn(async (method: string) => {
-    if (method === 'saveDocument') return { ok: true, status: { publishedRevision: 1 } }
-    if (method === 'openTraining') return { roleId: 'author', trainingId: 't', sessionId: 's' }
+    if (method === 'createRole') return { ok: true, status: { roleId: 'auto-id', publishedRevision: 1 } }
+    if (method === 'openTraining') return { roleId: 'auto-id', trainingId: 't', sessionId: 's' }
     return method === 'readDocument' ? null : []
   })
   harness(call).mount(<RoleLibrary roles={[]} changed={changed} />)
   fireEvent.click(screen.getByRole('button', { name: /New role/ }))
   const form = within(screen.getByRole('dialog'))
+  expect(form.getAllByRole('textbox')).toHaveLength(2)
   fireEvent.change(form.getByLabelText(en.ui.name), { target: { value: 'Author' } })
   fireEvent.change(form.getByLabelText(en.ui.duty), { target: { value: 'Write stories' } })
   fireEvent.click(form.getByText(en.ui.create))
   await screen.findByText('stream:s')
-  expect(roleToggle('showProfile').getAttribute('aria-pressed')).toBe('true')
-  expect(roleToggle('showChat').getAttribute('aria-pressed')).toBe('false')
-  fireEvent.click(roleToggle('showProfile'))
-  expect(document.querySelector('.rt-split')?.getAttribute('data-view')).toBe('settingsOnly')
-  fireEvent.click(roleToggle('showChat'))
-  expect(document.querySelector('.rt-split')?.getAttribute('data-view')).toBe('splitView')
-  expect(call.mock.calls[0]).toEqual([
-    'saveDocument',
-    expect.objectContaining({
-      roleId: 'author',
-      expectedHash: null,
-      text: expect.stringContaining('summary: Write stories'),
-    }),
-  ])
+  expect(profileView()).toBe('splitView')
+  expect(screen.queryByRole('heading', { name: 'Author' })).toBeNull()
+  expect(call.mock.calls[0]).toEqual(['createRole', { name: 'Author', summary: 'Write stories' }])
   expect(changed).toHaveBeenCalledOnce()
-  expect(call).toHaveBeenCalledWith('openTraining', { roleId: 'author' })
+  expect(call).toHaveBeenCalledWith('openTraining', { roleId: 'auto-id' })
+})
+
+it('blocks a duplicate display name when creating or renaming a role', async () => {
+  const roles = ['Author', 'Editor'].map((name) => ({ id: name.toLowerCase(), name, revision: 1 }))
+  const call = vi.fn(async (method: string, ref: { roleId: string }) => {
+    if (method === 'readDocument')
+      return { text: serializeMarkdown({ id: ref.roleId, name: 'Author' }, ''), hash: 'a'.repeat(64) }
+    return []
+  })
+  harness(call).mount(<RoleLibrary roles={roles} changed={() => {}} />)
+  fireEvent.click(screen.getByRole('button', { name: en.ui.newRole }))
+  const form = within(screen.getByRole('dialog'))
+  fireEvent.change(form.getByLabelText(en.ui.name), { target: { value: ' eDiToR ' } })
+  expect(form.getByText(en.ui.duplicateRole)).toBeTruthy()
+  expect((form.getByRole('button', { name: en.ui.create }) as HTMLButtonElement).disabled).toBe(true)
+  fireEvent.click(form.getByRole('button', { name: en.ui.close }))
+  fireEvent.change(await screen.findByLabelText(en.ui.name), { target: { value: 'eDiToR ' } })
+  expect(screen.getByText(en.ui.duplicateRole)).toBeTruthy()
+  expect((screen.getByRole('button', { name: en.ui.save }) as HTMLButtonElement).disabled).toBe(true)
+  expect(call.mock.calls.some(([m]) => m === 'saveDocument' || m === 'createRole')).toBe(false)
 })
 
 it('starts coaching immediately without a team debrief entry', async () => {
@@ -523,7 +534,7 @@ it('starts coaching immediately without a team debrief entry', async () => {
     <RoleLibrary roles={[{ id: 'author', name: 'Author', revision: 1 }]} changed={() => {}} />,
   )
   await screen.findByText('stream:coach-session')
-  const toolbar = screen.getByRole('heading', { name: 'Author' }).closest('header')!
+  const toolbar = screen.getByRole('tablist').closest<HTMLElement>('.rt-session-bar')!
   expect(within(toolbar).getByRole('button', { name: en.ui.newTraining })).toBeTruthy()
   expect(screen.queryByRole('heading', { name: en.ui.training })).toBeNull()
   expect(call).toHaveBeenCalledWith('openTraining', { roleId: 'author' })
@@ -585,20 +596,22 @@ it('keeps the role editor across views and restores the chosen revision against 
     <RoleLibrary roles={[{ id: 'editor', name: 'Editor', revision: 3 }]} changed={changed} />,
   )
   const editor = await screen.findByDisplayValue('Current')
-  for (const [button, mode] of [
-    ['showProfile', 'chatOnly'], ['showChat', 'chatOnly'], ['showProfile', 'splitView'],
-    ['showChat', 'settingsOnly'], ['showProfile', 'settingsOnly'], ['showChat', 'splitView'],
-  ] as const) {
-    fireEvent.click(roleToggle(button))
-    expect(editor.closest('.rt-split')?.getAttribute('data-view')).toBe(mode)
-    expect(roleToggle('showChat').getAttribute('aria-pressed')).toBe(String(mode !== 'settingsOnly'))
-    expect(roleToggle('showProfile').getAttribute('aria-pressed')).toBe(String(mode !== 'chatOnly'))
+  for (const [label, mode] of [
+    [en.ui.expandProfile, 'settingsOnly'], [en.ui.restoreSplit, 'splitView'],
+    [en.ui.collapseProfile, 'chatOnly'], [en.ui.card, 'splitView'],
+    [en.ui.expandProfile, 'settingsOnly'],
+  ]) {
+    fireEvent.click(screen.getByRole('button', { name: label }))
+    expect(profileView()).toBe(mode)
     expect(editor.isConnected).toBe(true)
   }
+  fireEvent.click(screen.getByRole('button', { name: en.ui.source }))
+  expect(screen.getByLabelText(en.ui.source)).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: en.ui.roleHistory }))
-  const history = within(screen.getByRole('dialog'))
+  expect(screen.queryByRole('dialog')).toBeNull()
+  const history = within(screen.getByRole('region', { name: en.ui.roleHistory }))
   await history.findByText('Role version 2')
-  fireEvent.change(history.getByRole('combobox'), { target: { value: '1' } })
+  fireEvent.click(history.getByRole('button', { name: /^Revision 1 / }))
   await history.findByText('Role version 1')
   fireEvent.click(history.getByRole('button', { name: en.ui.restoreRole }))
   await waitFor(() => expect(changed).toHaveBeenCalledOnce())
@@ -633,8 +646,7 @@ it('confirms the selected role by name and hash, supports cancel and clears the 
   expect(dialog.getByText('Writer')).toBeTruthy()
   fireEvent.click(dialog.getByRole('button', { name: en.ui.cancel }))
   expect(call.mock.calls.some(([method]) => method === 'deleteRole')).toBe(false)
-  expect(within(document.querySelector<HTMLElement>('.rt-detail > header')!)
-    .queryByRole('button', { name: /More actions/ })).toBeNull()
+  expect(document.querySelector('.rt-detail > header')).toBeNull()
   fireEvent.click(within(screen.getByRole('complementary', { name: en.ui.rolesList }))
     .getByRole('button', { name: /More actions/ }))
   fireEvent.click(screen.getByRole('menuitem', { name: en.ui.deleteRole }))
@@ -677,17 +689,17 @@ it('restores the last role, role view, page and team after leaving the panel', a
   fireEvent.click(await screen.findByRole('button', { name: 'Editor' }))
   fireEvent.click(await screen.findByText('Trajectory:Editor-session'))
   expect(h.openView).toHaveBeenCalledWith('trajectory', 'Editor-session-nested')
-  fireEvent.click(roleToggle('showChat'))
+  fireEvent.click(screen.getByRole('button', { name: en.ui.expandProfile }))
   fireEvent.click(screen.getByRole('button', { name: 'Writer' }))
-  expect(roleToggle('showChat').getAttribute('aria-pressed')).toBe('true')
-  fireEvent.click(roleToggle('showProfile'))
+  expect(profileView()).toBe('splitView')
+  fireEvent.click(screen.getByRole('button', { name: en.ui.collapseProfile }))
   fireEvent.click(screen.getByRole('button', { name: 'Editor' }))
-  expect(roleToggle('showChat').getAttribute('aria-pressed')).toBe('false')
+  expect(profileView()).toBe('settingsOnly')
   panel.unmount()
   panel = h.mount(<App />)
-  await screen.findByRole('heading', { name: 'Editor' })
-  expect(roleToggle('showProfile').getAttribute('aria-pressed')).toBe('true')
-  expect(roleToggle('showChat').getAttribute('aria-pressed')).toBe('false')
+  await screen.findByRole('button', { name: en.ui.restoreSplit })
+  expect(screen.getByRole('button', { name: 'Editor' }).getAttribute('aria-current')).toBe('page')
+  expect(profileView()).toBe('settingsOnly')
   fireEvent.click(screen.getByRole('button', { name: en.ui.teams }))
   await screen.findByText('Trajectory:South-session')
   panel.unmount()

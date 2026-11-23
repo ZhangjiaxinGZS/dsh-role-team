@@ -1,11 +1,16 @@
+import type { ReactNode } from 'react'
 import { Notice, useAction, useUi, type Training } from '../ui.js'
 import { SessionPane, sessionTarget } from '../workbench/SessionPane.js'
 
 export function TrainingDetail({
+  toolbarActions,
+  chatHint,
   row,
   refresh,
   changed,
 }: {
+  toolbarActions?: ReactNode
+  chatHint?: string
   row: Training
   refresh: () => void
   changed: () => void
@@ -37,7 +42,13 @@ export function TrainingDetail({
   return (
     <>
       <Notice>{a.error}</Notice>
-      <SessionPane focusOnOpen target={sessionTarget(row.sessionId)} onToolResult={changed} />
+      <SessionPane
+        toolbarActions={toolbarActions}
+        chatHint={chatHint}
+        focusOnOpen
+        target={sessionTarget(row.sessionId)}
+        onToolResult={changed}
+      />
       {!!pending?.length && (
         <section className="rt-proposals">
           <h4>

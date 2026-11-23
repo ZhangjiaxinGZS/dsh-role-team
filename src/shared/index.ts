@@ -10,6 +10,8 @@ export const hash = z.string().regex(/^[a-f0-9]{64}$/)
 export const revision = z.number().int().positive()
 const timestamp = z.iso.datetime({ offset: true })
 const names = z.array(z.string().min(1))
+export const roleNameKey = (name: string) => name.trim().toLowerCase()
+export const duplicateRoleName = '已存在同名角色，请重新输入'
 export const roleMeta = z.strictObject({
   id: fileId,
   name: z.string().trim().min(1),

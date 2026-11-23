@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   Menu,
   Tooltip,
@@ -22,6 +22,8 @@ import { useUi, Notice, useLoad, useAction, type Seat, type SessionTarget } from
 
 export type Pane = {
   target: SessionTarget
+  toolbarActions?: ReactNode
+  chatHint?: string
   seat?: Seat
   leaderSessionId?: string
   readOnly?: boolean
@@ -79,6 +81,8 @@ function BoundPane({
   leaderSessionId,
   readOnly = false,
   onSelection,
+  toolbarActions,
+  chatHint,
   onToolResult,
   focusOnOpen,
   defaultPreview = true,
@@ -113,7 +117,7 @@ function BoundPane({
         (!active ||
           active === document.body ||
           active.matches(
-            '.rt-top button, .rt-rolelist .rt-list-row > button, .rt-rolelist header button, .rt-detail > header .rt-primary, .rt-pane-status button',
+            '.rt-top button, .rt-rolelist .rt-list-row > button, .rt-rolelist header button, .rt-chat-actions button, .rt-pane-status button',
           ))
       ) {
         editor.focus({ preventScroll: true })
@@ -143,6 +147,7 @@ function BoundPane({
   if (!reference || error)
     return (
       <div className="rt-pane-status">
+        {toolbarActions}
         {error ? (
           <>
             <Notice>{error}</Notice>
@@ -171,6 +176,8 @@ function BoundPane({
             seat: readOnly ? undefined : seat,
             leaderSessionId,
             onSelection,
+            toolbarActions,
+            chatHint,
             readOnly,
           }}
         >
@@ -181,6 +188,8 @@ function BoundPane({
   )
 }
 const PaneContext = createContext<{
+  toolbarActions?: ReactNode
+  chatHint?: string
   readOnly: boolean
   reference: SessionReference
   onSelection?: () => void
@@ -202,7 +211,7 @@ export function SessionChat(
     phase: 'active',
     onWorkspaceSelected: async () => {},
   } as const
-  const { reference, seat, readOnly } = useContext(PaneContext)!
+  const { reference, seat, readOnly, toolbarActions, chatHint } = useContext(PaneContext)!
   const tabs = props
     .useConversationViews((views) => views)
     .filter((view) => view.id === 'chat' || view.id === 'trajectory')
@@ -244,7 +253,9 @@ export function SessionChat(
               ))}
             </div>
           )}
+          {toolbarActions}
         </div>
+        {chatHint && selected === 'chat' && <p className="rt-intro">{chatHint}</p>}
         {props.renderFactorySlot('conversation.content', factoryInput)}
       </div>
     </div>

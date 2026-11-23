@@ -1,9 +1,12 @@
+import { randomUUID } from 'node:crypto'
 import { watch, type FSWatcher } from 'node:fs'
 import { mkdir, readdir, realpath, rename, unlink } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import lockfile from 'proper-lockfile'
 import {
+  duplicateRoleName,
+  roleNameKey,
   deleteRequest,
   editRequest,
   fileId,
@@ -200,6 +203,22 @@ export class RoleStore {
     return (await directory(archived)) ? archived : null
   }
 
+  // The publication lock covers both profiles. Read snapshot heads from disk because
+  // another host can publish a rename before this host's watcher refreshes its cache.
+  private async checkName(roleId: string, name: string, file: string) {
+    const key = roleNameKey(name)
+    for (const entry of await readdir(this.root, { withFileTypes: true })) {
+      if (entry.name === roleId || !entry.isDirectory() || !fileId.safeParse(entry.name).success) continue
+      const dir = await this.rolePath(entry.name)
+      const head = await this.latest(dir)
+      if (head === null) continue
+      const cached = this.current.get(entry.name)
+      const other = cached?.publishedRevision === head ? cached : await this.snapshot(dir, entry.name, head)
+      if (roleNameKey(other.role.meta.name) === key)
+        throw new DocumentError({ file, line: 1, message: duplicateRoleName })
+    }
+  }
+
   private async publish(roleId: string, force = false): Promise<RoleStatus> {
     const role = await this.rolePath(roleId)
     let previous: number | null = null
@@ -216,6 +235,7 @@ export class RoleStore {
       const source = await readFileText(file)
       if (!source) throw new Error('role.md is missing')
       const card = parseMarkdown(source.text, roleMeta, roleId, file)
+      if (last?.role.meta.name !== card.meta.name) await this.checkName(roleId, card.meta.name, file)
       const hashes = [['role.md', source.hash]]
       const memories: Snapshot['memories'] = []
       file = join(role, 'memories')
@@ -284,6 +304,16 @@ export class RoleStore {
       return result
     })
   }
+  createRole(name: string, summary?: string) {
+    return this.locked(async () => {
+      let roleId: string
+      do {
+        roleId = 'role-' + randomUUID()
+      } while (await directory(join(this.root, roleId)) || await this.retiredRole(roleId))
+      const text = serializeMarkdown({ id: roleId, name: name.trim(), ...(summary && { summary: summary.trim() }) }, '')
+      return this.changeLocked({ roleId, expectedHash: null }, text, false)
+    })
+  }
   async saveDocument(input: EditRequest) {
     const edit = editRequest.parse(input)
     return this.change(edit, edit.text)
@@ -319,64 +349,71 @@ export class RoleStore {
     proposed: string | null,
     restore = false,
   ): Promise<EditResult> {
-    return this.locked(async () => {
-      const create = ref.expectedHash === null
-      const { roleId, memoryId } = ref
-      if (await this.retiredRole(roleId)) throw new Error('Role ID is retired: ' + roleId)
-      const existingPath = await this.documentPath(ref)
-      const check = async (): Promise<EditResult | null> => {
-        const current = await readFileText(existingPath)
-        if (
-          !restore &&
-          current &&
-          (memoryId !== undefined || ref.expectedHash !== null) &&
-          proposed === current.text
-        ) {
-          const status = await this.publish(roleId)
-          if (status.error) return { ok: false, code: 'invalid', error: status.error }
-          return { ok: true, hash: current.hash, status }
-        }
-        return (current?.hash ?? null) === ref.expectedHash
-          ? null
-          : { ok: false, code: 'conflict', current, proposed }
+    return this.locked(() => this.changeLocked(ref, proposed, restore))
+  }
+  private async changeLocked(
+    ref: FileRef & { expectedHash: string | null },
+    proposed: string | null,
+    restore: boolean,
+  ): Promise<EditResult> {
+    const create = ref.expectedHash === null
+    const { roleId, memoryId } = ref
+    if (await this.retiredRole(roleId)) throw new Error('Role ID is retired: ' + roleId)
+    const existingPath = await this.documentPath(ref)
+    const check = async (): Promise<EditResult | null> => {
+      const current = await readFileText(existingPath)
+      if (
+        !restore &&
+        current &&
+        (memoryId !== undefined || ref.expectedHash !== null) &&
+        proposed === current.text
+      ) {
+        const status = await this.publish(roleId)
+        if (status.error) return { ok: false, code: 'invalid', error: status.error }
+        return { ok: true, hash: current.hash, status }
       }
-      const conflict = await check()
-      if (conflict) return conflict
-      if (proposed !== null) {
+      return (current?.hash ?? null) === ref.expectedHash
+        ? null
+        : { ok: false, code: 'conflict', current, proposed }
+    }
+    const conflict = await check()
+    if (conflict) return conflict
+    if (proposed !== null) {
+      try {
+        if (memoryId === undefined) {
+          const { meta } = parseMarkdown(proposed, roleMeta, roleId, existingPath)
+          await this.checkName(roleId, meta.name, existingPath)
+        } else parseMarkdown(proposed, memoryMeta, memoryId, existingPath)
+      } catch (error) {
+        if (error instanceof DocumentError) return { ok: false, code: 'invalid', error: error.detail }
+        throw error
+      }
+      if (memoryId !== undefined && !(await readFileText(join(this.root, roleId, 'role.md'))))
+        throw new Error('Role not found: ' + roleId)
+      const path = await this.documentPath(ref, create)
+      const staged = await stageText(path, proposed)
+      try {
+        const raced = await check()
+        if (raced) return raced
         try {
-          if (memoryId === undefined) parseMarkdown(proposed, roleMeta, roleId, existingPath)
-          else parseMarkdown(proposed, memoryMeta, memoryId, existingPath)
+          await staged.commit(create)
         } catch (error) {
-          if (error instanceof DocumentError) return { ok: false, code: 'invalid', error: error.detail }
+          if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+          const concurrent = await check()
+          if (concurrent) return concurrent
           throw error
         }
-        if (memoryId !== undefined && !(await readFileText(join(this.root, roleId, 'role.md'))))
-          throw new Error('Role not found: ' + roleId)
-        const path = await this.documentPath(ref, create)
-        const staged = await stageText(path, proposed)
-        try {
-          const raced = await check()
-          if (raced) return raced
-          try {
-            await staged.commit(create)
-          } catch (error) {
-            if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
-            const concurrent = await check()
-            if (concurrent) return concurrent
-            throw error
-          }
-        } finally {
-          await staged.discard()
-        }
-      } else {
-        await unlink(existingPath)
+      } finally {
+        await staged.discard()
       }
-      const status = await this.publish(roleId, restore)
-      return {
-        ok: true,
-        status,
-        hash: proposed === null ? null : digest(proposed),
-      }
-    })
+    } else {
+      await unlink(existingPath)
+    }
+    const status = await this.publish(roleId, restore)
+    return {
+      ok: true,
+      status,
+      hash: proposed === null ? null : digest(proposed),
+    }
   }
 }
