@@ -4,41 +4,60 @@ type Navigation = {
   page: 'teams' | 'library'
   role: string
   team: string
-  roleView: 'chatOnly' | 'splitView' | 'settingsOnly'
 }
 
-const defaults: Navigation = { page: 'teams', role: '', team: '', roleView: 'splitView' }
-const memory = { ...defaults }
+type RoleView = 'chatOnly' | 'splitView' | 'settingsOnly'
+const defaults: Navigation = { page: 'teams', role: '', team: '' }
+const memory = new Map<string, string>()
+
+function read(key: string) {
+  try {
+    return localStorage.getItem('dsh.roleTeam.navigation.' + key) ?? memory.get(key)
+  } catch {
+    return memory.get(key)
+  }
+}
+
+function remember(key: string, value: string) {
+  memory.set(key, value)
+  try {
+    localStorage.setItem('dsh.roleTeam.navigation.' + key, value)
+  } catch {
+    /* The current window still remembers its selection when storage is unavailable. */
+  }
+}
 
 export function useNavigation<K extends keyof Navigation>(key: K) {
-  const storageKey = 'dsh.roleTeam.navigation.' + key
   const [value, update] = useState<Navigation[K]>(() => {
-    try {
-      const saved = localStorage.getItem(storageKey)
-      if (
-        saved !== null &&
-        (key === 'role' ||
-          key === 'team' ||
-          (key === 'page' ? ['teams', 'library'] : ['chatOnly', 'splitView', 'settingsOnly']).includes(
-            saved,
-          ))
-      ) {
-        return saved as Navigation[K]
-      }
-    } catch {
-      /* The current window still remembers its selection when storage is unavailable. */
+    const saved = read(key)
+    if (saved !== undefined && (key !== 'page' || saved === 'teams' || saved === 'library')) {
+      return saved as Navigation[K]
     }
-    return memory[key]
+    return defaults[key]
   })
   return [
     value,
     (next: Navigation[K]) => {
-      memory[key] = next
-      try {
-        localStorage.setItem(storageKey, next)
-      } catch {
-        /* Storage can be disabled in an embedded client. */
-      }
+      remember(key, next)
+      update(next)
+    },
+  ] as const
+}
+
+export function rememberRoleView(id: string, view: RoleView) {
+  remember('roleView.' + id, view)
+}
+
+// RoleDetail is keyed by id. Existing installations used one shared view preference.
+export function useRoleView(id: string) {
+  const [view, update] = useState<RoleView>(() => {
+    const saved = read('roleView.' + id) ?? read('roleView')
+    return saved === 'chatOnly' || saved === 'settingsOnly' ? saved : 'splitView'
+  })
+  return [
+    view,
+    (next: RoleView) => {
+      rememberRoleView(id, next)
       update(next)
     },
   ] as const

@@ -1,4 +1,4 @@
-import { useNavigation } from '../navigation.js'
+import { rememberRoleView, useNavigation, useRoleView } from '../navigation.js'
 import { fileId } from '../../shared/index.js'
 import { serializeMarkdown } from '../../shared/markdown.js'
 import { useEffect, useState } from 'react'
@@ -11,7 +11,6 @@ import { TrainingDetail } from './Training.js'
 export type LibraryRole = RoleChoice & { error?: Diagnostic | null; empty?: boolean }
 export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[]; changed: () => void }) {
   const { t, call } = useUi(),
-    [view, setView] = useNavigation('roleView'),
     [role, setRole] = useNavigation('role'),
     [created, setCreated] = useState<LibraryRole>(),
     [modal, setModal] = useState(''),
@@ -44,10 +43,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
             <div key={r.id} className="rt-list-row">
               <button
                 aria-current={id === r.id ? 'page' : undefined}
-                onClick={() => {
-                  setRole(r.id)
-                  if (view === 'settingsOnly') setView('splitView')
-                }}
+                onClick={() => setRole(r.id)}
               >
                 {r.name}
               </button>
@@ -60,9 +56,6 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
             key={id}
             id={id}
             active={active}
-            view={view}
-            setView={setView}
-            setDeleting={setDeleting}
             changed={changed}
           />
         ) : (
@@ -98,9 +91,9 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
             })
             if (!result.ok)
               throw new Error(result.code === 'conflict' ? t('duplicateRole') : result.error.message)
+            rememberRoleView(id, 'settingsOnly')
             setCreated({ id, name, revision: result.status.publishedRevision, empty: true })
             setRole(id)
-            if (view === 'settingsOnly') setView('splitView')
             changed()
             setModal('')
           }}
@@ -109,23 +102,17 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
     </section>
   )
 }
-type RoleView = 'chatOnly' | 'splitView' | 'settingsOnly'
 function RoleDetail({
   id,
   active,
-  view,
-  setView,
-  setDeleting,
   changed,
 }: {
   id: string
   active?: LibraryRole
-  view: RoleView
-  setView: (view: RoleView) => void
-  setDeleting: (role: LibraryRole) => void
   changed: () => void
 }) {
   const { t, call } = useUi()
+  const [view, setView] = useRoleView(id)
   const training = useLoad(id, () => call('openTraining', { roleId: id }), 2400)
   const start = useAction()
   return (
@@ -152,13 +139,25 @@ function RoleDetail({
           {t('newTraining')}
         </button>
         <div className="rt-segment" role="group" aria-label={t('roleView')}>
-          {(['chatOnly', 'splitView', 'settingsOnly'] as const).map((mode) => (
-            <button key={mode} aria-pressed={view === mode} onClick={() => setView(mode)}>
-              {t(mode)}
-            </button>
-          ))}
+          <button
+            aria-pressed={view !== 'settingsOnly'}
+            aria-disabled={view === 'chatOnly'}
+            onClick={() => {
+              if (view !== 'chatOnly') setView(view === 'splitView' ? 'settingsOnly' : 'splitView')
+            }}
+          >
+            {t('showChat')}
+          </button>
+          <button
+            aria-pressed={view !== 'chatOnly'}
+            aria-disabled={view === 'settingsOnly'}
+            onClick={() => {
+              if (view !== 'settingsOnly') setView(view === 'splitView' ? 'chatOnly' : 'splitView')
+            }}
+          >
+            {t('showProfile')}
+          </button>
         </div>
-        {active && <MoreMenu name={active.name} actions={{ deleteRole: () => setDeleting(active) }} />}
       </header>
       {active?.error && (
         <Notice>

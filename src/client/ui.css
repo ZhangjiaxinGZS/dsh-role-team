@@ -297,6 +297,8 @@ html[data-platform='darwin'] .rt-top {
   background: var(--dsw-alias-bg-layer-1);
   box-shadow: var(--dsw-elevation-soft);
 }
+.rt-detail .rt-segment[role='group'] { gap: 2px; }
+.rt-detail .rt-segment button[aria-disabled='true'] { cursor: default; }
 .rt-columns {
   display: grid;
   grid-auto-flow: column;
