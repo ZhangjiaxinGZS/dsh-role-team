@@ -138,14 +138,6 @@ export default class RoleTeamService extends TypertRemoteService implements Role
       .sort((a, b) => a.generation - b.generation)
   }
 
-  @Remote async addNote(request: Input<'addNote'>) {
-    return this.runtime.addNote(request)
-  }
-
-  @Remote async listNotes(request: Input<'listNotes'>) {
-    return this.index.notes.list().filter((n) => n.runId === request.runId)
-  }
-
   @Remote async rememberExperience({ roleId, body, title }: Input<'rememberExperience'>) {
     return this.runtime.training.rememberExperience(roleId, body, title)
   }

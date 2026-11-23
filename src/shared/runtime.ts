@@ -13,7 +13,6 @@ import {
 const id = z.string().min(1).max(256)
 const workspaceCwd = z.string().min(1)
 const title = z.string().trim().min(1).max(160)
-const note = z.string().trim().min(1).max(8000)
 const run = z.strictObject({ runId: id })
 const seat = z.strictObject({ seatId: id })
 const training = z.strictObject({ trainingId: id })
@@ -70,8 +69,6 @@ export const runtimeMethods = {
     z.strictObject({ accepted: z.literal(true), sessionId: id }),
   ],
   listGenerations: [seat, z.array(indexRecords.seat_generations)],
-  addNote: [run.extend({ seatId: id.optional(), content: note }), indexRecords.team_local_notes],
-  listNotes: [run, z.array(indexRecords.team_local_notes)],
   rememberExperience: [
     z.strictObject({
       roleId: fileId,

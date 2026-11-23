@@ -92,7 +92,6 @@ export function Documents({
                 {m.meta.title !== m.body && <strong>{m.meta.title}</strong>}
                 <p>{m.body}</p>
                 <footer className="rt-row">
-                  {m.meta.status !== 'published' && <small>{t(m.meta.status)}</small>}
                   <button onClick={() => setEntry({ ...m, remove: false })}>{t('edit')}</button>
                   <button
                     onClick={() => {
@@ -187,8 +186,7 @@ function RoleHistory({
             <select value={entry.publishedRevision} onChange={(e) => select(Number(e.target.value))}>
               {rows.data?.map((r) => (
                 <option key={r.publishedRevision} value={r.publishedRevision}>
-                  r{r.publishedRevision} · {new Date(r.publishedAt).toLocaleString()} ·{' '}
-                  {r.role.meta.summary || r.role.meta.name}
+                  {new Date(r.publishedAt).toLocaleString()} · {r.role.meta.summary || r.role.meta.name}
                 </option>
               ))}
             </select>
@@ -305,7 +303,6 @@ export function DocumentEditor({
         ? {
             id,
             title: '',
-            status: 'draft',
             scope: 'role_long_term',
             createdAt: new Date().toISOString(),
           }
@@ -357,10 +354,7 @@ export function DocumentEditor({
       const data = file.memoryId
         ? parseMarkdown(value, memoryMeta, id, path)
         : parseMarkdown(value, roleMeta, id, path)
-      return [
-        'name' in data.meta ? data.meta.name : data.meta.title + ' · ' + t(data.meta.status),
-        data.body,
-      ].join('\n')
+      return ['name' in data.meta ? data.meta.name : data.meta.title, data.body].join('\n')
     } catch {
       return value
     }
@@ -385,7 +379,6 @@ export function DocumentEditor({
             </button>
           ))}
         </div>
-        {parsed && 'status' in parsed.meta && <span className="rt-tag">{t(parsed.meta.status)}</span>}
       </div>
       {raw ? (
         <label>
@@ -424,23 +417,6 @@ export function DocumentEditor({
                     edit(serializeMarkdown({ ...doc.meta, summary: e.target.value }, doc.body))
                   }
                 />
-              </label>
-            )}
-            {'status' in doc.meta && (
-              <label>
-                {t('status')}
-                <select
-                  value={doc.meta.status}
-                  onChange={(e) =>
-                    edit(serializeMarkdown({ ...doc.meta, status: e.target.value }, doc.body))
-                  }
-                >
-                  {(['draft', 'published', 'archived'] as const).map((k) => (
-                    <option key={k} value={k}>
-                      {t(k)}
-                    </option>
-                  ))}
-                </select>
               </label>
             )}
             <label>

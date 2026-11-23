@@ -7,7 +7,7 @@ import * as Domains from '@deepseek-ai/dsh-storage-domain'
 import { expect, it } from 'vitest'
 import { generationKey, repository, teamDomain } from '../src/host/storage/index.js'
 
-it('uses all five native tables, validates updates and restores a pinned seat after reopening', async () => {
+it('validates native table updates and restores a pinned seat after reopening', async () => {
   const root = await mkdtemp(join(process.cwd(), 'node_modules', '.role-index-test-'))
   const ctx = new Context()
   const now = new Date().toISOString()
@@ -51,7 +51,6 @@ it('uses all five native tables, validates updates and restores a pinned seat af
       handoffNote: null,
       archivedAt: null,
     })
-    await repo.notes.put({ noteId: 'n', runId: 'A', content: 'only A', createdAt: now })
     await repo.training.put({
       trainingId: 't',
       roleId: 'review',
@@ -64,7 +63,6 @@ it('uses all five native tables, validates updates and restores a pinned seat af
     expect(repo.training.list()).toHaveLength(1)
     await expect(repo.seats.update('s', (row) => ({ ...row, seatId: 'another' }))).rejects.toThrow()
     await repo.seats.update('s', (row) => ({ ...row, pendingMemoryRev: 2 }))
-    expect(await repo.notes.delete('n')).toBe(true)
     await domain.close()
     const reopened = await ctx.storageDomain.open(teamDomain)
     const restored = repository(reopened)
@@ -73,7 +71,6 @@ it('uses all five native tables, validates updates and restores a pinned seat af
       adoptedMemoryRev: 1,
       pendingMemoryRev: 2,
     })
-    expect(restored.notes.list()).toEqual([])
     await reopened.close()
   } finally {
     await ctx.fiber.dispose()

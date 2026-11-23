@@ -13,12 +13,14 @@ import { trainingTools, workspacePath } from '../isolation/index.js'
 import type { NativeTeam } from '../team-runtime/native.js'
 
 type Training = IndexRecord<'training_sessions'>
-type Proposal = NonNullable<Training['proposals']>[number]
 const text = z.string().trim().min(1).max(24000)
 const inputs = [
-  z.strictObject({ name: z.string().min(1).max(160), summary: roleMeta.shape.summary, body: text }),
+  z.strictObject({
+    name: z.string().trim().min(1).max(160).optional(),
+    summary: roleMeta.shape.summary,
+    body: text,
+  }),
   z.strictObject({ body: text }),
-  z.strictObject({ content: text.max(8000) }),
   z.strictObject({ memoryId: fileId, title: z.string().trim().min(1).max(160), body: text }),
 ] as const
 function saved(result: EditResult) {
@@ -37,7 +39,6 @@ export class TrainingRuntime {
     readonly index: Index,
     readonly roles: RoleStore,
     readonly native: NativeTeam,
-    readonly addNote: (request: Input<'addNote'>) => Promise<IndexRecord<'team_local_notes'>>,
   ) {}
   current(roleId?: string) {
     const rows = this.index.training.list().filter((r) => !r.initializing)
@@ -140,8 +141,8 @@ export class TrainingRuntime {
     const entry = current && parseMarkdown(current.text, memoryMeta, ref.memoryId, 'memory.md')
     if (entry && entry.body !== content)
       throw new Error('This experience was edited. Review the existing entry.')
-    if (entry?.meta.status === 'published') return ref.memoryId
-    const meta = entry?.meta ?? {
+    if (entry) return ref.memoryId
+    const meta = {
       id: ref.memoryId,
       title: title ?? Array.from(content.split('\n')[0]).slice(0, 80).join(''),
       scope: 'role_long_term',
@@ -150,11 +151,11 @@ export class TrainingRuntime {
     const result = await this.roles.saveDocument({
       ...ref,
       expectedHash: current?.hash ?? null,
-      text: serializeMarkdown({ ...meta, status: 'published' }, content),
+      text: serializeMarkdown(meta, content),
     })
     if (!result.ok && result.code === 'conflict' && result.current) {
       const concurrent = parseMarkdown(result.current.text, memoryMeta, ref.memoryId, 'memory.md')
-      if (concurrent.body === content && concurrent.meta.status === 'published') return ref.memoryId
+      if (concurrent.body === content) return ref.memoryId
     }
     saved(result)
     return ref.memoryId
@@ -177,8 +178,8 @@ export class TrainingRuntime {
       text: () =>
         [
           row.locale === 'en'
-            ? 'Reply in English. In this private coaching chat, update your own role with update_role when learning a lasting responsibility or preference. Preserve unrelated settings. Use remember_experience for reusable lessons and revise_experience to correct a saved lesson. Briefly tell the user what you saved after success. Keep one-off requests and team-specific details out of the role profile.'
-            : '请用中文回复。在这次一对一培养中，学到持久的职责或偏好时，用 update_role 直接更新自己的角色设定，保留其他设定。值得复用的经验用 remember_experience 记住，纠正已有经验用 revise_experience。写入成功后简短告诉用户记住了什么。临时要求和团队专属细节留在本次对话或关联团队。',
+            ? 'Reply in English. In this private coaching chat, update your own role with update_role when learning a lasting responsibility or preference. Preserve unrelated settings. Keep the current role name unless the user explicitly requests a rename. Use remember_experience for reusable lessons and revise_experience to correct a saved lesson. Briefly tell the user what you saved after success. Keep one-off requests and team-specific details out of the role profile.'
+            : '请用中文回复。在这次一对一培养中，学到持久的职责或偏好时，用 update_role 直接更新自己的角色设定，保留其他设定。只有用户明确要求改名才传 name，不要使用 lead、root 等系统名称。值得复用的经验用 remember_experience 记住，纠正已有经验用 revise_experience。写入成功后简短告诉用户记住了什么。临时要求和团队专属细节留在本次对话或关联团队。',
           snapshot?.role.meta.name ?? row.roleId,
           snapshot?.role.meta.summary,
           snapshot?.role.body,
@@ -193,9 +194,8 @@ export class TrainingRuntime {
       agent.ctx.tools.register({
         name,
         description: [
-          'Save your complete revised name and role instructions. Use summary for a short one-line duty to introduce yourself to the team. Preserve existing responsibilities unless corrected.',
+          'Save the complete revised role instructions. Omit name unless the user explicitly asks to rename this role. Never copy a system agent name such as lead or root. Use summary for a short one-line duty to introduce yourself to the team. Preserve existing responsibilities unless corrected.',
           'Remember a durable lesson for this role. Supply the lesson in plain text.',
-          'Record a temporary note for the linked team only.',
           'Correct one saved lesson by its memoryId from your profile. Supply its revised title and full content.',
         ][i],
         parameters: z.toJSONSchema(inputs[i]),
@@ -210,18 +210,19 @@ export class TrainingRuntime {
             !this.current(row.roleId).some((t) => t.trainingId === row.trainingId)
           )
             throw new Error('Training session mismatch')
-          if (name === 'record_temporary_note') {
-            const { content } = inputs[2].parse(args)
-            if (!row.sourceRunId) throw new Error('Choose a source team to record a temporary note')
-            return (await this.addNote({ runId: row.sourceRunId, content })).noteId
-          }
           if (name === 'update_role') {
             const { name: displayName, summary, body } = inputs[0].parse(args)
             const meta = base
               ? parseMarkdown(base.text, roleMeta, row.roleId, 'role.md').meta
-              : { id: row.roleId }
+              : { id: row.roleId, name: row.roleId }
+            if (displayName && displayName !== meta.name && /^(lead|root)$/i.test(displayName))
+              throw new Error(
+                row.locale === 'en'
+                  ? 'Reserved system name. Omit name to keep the current role name.'
+                  : '系统名称不能用于改名。省略 name 即可保留当前角色名称。',
+              )
             const next = serializeMarkdown(
-              { ...meta, name: displayName, ...(summary !== undefined && { summary }) },
+              { ...meta, name: displayName ?? meta.name, ...(summary !== undefined && { summary }) },
               body,
             )
             const result = await this.roles.saveDocument({
@@ -239,7 +240,7 @@ export class TrainingRuntime {
             const { hash } = saved(result)
             base = { text: next, hash: hash! }
           } else if (name === 'revise_experience') {
-            const { memoryId, title, body } = inputs[3].parse(args)
+            const { memoryId, title, body } = inputs[2].parse(args)
             const known = snapshot?.memories.find((m) => m.meta.id === memoryId)
             if (!known) throw new Error('Unknown published experience for this role')
             const file = await this.roles.readDocument({ ...ref, memoryId })
@@ -247,7 +248,6 @@ export class TrainingRuntime {
             if (
               !file ||
               !current ||
-              current.meta.status !== 'published' ||
               current.body !== known.body ||
               current.meta.title !== known.meta.title
             ) {
@@ -271,14 +271,6 @@ export class TrainingRuntime {
       }),
     )
   }
-  private async materializeDraft(roleId: string, proposal: Proposal) {
-    if (!proposal.memoryId || proposal.before === null) return
-    const ref = { roleId, memoryId: proposal.memoryId }
-    if (!(await this.roles.readDocument(ref))) {
-      const edit = await this.roles.saveDocument({ ...ref, expectedHash: null, text: proposal.before })
-      if (!edit.ok && edit.code !== 'conflict') throw new Error('Could not create the memory candidate')
-    }
-  }
   async confirmProposal({ trainingId, proposalId }: Input<'confirmProposal'>) {
     const row = this.getTraining(trainingId)
     const item = row.proposals?.find((p) => p.id === proposalId)
@@ -296,7 +288,10 @@ export class TrainingRuntime {
       throw new Error('Confirm the role before publishing its first memory')
     let result = await this.roles.saveDocument({
       ...ref,
-      expectedHash: item.expectedHash,
+      expectedHash:
+        item.memoryId && item.before !== null && !(await this.roles.readDocument(ref))
+          ? null
+          : item.expectedHash,
       text: item.text,
     })
     if (!result.ok && result.code === 'conflict' && result.current?.text === item.text) {
@@ -304,12 +299,6 @@ export class TrainingRuntime {
       result = { ok: true, hash: result.current.hash, status }
     }
     if (result.ok && result.status.error === null) {
-      if (!item.memoryId && item.expectedHash === null) {
-        for (const pending of this.getTraining(trainingId).proposals ?? []) {
-          if (pending.status === 'pending' && pending.memoryId)
-            await this.materializeDraft(row.roleId, pending)
-        }
-      }
       await this.index.training.update(trainingId, (state) => ({
         ...state,
         proposals: state.proposals?.map((p) =>

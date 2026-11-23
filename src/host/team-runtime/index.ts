@@ -21,7 +21,7 @@ export class TeamRuntime {
     readonly roles: RoleStore,
     readonly native: NativeTeam,
   ) {
-    this.training = new TrainingRuntime(index, roles, native, (input) => this.addNote(input))
+    this.training = new TrainingRuntime(index, roles, native)
   }
   async ordered<T>(key: string, work: () => Promise<T>): Promise<T> {
     const previous = this.queue.get(key)
@@ -350,14 +350,6 @@ export class TeamRuntime {
       return this.index.runs.update(runId, (r) => ({ ...r, status: 'archived' }))
     })
   }
-  async addNote(input: Input<'addNote'>) {
-    this.active(input.runId)
-    if (input.seatId && this.seat(input.seatId).runId !== input.runId)
-      throw new Error('Seat belongs to another team')
-    const note = { ...input, noteId: randomUUID(), createdAt: new Date().toISOString() }
-    await this.index.notes.put(note)
-    return note
-  }
   async versionDecision(input: Input<'versionDecision'>) {
     // Compatibility for older clients. Published changes apply automatically.
     return this.seat(input.seatId)
@@ -482,29 +474,12 @@ export class TeamRuntime {
       }
       const role = published ?? read(replacement ?? row.adoptedRoleRev),
         memory = published ?? read(replacement ?? row.adoptedMemoryRev)
-      const previous =
-        generation > 1 ? index.generations.get(generationKey(row.seatId, generation - 1)) : undefined
-      const notes =
-        generation > 1 && turn <= 1
-          ? []
-          : index.notes
-              .list()
-              .filter(
-                (n) =>
-                  n.runId === row.runId &&
-                  (!n.seatId || n.seatId === row.seatId) &&
-                  (!previous || (previous.archivedAt && n.createdAt > previous.archivedAt)),
-              )
       const context = [
         memory.memories
           .map((m) => m.meta.title + '\n' + m.body)
           .join('\n')
           .slice(0, 16000),
         history.handoffNote,
-        notes
-          .map((n) => n.content)
-          .join('\n')
-          .slice(-8000),
       ]
         .filter(Boolean)
         .join('\n\n')

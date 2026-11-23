@@ -166,7 +166,7 @@ it('routes each column, guards the lead, and rebinds reset and read-only history
         return child
       case 'listGenerations':
         return [
-          { sessionId: 'scout-session', generation: 1 },
+          { sessionId: 'scout-session', generation: 1, archivedAt: '2026-11-23T00:00:00Z' },
           { sessionId: 'scout-new', generation: 2 },
         ]
       default:
@@ -211,7 +211,7 @@ it('routes each column, guards the lead, and rebinds reset and read-only history
   expect(h.releases.get('scout-session')).toHaveBeenCalledOnce()
   expect(call).toHaveBeenCalledWith('resetSeat', { seatId: 'scout', generation: 1, handoff: 'handoff' })
   fireEvent.click(scout.getByLabelText(en.ui.history))
-  await scout.findByRole('option', { name: /G1/ })
+  await scout.findByRole('option', { name: /2026/ })
   fireEvent.change(scout.getByRole('combobox', { name: en.ui.history }), {
     target: { value: 'scout-session' },
   })
@@ -310,35 +310,22 @@ it('retries partial team setup without creating a second root and preserves nest
   expect(call.mock.calls[3][1]).toMatchObject({ roleId: 'staff', parentSeatId: 'sub' })
 })
 
-it('edits a memory through draft, published and archived metadata without changing its identity', async () => {
+it('saves an experience with no status to choose', async () => {
   const file = { roleId: 'editor', memoryId: 'review' }
-  const call = vi
-    .fn()
-    .mockResolvedValueOnce({ ok: true, hash: 'a'.repeat(64) })
-    .mockResolvedValueOnce({ ok: true, hash: 'b'.repeat(64) })
+  const call = vi.fn().mockResolvedValue({ ok: true, hash: 'a'.repeat(64) })
   harness(call).mount(<DocumentEditor file={file} initial={null} changed={() => {}} />)
-  const status = screen.getByLabelText(en.ui.status)
-  expect((status as HTMLSelectElement).value).toBe('draft')
+  expect(screen.queryByRole('combobox')).toBeNull()
   fireEvent.change(screen.getByLabelText(en.ui.memoryTitle), { target: { value: 'Review habit' } })
-  fireEvent.change(status, { target: { value: 'published' } })
   fireEvent.click(screen.getByText(en.ui.save))
   await screen.findByText(en.ui.saved)
   expect(call.mock.calls[0][1]).toMatchObject({
     ...file,
     expectedHash: null,
-    text: expect.stringContaining('status: published'),
+    text: expect.stringContaining('Review habit'),
   })
-  fireEvent.change(status, { target: { value: 'archived' } })
-  fireEvent.click(screen.getByText(en.ui.save))
-  await waitFor(() =>
-    expect(call.mock.calls[1][1]).toMatchObject({
-      ...file,
-      expectedHash: 'a'.repeat(64),
-      text: expect.stringContaining('status: archived'),
-    }),
-  )
+  expect(call.mock.calls[0][1].text).not.toContain('status:')
 })
-it('loads notes only for the selected team and releases the old root on a switch', async () => {
+it('switches teams and releases the old root', async () => {
   const runs = ['alpha', 'beta'].map((id) => ({
     runId: id,
     title: id,
@@ -346,18 +333,12 @@ it('loads notes only for the selected team and releases the old root on a switch
     rootSessionId: id + '-session',
     leaderSeatId: id,
   }))
-  const notes: Record<string, string[]> = { alpha: ['ALPHA-9527'], beta: [] }
   const call = vi.fn(async (method: string, input: { runId: string; content: string }) => {
     switch (method) {
       case 'listTeams':
         return runs
       case 'getTeam':
         return { run: runs.find((r) => r.runId === input.runId), seats: [seat(input.runId, null)] }
-      case 'listNotes':
-        return notes[input.runId].map((content, n) => ({ content, noteId: String(n) }))
-      case 'addNote':
-        notes[input.runId].push(input.content)
-        return {}
       default:
         throw new Error(method)
     }
@@ -365,16 +346,8 @@ it('loads notes only for the selected team and releases the old root on a switch
   const h = harness(call)
   h.mount(<Workbench roles={[]} />)
   await screen.findByText('stream:alpha-session')
-  fireEvent.click(screen.getByText(en.ui.board))
-  await screen.findByText('ALPHA-9527')
   fireEvent.click(within(screen.getByLabelText(en.ui.teamsList)).getByRole('button', { name: 'beta' }))
   await screen.findByText('stream:beta-session')
-  expect(screen.queryByText('ALPHA-9527')).toBeNull()
-  fireEvent.click(screen.getByText(en.ui.board))
-  fireEvent.change(screen.getByLabelText(en.ui.newNote), { target: { value: 'Beta only' } })
-  fireEvent.click(screen.getByRole('button', { name: en.ui.add }))
-  await screen.findByText('Beta only')
-  expect(call).toHaveBeenCalledWith('addNote', { runId: 'beta', content: 'Beta only' })
   expect(h.releases.get('alpha-session')).toHaveBeenCalledOnce()
 })
 it('shows the effective library and writes the next path against the native settings revision', async () => {

@@ -52,7 +52,6 @@ export function RoleLibrary({
               <Avatar name={r.name} />
               <span>
                 <strong>{r.name}</strong>
-                {r.revision && <small>r{r.revision}</small>}
               </span>
             </button>
           ))}

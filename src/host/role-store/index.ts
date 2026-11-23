@@ -221,11 +221,16 @@ export class RoleStore {
         if (!entry) throw new Error('Memory changed during scan')
         const memory = parseMarkdown(entry.text, memoryMeta, id, file)
         hashes.push([id, entry.hash])
-        if (memory.meta.status === 'published')
-          memories.push({ meta: { ...memory.meta, status: 'published' }, body: memory.body })
+        const { status: _legacyStatus, ...meta } = memory.meta
+        memories.push({ meta, body: memory.body })
       }
       const sourceHash = digest(JSON.stringify(hashes))
-      if (!force && previous !== null && last?.sourceHash === sourceHash)
+      if (
+        !force &&
+        previous !== null &&
+        last?.sourceHash === sourceHash &&
+        last.memories.length === memories.length
+      )
         return { roleId, publishedRevision: previous, error: null }
       const next = (previous ?? 0) + 1
       const value: Snapshot = {

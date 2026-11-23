@@ -46,7 +46,7 @@ dsh-role-team/
 │   ├── host/
 │   │   ├── index.ts          # Cordis Host 插件入口与 @Remote 暴露
 │   │   ├── role-store/       # 纯文本角色库读写、YAML/MD 解析、原子写入、文件监听、快照与冲突检测
-│   │   ├── storage/          # storageDomain 持久表（team_runs / team_seats / seat_generations / team_local_notes / training_sessions）
+│   │   ├── storage/          # storageDomain 持久表（team_runs / team_seats / seat_generations / training_sessions / role_models）
 │   │   ├── training/         # 1v1 培养与纠偏模式运行时、受控提炼工具（自我更新/长期经验/临时要求）
 │   │   ├── team-runtime/     # 每场 fresh root 编排、fresh spawn 装配、agent/created 首步屏障、版本生效门控
 │   │   ├── seat-reset/       # 逻辑席位换代（归档停止旧代 + fresh spawn 新代 + 任务 reassign + 交接注入）
@@ -68,7 +68,7 @@ dsh-role-team/
 └── evidence-reviewer/
     ├── role.md                  # 角色长期设定（权威源文件）
     ├── memories/
-    │   ├── mem-20261122-01.md   # 单条已确认经验或草稿
+    │   ├── mem-20261122-01.md   # 单条已保存的长期经验
     │   └── mem-20261122-02.md
     └── snapshots/
         └── rev-0003.json        # 自动发布时生成的只读文本快照（供旧团队冷恢复精确复现）
@@ -109,13 +109,14 @@ updatedAt: "2026-11-22T01:40:00+08:00"
 id: mem-20261122-01
 title: 证据不足时附带最低成本补证办法
 scope: role_long_term
-status: published
 source: training:sess_xxx
 createdAt: "2026-11-22T01:42:00+08:00"
 ---
 
 当发现论点缺少足够数据支撑时，不能只回复“证据不足”，必须附带 1 条成本最低、主笔可立即执行的补证方案（如补充对照口径、缩小结论范围或注明时间区间）。
 ```
+
+经验保存即生效。旧文件中的 draft、published 和 archived 标记均可读取。首次扫描补齐旧快照中省略的经验。
 
 **双向同步、防冲突与自动发布机制：**
 1. **原子写入**：UI 保存文件时先写同目录临时文件再原子 `rename`，防止半写损坏。
@@ -133,7 +134,6 @@ createdAt: "2026-11-22T01:42:00+08:00"
 - **`team_runs`**：`runId`、`title`、`rootSessionId`、`leaderSeatId`、`workspaceCwd`、`status`、`createdAt`
 - **`team_seats`**（逻辑席位树）：`seatId`、`runId`、`parentSeatId`（`null` 表示队长/根，为树状层级预留）、`roleId`、`displayName`、`currentGeneration`、`currentSessionId`、`nativeAgentName`、`adoptedRoleRev`、`adoptedMemoryRev`、`pendingRoleRev`、`pendingMemoryRev`、`status`（`active | resetting | archived`）
 - **`seat_generations`**（历代会话审计）：`seatId`、`generation`、`sessionId`、`nativeAgentName`、`roleSnapshotHash`、`memoryIds`、`handoffNote`、`archivedAt`
-- **`team_local_notes`**（一次性/项目内临时要求）：`noteId`、`runId`、`seatId`（可选，空表示全队有效）、`content`、`createdAt`
 - **`training_sessions`**（1v1 培养与纠偏会话）：`trainingId`、`roleId`、`sessionId`、`mode`（`create | coach | debrief`）、`sourceRunId`（可选，来自某次团队复盘）
 
 ### 2.4 原生机制嵌入与四层隔离设计
@@ -143,14 +143,13 @@ createdAt: "2026-11-22T01:42:00+08:00"
    - 每个队员通过原生 `subagent` 的 `startActivation`（指定预留 `childId`、`continuable: true`、fresh spawn 不复制父历史、`maxDepth` 显式传配置值）启动；
    - 在 `agent/created` 串行钩子中，根据 `sessionId` 反查插件索引表，向该实例的 `agent.ctx` 注入：
      - 固定 `systemPrompt` section：该席位已采纳快照对应的 `role.md` 正文；
-     - 有界 `context` 注入：该席位已采纳的 `status: published` 长期记忆正文 + 当前 `runId` 的 `team_local_notes` +（若为换代）用户交接记忆；
-     - 工具限制：默认禁用跨会话引用/检索工具（`session-reference`、`session-search`），并在文件工具/自定义工具中校验路径，防止受管成员越权读取其他团队记录或直接扫盘读取未发布记忆草稿。
+     - 有界 `context` 注入：该席位的已保存长期经验 +（若为换代）用户交接记忆；
+     - 工具限制：默认禁用跨会话引用/检索工具（`session-reference`、`session-search`），并在文件工具/自定义工具中校验路径，防止受管成员越权读取其他团队记录或直接扫盘读取其他角色的文件。
 2. **1v1 培养与纠偏模式**：
    - 使用独立训练 Session（与任何团队 `root` 完全分离），向模型注册受控工具：
-     - `update_role` 根据培养对话直接更新本角色设定并发布。
+     - `update_role` 根据培养对话更新设定。默认保留当前名称，仅在用户明确要求时传入新名称，工具拒绝把角色改成 lead 或 root。
      - `remember_experience` 将一句可复用的经验保存到本角色的已发布档案。
      - `revise_experience` 就地修正已保存的经验，核对当前内容并保留条目身份。
-     - `record_temporary_note`：当用户说明“仅对本次/甲项目有效”时，仅写入 `team_local_notes`，绝不触碰角色长期库。
    - 原始 1v1 训练对话历史**绝不**作为跨团队召回源。
 3. **团队内直连任意成员对话**：
    - 多栏工作台每列渲染独立 `SessionProvider`（参考 `ui-subagent` 的 `SidebarChatTab` 模式），按该列绑定的 `sessionId` 分别 `retain` / `release` `SessionReference`；
@@ -172,16 +171,15 @@ createdAt: "2026-11-22T01:42:00+08:00"
 
 - **侧边栏主入口**：通过 `sidebar.panellist` 注册「角色团队」图标，对应 keyed `main` 工作台主页面（Web 与 Desktop 渲染同一页面）。
 - **工作台布局**：
-  - 最左侧团队列表支持新建、切换和归档，可折叠。顶栏一行展示团队标题、视图切换、添加成员和任务与便签。仅单栏需要显示成员标签。
+  - 最左侧团队列表支持新建、切换和归档，可折叠。顶栏一行展示团队标题、视图切换和最右侧的「添加成员」。仅单栏需要显示成员标签。
   - 每列绑定本代独立的 SessionReference 和 DSH 原生对话输入栏。运行时使用宿主排队、插话与停止操作，查看旧代时只显示记录。
   - 队长通过原生权限选择器设置团队权限。在线成员同步，休眠成员在再次启动时应用队长当前模式。子成员通过输入栏内的模型控件选择自己的模型与推理档位。rc.5 原生子会话支持图片拖放与粘贴，通用文件由队长原生输入栏接收，也可放在全队共享的项目目录。
-  - 团队可通过宿主文件工具读取、写入、编辑共享目录中的文件。文件范围按解析后的实际路径校验，训练会话仍限于角色提案和指定团队便签。
+  - 团队可通过宿主文件工具读取、写入、编辑共享目录中的文件。文件范围按解析后的实际路径校验，训练会话可更新本角色设定及经验。
   - 成员使用显示名称，对原生寻址使用符合 rc.5 要求的简短英文别名，重名按序号区分。加入后队长收到带成员名称、不超过 160 字的职责简介和就绪状态的入队消息。团队和训练按创建时的界面语言工作。
-  - 侧抽屉显示原生共享任务板和当前团队的临时要求。
 - **角色库子视图**
   - 「新建角色」输入名称即可保存首版并打开第一场对话。可展开自定义 ID。空设定的角色可以立即加入团队。
   - 左侧列表选择角色，中栏「新对话」从同一角色的已发布设定与经验开始，该角色的旧培养会话由宿主停止并归档，插件移除旧会话绑定。新对话只带入已保存的设定与经验。
-  - 默认分屏，可切换全屏聊天或全屏设定。最近十个角色设定版本支持预览与恢复，独立保留长期经验。角色档案提供「角色设定」和「长期经验」，支持 Markdown 源码、并发冲突处理、编辑、停用与删除经验。
+  - 默认分屏，可切换全屏聊天或全屏设定。最近十个角色设定版本支持预览与恢复，独立保留长期经验。角色档案提供「角色设定」和「长期经验」，支持 Markdown 源码、并发冲突处理、编辑与删除经验。
 
 ---
 
@@ -201,7 +199,7 @@ createdAt: "2026-11-22T01:42:00+08:00"
 ### 4.1 自动化测试层（Codex CLI 每阶段必须跑通）
 
 1. **纯文本角色库单测**：`role.md` 与 `memories/*.md` 解析/序列化、原子写入、外部手改监听触发自动发布与快照生成、并发编辑 `expectedHash` 冲突保留双方文本、YAML 语法错误降级保护。
-2. **作用域与隔离集成测试**：构造同一角色同时加入 Team A 与 Team B，验证两队各自注入的 `systemPrompt + context` 中：① 共享内容仅含已发布 `role.md` 与 `published` 记忆；② Team A 的 `team_local_notes` 与对话内容绝不出现在 Team B 的组装结果中；③ 受管成员的跨会话检索工具已被屏蔽。
+2. **作用域与隔离集成测试**：构造同一角色同时加入 Team A 与 Team B，验证两队各自注入的 `systemPrompt + context` 中：① 共享内容仅含已发布 `role.md` 与已保存的长期经验；② Team A 的对话内容绝不出现在 Team B 的组装结果中；③ 受管成员的跨会话检索工具已被屏蔽。
 3. **自动更新测试**覆盖并行团队、运行中的同一轮、下一轮与冷启动。
 4. **逻辑席位换代状态机测试**：验证换代过程正确归档并停止旧代、`fresh spawn` 新代只带角色记忆与交接记忆、未完成任务正确 `reassign`、已完成任务保留原作者、重复点击按 `generation` 幂等拒绝。
 
@@ -210,7 +208,7 @@ createdAt: "2026-11-22T01:42:00+08:00"
 | 用例 | 验收场景 | 操作步骤 | 通过标准 |
 |---|---|---|---|
 | **T1** | 自然语言建角 + 纯文本核验 | 在 1v1 培养聊天中通过 2–3 轮对话塑造「主笔兼队长」与「证据审稿人」，在档案中查看保存结果。 | `~/.dsh-role-team/roles/` 下生成规范的 `role.md`；用外部编辑器直接改一句审稿标准并保存，UI 自动刷新并生成新快照，无报错。 |
-| **T2** | 1v1 纠偏与长期/临时区分 | 单独找「证据审稿人」做一道训练题，纠正其补充“最低成本补证办法”并告诉它记为长期习惯；再告诉它一条“仅本次测试有效”的要求。 | `memories/` 生成 `status: published` 长期记忆文件；临时要求不写入 `memories/`。 |
+| **T2** | 1v1 纠偏与长期/临时区分 | 单独找「证据审稿人」做一道训练题，纠正其补充“最低成本补证办法”并告诉它记为长期习惯；再告诉它一条“仅本次测试有效”的要求。 | `memories/` 生成直接生效的长期经验文件；临时要求不写入 `memories/`。 |
 | **T3** | 甲队协作 + 专用编号 + 直连成员 | 新建「甲队」（主笔兼队长 + 证据审稿人），布置简报任务并告知甲队专用编号 `ALPHA-9527`；运行中在多栏工作台直接给审稿人发一条指导消息。 | 主笔通过原生机制派活给审稿人、审稿人复核回传、主笔修订交付；用户直连审稿人成功且流式输出不串列；原生任务板实时同步。 |
 | **T4** | 乙队验证复用与严格隔离 | 不关闭甲队，新建「乙队」拉入同一个「证据审稿人」，提问新任务并追问“你知道甲队编号吗？”。 | 乙队审稿人**主动运用** T2 沉淀的“最低成本补证办法”，且**明确不知道** `ALPHA-9527`；切回甲队，甲队审稿人仍记得 `ALPHA-9527` 与上次审稿进度。 |
 | **T5** | 团队自动采用新版 | 在甲、乙两队活跃时发布新角色设定与经验。 | 两队的下一轮均自动采用新版，正在执行的轮次保持原快照。 |

@@ -10,7 +10,6 @@ export const teamDomain = defineDomain({
     team_runs: domainTable(indexRecords.team_runs),
     team_seats: domainTable(indexRecords.team_seats),
     seat_generations: domainTable(indexRecords.seat_generations),
-    team_local_notes: domainTable(indexRecords.team_local_notes),
     training_sessions: domainTable(indexRecords.training_sessions),
   },
 })
@@ -49,7 +48,6 @@ export function repository(domain: Domain<typeof teamDomain>) {
     generations: records(domain.table('seat_generations'), indexRecords.seat_generations, (r) =>
       generationKey(r.seatId, r.generation),
     ),
-    notes: records(domain.table('team_local_notes'), indexRecords.team_local_notes, (r) => r.noteId),
     training: records(
       domain.table('training_sessions'),
       indexRecords.training_sessions,

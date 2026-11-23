@@ -18,12 +18,7 @@ const collaboration = [
   'team_task_update',
   'team_task_get',
 ]
-export const trainingTools = [
-  'update_role',
-  'remember_experience',
-  'record_temporary_note',
-  'revise_experience',
-] as const
+export const trainingTools = ['update_role', 'remember_experience', 'revise_experience'] as const
 
 function inside(base: string, target: string) {
   const tail = relative(base, target)

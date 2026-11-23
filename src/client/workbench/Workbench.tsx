@@ -1,6 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
-import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
-import type { TeamProjection } from '@deepseek-ai/dsh-agent-team/types'
+import { useState } from 'react'
 import {
   Avatar,
   Modal,
@@ -145,7 +143,6 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
     team = useLoad(id, () => call('getTeam', { runId: id }), 2500)
   const [single, setSingle] = useState(false),
     [focus, setFocus] = useState(''),
-    [drawer, setDrawer] = useState(false),
     [add, setAdd] = useState(false)
   if (!team.data)
     return (
@@ -168,36 +165,34 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
     <>
       <Notice>{team.error}</Notice>
       <header className="rt-controls">
-        {toggle}
-        <strong title={data.run.title}>{data.run.title}</strong>
-        <div className="rt-segment">
-          {(['columns', 'focus'] as const).map((k, i) => (
-            <button aria-pressed={single === !!i} key={k} onClick={() => setSingle(!!i)}>
-              {t(k)}
-            </button>
-          ))}
-        </div>
-        {single && (
-          <div className="rt-chips">
-            {seats.map((s) => (
-              <button
-                key={s.seatId}
-                className="rt-chip"
-                aria-pressed={target === s.seatId}
-                onClick={() => setFocus(s.seatId)}
-              >
-                {s.parentSeatId === null ? '♛ ' : ''}
-                {s.displayName}
-                <small>G{s.currentGeneration}</small>
+        <div className="rt-team-navigation">
+          {toggle}
+          <strong title={data.run.title}>{data.run.title}</strong>
+          <div className="rt-segment">
+            {(['columns', 'focus'] as const).map((k, i) => (
+              <button aria-pressed={single === !!i} key={k} onClick={() => setSingle(!!i)}>
+                {t(k)}
               </button>
             ))}
           </div>
-        )}
-        <button disabled={!active} onClick={() => setAdd(true)}>
+          {single && (
+            <div className="rt-chips">
+              {seats.map((s) => (
+                <button
+                  key={s.seatId}
+                  className="rt-chip"
+                  aria-pressed={target === s.seatId}
+                  onClick={() => setFocus(s.seatId)}
+                >
+                  {s.parentSeatId === null ? '♛ ' : ''}
+                  {s.displayName}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <button className="rt-add-member" disabled={!active} onClick={() => setAdd(true)}>
           ＋ {t('addMember')}
-        </button>
-        <button aria-expanded={drawer} onClick={() => setDrawer(!drawer)}>
-          {t('board')}
         </button>
       </header>
       <div className="rt-floor">
@@ -218,18 +213,6 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
               />
             ))}
         </div>
-        {drawer && (
-          <aside className="rt-drawer">
-            <header>
-              <h3>{t('board')}</h3>
-              <button aria-label={t('close')} onClick={() => setDrawer(false)}>
-                ×
-              </button>
-            </header>
-            <Tasks root={data.run.rootSessionId} />
-            <Notes run={data.run} />
-          </aside>
-        )}
       </div>
       {add && (
         <TeamSetup
@@ -280,9 +263,6 @@ function MemberColumn({
           <h3>
             {s.displayName} {!parent && <span aria-label={t('leader')}>♛</span>}
           </h3>
-          <small>
-            {s.roleId} · G{s.currentGeneration} · r{s.adoptedRoleRev}
-          </small>
         </div>
         <button
           className="rt-icon"
@@ -324,7 +304,8 @@ function MemberColumn({
                 ?.filter((g) => g.generation < s.currentGeneration)
                 .map((g) => (
                   <option key={g.sessionId} value={g.sessionId}>
-                    G{g.generation} · {t('readOnly')}
+                    {g.archivedAt && new Date(g.archivedAt).toLocaleString() + ' · '}
+                    {t('readOnly')}
                   </option>
                 ))}
             </select>
@@ -414,104 +395,5 @@ export function SeatResetModal({
         </form>
       )}
     </Modal>
-  )
-}
-function Tasks({ root }: { root: string }) {
-  const { retain } = useUi(),
-    [ref, setRef] = useState<SessionReference>(),
-    [error, setError] = useState('')
-  useEffect(() => {
-    let active = true
-    const ref = retain(sessionTarget(root))
-    ref.ready.then(
-      () => {
-        if (active) setRef(ref)
-      },
-      (err) => {
-        if (active) setError(String(err))
-      },
-    )
-    return () => {
-      active = false
-      ref.release()
-    }
-  }, [root, retain])
-  return (
-    <>
-      <Notice>{error}</Notice>
-      {ref && <TaskList reference={ref} />}
-    </>
-  )
-}
-function TaskList({ reference }: { reference: SessionReference }) {
-  const { t } = useUi(),
-    face = reference.binding.session.projections.faceOf('agentTeam')
-  const board = useSyncExternalStore(
-    (fn) => face.subscribe(fn),
-    () => face.getSnapshot(),
-  ) as TeamProjection | undefined
-  return (
-    <section>
-      <h4>{t('tasks')}</h4>
-      <Notice>{board?.failure}</Notice>
-      {board?.tasks
-        .filter((x) => x.status !== 'deleted')
-        .map((task) => (
-          <article key={task.id}>
-            <strong>{task.subject}</strong>
-            <p>{task.description}</p>
-            <small>
-              {task.ownerName ?? '—'} ·{' '}
-              {t(
-                task.status === 'pending'
-                  ? 'pendingTask'
-                  : task.status === 'completed'
-                    ? 'completed'
-                    : 'in_progress',
-              )}
-            </small>
-          </article>
-        ))}
-      {!board?.tasks.some((x) => x.status !== 'deleted') && <small>{t('noTasks')}</small>}
-    </section>
-  )
-}
-function Notes({ run }: { run: Run }) {
-  const { t, call } = useUi(),
-    notes = useLoad(run.runId, () => call('listNotes', { runId: run.runId }), 3000),
-    [content, setContent] = useState(''),
-    a = useAction()
-  return (
-    <section>
-      <h4>{t('notes')}</h4>
-      {notes.data?.map((n) => (
-        <article key={n.noteId}>{n.content}</article>
-      ))}
-      {!notes.data?.length && <small>{t('noNotes')}</small>}
-      <Notice>{notes.error || a.error}</Notice>
-      {run.status === 'active' && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            void a.run(async () => {
-              await call('addNote', { runId: run.runId, content })
-              setContent('')
-              notes.refresh()
-            })
-          }}
-        >
-          <label>
-            {t('newNote')}
-            <textarea
-              required
-              maxLength={8000}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-            />
-          </label>
-          <button disabled={a.busy || !content.trim()}>{t('add')}</button>
-        </form>
-      )}
-    </section>
   )
 }

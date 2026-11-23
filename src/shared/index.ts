@@ -29,7 +29,8 @@ export const memoryMeta = z.strictObject({
   id: fileId,
   title: z.string().trim().min(1),
   scope: z.literal('role_long_term'),
-  status: z.enum(['draft', 'published', 'archived']),
+  // Older files may carry a status; every saved experience is active.
+  status: z.enum(['draft', 'published', 'archived']).optional(),
   source: z.string().optional(),
   createdAt: timestamp,
 })
@@ -61,9 +62,7 @@ export const snapshotSchema = z.strictObject({
   sourceHash: hash,
   publishedAt: timestamp,
   role: z.strictObject({ meta: roleMeta, body: z.string() }),
-  memories: z.array(
-    z.strictObject({ meta: memoryMeta.extend({ status: z.literal('published') }), body: z.string() }),
-  ),
+  memories: z.array(z.strictObject({ meta: memoryMeta, body: z.string() })),
 })
 export type Snapshot = z.infer<typeof snapshotSchema>
 export const editResult = z.union([
@@ -144,13 +143,6 @@ export const indexRecords = {
     memoryIds: z.array(fileId),
     handoffNote: z.string().nullable(),
     archivedAt: timestamp.nullable(),
-  }),
-  team_local_notes: z.strictObject({
-    noteId: key,
-    runId: key,
-    seatId: key.nullish(),
-    content: key,
-    createdAt: timestamp,
   }),
   training_sessions: z.strictObject({
     trainingId: key,

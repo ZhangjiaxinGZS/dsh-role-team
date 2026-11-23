@@ -173,7 +173,7 @@ async function tool(id: string, name: string, args: Record<string, unknown>) {
   })
   return batch.results[0].result
 }
-it('admits only published memory, same-run notes and team tools at the model boundary', async () => {
+it('shares saved experiences including legacy drafts and isolates team conversations at the model boundary', async () => {
   const ordinary = await ctx.sessionController.create({ cwd })
   await prompt(ordinary.sessionId, 'ordinary session')
   expect(request(ordinary.sessionId).tools?.map((t) => t.name)).toContain('session_search')
@@ -191,13 +191,12 @@ it('admits only published memory, same-run notes and team tools at the model bou
   await memory('private', 'draft', 'private-draft')
   const a = await newTeam('A'),
     b = await newTeam('B')
-  await service.addNote({ runId: a.run.runId, content: 'alpha temporary' })
   await prompt(a.run.rootSessionId, 'ALPHA-9527')
   await prompt(b.run.rootSessionId, 'Beta question')
-  expect(JSON.stringify(request(a.run.rootSessionId).messages)).toContain('alpha temporary')
   const beta = request(b.run.rootSessionId)
   expect(JSON.stringify(beta.messages)).toContain('published-habit')
-  expect(JSON.stringify(beta.messages)).not.toMatch(/ALPHA-9527|alpha temporary|private-draft/)
+  expect(JSON.stringify(beta.messages)).toContain('private-draft')
+  expect(JSON.stringify(beta.messages)).not.toMatch(/ALPHA-9527/)
   expect(beta.tools?.map((t) => t.name)).toEqual(
     expect.arrayContaining(['team_task_list', 'send_message', 'list_agents']),
   )
@@ -224,7 +223,7 @@ it('admits only published memory, same-run notes and team tools at the model bou
   )
   const childContent = JSON.stringify(request(two.currentSessionId).messages)
   expect(childContent).toContain('published-habit')
-  expect(childContent).not.toMatch(/ALPHA-9527|alpha temporary|private-draft/)
+  expect(childContent).not.toMatch(/ALPHA-9527/)
   expect(
     (
       await tool(b.run.rootSessionId, 'send_message', {
@@ -291,9 +290,8 @@ it('uses the latest published role and memory on the next turn across teams and 
   expect(JSON.stringify(request(b.run.rootSessionId).messages[0])).toContain('rule-two')
   expect((await service.getTeam({ runId: a.run.runId })).seats[0].adoptedRoleRev).toBe(3)
 })
-it('saves training changes directly and routes temporary requirements only to the linked run', async () => {
-  const a = await newTeam('A'),
-    b = await newTeam('B')
+it('saves coaching changes and only shares the role profile across teams', async () => {
+  const a = await newTeam('A')
   const training = await service.createTraining({
     roleId,
     workspaceCwd: cwd,
@@ -306,28 +304,43 @@ it('saves training changes directly and routes temporary requirements only to th
     request(id)
       .tools?.map((t) => t.name)
       .sort(),
-  ).toEqual(['record_temporary_note', 'remember_experience', 'revise_experience', 'update_role'])
+  ).toEqual(['remember_experience', 'revise_experience', 'update_role'])
   expect(await tool(id, 'update_role', { name: 'Editor', body: 'confirmed-rule' })).toMatchObject({
     isError: false,
   })
   expect(await tool(id, 'remember_experience', { body: 'confirmed-habit' })).toMatchObject({
     isError: false,
   })
-  expect(await tool(id, 'record_temporary_note', { content: 'alpha task only' })).toMatchObject({
-    isError: false,
-  })
   expect((await service.readDocument({ roleId }))?.text).toContain('confirmed-rule')
   const [memoryId] = await service.listMemories(roleId)
-  expect((await service.readDocument({ roleId, memoryId }))?.text).toContain('status: published')
+  expect((await service.readDocument({ roleId, memoryId }))?.text).toContain('confirmed-habit')
   expect((await service.getTraining({ trainingId: training.trainingId })).proposals).toBeUndefined()
   const fresh = await newTeam('C')
   await prompt(fresh.run.rootSessionId, 'test')
   const content = JSON.stringify(request(fresh.run.rootSessionId).messages)
   expect(content).toContain('confirmed-rule')
   expect(content).toContain('confirmed-habit')
-  expect(content).not.toMatch(/private raw coaching|alpha task only|unapproved-habit/)
-  expect(await service.listNotes({ runId: b.run.runId })).toEqual([])
-  expect(await service.listNotes({ runId: a.run.runId })).toMatchObject([{ content: 'alpha task only' }])
+  expect(content).not.toMatch(/private raw coaching/)
+})
+it('keeps the coaching display name and rejects a new system name before saving', async () => {
+  const ref = { roleId: 'seo' }
+  await service.saveDocument({
+    ...ref,
+    expectedHash: null,
+    text: serializeMarkdown({ id: 'seo', name: 'SEO大师' }, 'Initial'),
+  })
+  const training = await service.createTraining({ ...ref, mode: 'coach' })
+  await prompt(training.sessionId, '今后先核对搜索意图')
+  const update = (args: Record<string, string>) => tool(training.sessionId, 'update_role', args)
+  expect(await update({ body: '先核对搜索意图' })).toMatchObject({ isError: false })
+  const before = await service.readDocument(ref)
+  expect(before?.text).toContain('name: SEO大师')
+  for (const name of ['lead', 'ROOT'])
+    expect(await update({ name, body: 'unexpected' })).toMatchObject({ isError: true })
+  expect(await service.readDocument(ref)).toEqual(before)
+  await prompt(training.sessionId, '把角色改名为搜索顾问')
+  expect(await update({ name: '搜索顾问', body: '先核对搜索意图' })).toMatchObject({ isError: false })
+  expect((await service.readDocument(ref))?.text).toContain('name: 搜索顾问')
 })
 it('creates a private empty workspace for each directory-free training session', async () => {
   const first = await service.createTraining({ roleId, mode: 'create' })
@@ -444,7 +457,6 @@ it('archives a child, transfers open tasks, preserves audit history and serializ
     expectedRevision: done.revision,
     action: 'complete',
   })
-  await service.addNote({ runId: a.run.runId, content: 'discard-this-note' })
   let oldStopped = false
   model.pause = async (req) => {
     if (req.sessionId !== oldId || !JSON.stringify(req.messages).includes('old-task-noise')) return
@@ -485,9 +497,7 @@ it('archives a child, transfers open tasks, preserves audit history and serializ
   await vi.waitFor(() =>
     expect(JSON.stringify(request(updated.currentSessionId).messages)).toContain('only-handoff'),
   )
-  expect(JSON.stringify(request(updated.currentSessionId).messages)).not.toMatch(
-    /discard-this-note|old-task-noise/,
-  )
+  expect(JSON.stringify(request(updated.currentSessionId).messages)).not.toMatch(/old-task-noise/)
   expect(await service.listGenerations({ seatId: child.seatId })).toHaveLength(2)
   const nested = await service.addMember({ runId: a.run.runId, parentSeatId: child.seatId, roleId })
   expect(nested.parentSeatId).toBe(child.seatId)
