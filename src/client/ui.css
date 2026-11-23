@@ -426,18 +426,26 @@ html[data-platform='darwin'] .rt-top {
   border-top: 1px solid var(--dsw-alias-border-l4);
 }
 .rt-experience-card {
+  background: var(--dsw-alias-bg-module-platform);
+  border-radius: var(--dsw-radius-md);
   display: grid;
-  gap: 6px;
-  padding: 8px 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  padding: 10px 12px;
   overflow-wrap: anywhere;
 }
-.rt-experience-card + .rt-experience-card {
-  border-top: 1px solid var(--dsw-alias-border-l4);
+.rt-editor label {
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+.rt-editor :is(input, textarea) {
+  font-size: 14px;
+  color: var(--dsw-alias-label-primary);
 }
 .rt-experience-card p {
   white-space: pre-wrap;
 }
-.rt-experience-card footer,
 .rt-modal footer {
   justify-content: flex-end;
   flex-wrap: wrap;

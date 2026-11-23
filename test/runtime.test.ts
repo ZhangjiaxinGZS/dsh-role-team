@@ -2,7 +2,6 @@ import Permissions from '@deepseek-ai/dsh-permission-presets'
 import { mkdtemp, mkdir, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { readFile } from 'node:fs/promises'
-import { parse } from 'yaml'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import AgentPresets from '@deepseek-ai/dsh-agent-preset-registry'
 import AgentPreset from '@deepseek-ai/dsh-agent-preset'
@@ -109,9 +108,17 @@ async function boot() {
   ctx.baseUrl = new URL('../', import.meta.url).href
   await ctx.plugin(Loader)
   await ctx.plugin(AgentPresets, { default: 'ordinary' })
-  await ctx.plugin(AgentPreset, { id: 'ordinary', plugins: [] })
-  const patch = parse(await readFile(join(process.cwd(), 'cordis.patch.yml'), 'utf8'))
-  await ctx.plugin(AgentPreset, patch[0].insert[1].config)
+  await ctx.plugin(AgentPreset, {
+    id: 'ordinary',
+    plugins: [
+      { id: 'fs', name: '@deepseek-ai/dsh-tool-fs' },
+      {
+        id: 'collaborate',
+        name: '@deepseek-ai/dsh-tool-subagent-control',
+        config: { interrupt: false },
+      },
+    ],
+  })
   await ctx.plugin(DefaultModel, { provider: 'fixture', model: 'fixture' })
   await ctx.plugin(Attachments, { dshHome: folder })
   await ctx.plugin(TextUploads)
@@ -700,4 +707,55 @@ it('deletes a legacy coaching-only role without creating a profile or reviving t
   await boot()
   await vi.waitFor(() => expect(service.index.training.get(training.trainingId)).toBeUndefined())
   expect(await service.listRoles()).toMatchObject([{ roleId }])
+})
+
+it('resumes legacy managed roots, children and coaching with the host default and preserves the prior log', async () => {
+  await ctx.plugin(AgentPreset, { id: 'role-team', plugins: [] })
+  const original = ctx.sessionController.create.bind(ctx.sessionController)
+  const create = vi
+    .spyOn(ctx.sessionController, 'create')
+    .mockImplementation((request) => original({ ...request, agentPreset: 'role-team' }))
+  const { run } = await newTeam('legacy')
+  const child = await service.addMember({ runId: run.runId, roleId })
+  const training = await service.createTraining({ roleId, mode: 'coach' })
+  create.mockRestore()
+  await prompt(training.sessionId, 'legacy-coach')
+  await ctx.agents.get(child.currentSessionId as SessionId)?.whenIdle()
+  await ctx.agents.get(run.rootSessionId as SessionId)!.whenIdle()
+  await ctx.fiber.dispose()
+  await boot()
+  for (const id of [run.rootSessionId, child.currentSessionId, training.sessionId]) {
+    const read = await ctx.sessionPersistence.open(id as SessionId, 'read')
+    try {
+      expect(read.header.agentPreset).toBe('role-team')
+      expect(
+        (await read.read()).events.filter((e) => e.type === 'agent-preset/selected').at(-1)?.data
+          .agentPreset,
+      ).toBe('ordinary')
+    } finally {
+      await read.close()
+    }
+  }
+  expect((await ctx.agentPresets.list()).map((p) => p.id)).not.toContain('role-team')
+  await prompt(training.sessionId, 'resumed coaching')
+  expect(JSON.stringify(request(training.sessionId).messages)).toContain('legacy-coach')
+  expect(request(training.sessionId).tools?.map((t) => t.name)).toContain('update_role')
+  await prompt(run.rootSessionId, 'resumed team')
+  expect(request(run.rootSessionId).tools?.map((t) => t.name)).toContain('send_message')
+  await service.promptSeat({
+    seatId: child.seatId,
+    generation: child.currentGeneration,
+    requestId: crypto.randomUUID(),
+    text: 'resume legacy child',
+    delivery: 'queue',
+  })
+  await vi.waitFor(() =>
+    expect(
+      model.requests.some(
+        (r) =>
+          r.sessionId === child.currentSessionId &&
+          JSON.stringify(r.messages).includes('resume legacy child'),
+      ),
+    ).toBe(true),
+  )
 })

@@ -1,68 +1,7 @@
 import { useState } from 'react'
-import { Modal, Notice, useAction, useLoad, useUi, type Training } from '../ui.js'
+import { Notice, useAction, useLoad, useUi, type Training } from '../ui.js'
 import { SessionPane, sessionTarget } from '../workbench/SessionPane.js'
 
-function DebriefTeamField({ value, select }: { value: string; select: (id: string) => void }) {
-  const { t, call } = useUi(),
-    teams = useLoad('debrief-teams', () => call('listTeams', {}))
-  return (
-    <>
-      <label>
-        {t('sourceTeam')}
-        <select value={value} onChange={(e) => select(e.target.value)}>
-          <option value="">{t('none')}</option>
-          {teams.data
-            ?.filter((r) => r.status === 'active')
-            .map((r) => (
-              <option key={r.runId} value={r.runId}>
-                {r.title}
-              </option>
-            ))}
-        </select>
-      </label>
-      <Notice>{teams.error}</Notice>
-    </>
-  )
-}
-export function TrainingDialog({
-  debriefRoleId,
-  close,
-  done,
-}: {
-  debriefRoleId: string
-  close: () => void
-  done: (row: Training) => void
-}) {
-  const { t, call } = useUi(),
-    a = useAction(),
-    [run, setRun] = useState('')
-  return (
-    <Modal title={t('debrief')} close={close} locked={a.busy}>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          void a.run(async () => {
-            done(
-              await call('createTraining', {
-                roleId: debriefRoleId,
-                mode: 'debrief',
-                ...(run && { sourceRunId: run }),
-              }),
-            )
-          })
-        }}
-      >
-        <DebriefTeamField value={run} select={setRun} />
-        <Notice>{a.error}</Notice>
-        <footer>
-          <button className="rt-primary" disabled={a.busy}>
-            {t('startTraining')}
-          </button>
-        </footer>
-      </form>
-    </Modal>
-  )
-}
 export function TrainingPanel({
   roleId,
   initialId,
@@ -79,11 +18,9 @@ export function TrainingPanel({
   const { t, call } = useUi(),
     list = useLoad(roleId + ':' + initialId, () => call('listTrainings', { roleId }), 2400),
     [selected, setSelected] = useState(initialId ?? ''),
-    [debrief, setDebrief] = useState(false),
     start = useAction()
   const opened = (row: Training) => {
     setSelected(row.trainingId)
-    setDebrief(false)
     list.refresh()
   }
   const latest = list.data?.at(-1)?.trainingId
@@ -93,11 +30,6 @@ export function TrainingPanel({
       <header>
         <h3>{t('training')}</h3>
         <div className="rt-row">
-          {hasRole && (
-            <button onClick={() => setDebrief(true)} disabled={start.busy}>
-              {t('debrief')}
-            </button>
-          )}
           <button
             className="rt-primary"
             title={t('freshChatHint')}
@@ -115,9 +47,6 @@ export function TrainingPanel({
       <Notice>{list.error || start.error}</Notice>
       {(!id || empty) && <p className="rt-intro">{t('firstTopic')}</p>}
       {id && <TrainingDetail key={id} trainingId={id} changed={changed} />}
-      {debrief && (
-        <TrainingDialog debriefRoleId={roleId} close={() => setDebrief(false)} done={opened} />
-      )}
     </section>
   )
 }

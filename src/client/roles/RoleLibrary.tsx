@@ -47,7 +47,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
               >
                 {r.name}
               </button>
-              <MoreMenu name={r.name} action="deleteRole" onAction={() => setDeleting(r)} />
+              <MoreMenu name={r.name} actions={{ deleteRole: () => setDeleting(r) }} />
             </div>
           ))}
         </aside>
@@ -65,7 +65,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
                 ))}
               </div>
               {active && (
-                <MoreMenu name={active.name} action="deleteRole" onAction={() => setDeleting(active)} />
+                <MoreMenu name={active.name} actions={{ deleteRole: () => setDeleting(active) }} />
               )}
             </header>
             {active?.error && (

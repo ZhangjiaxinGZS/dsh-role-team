@@ -52,10 +52,11 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
       {r.status === 'active' && (
         <MoreMenu
           name={r.title}
-          action="archiveTeam"
-          onAction={() => {
-            action.clear()
-            setArchive(r)
+          actions={{
+            archiveTeam: () => {
+              action.clear()
+              setArchive(r)
+            },
           }}
         />
       )}

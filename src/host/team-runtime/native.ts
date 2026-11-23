@@ -1,6 +1,7 @@
+import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import { SessionSeq, type SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-agent-team'
 import type { SessionPromptRequest } from '@deepseek-ai/dsh-api-session-controller'
 import type { ModelChoice } from '../../shared/index.js'
@@ -11,6 +12,22 @@ import type {} from '@deepseek-ai/dsh-workspace'
 
 export class NativeTeam {
   constructor(readonly ctx: Context) {}
+  private readonly deferredPresets = new Set<string>()
+  async prepareLegacySession(id: string) {
+    try {
+      await this.migrateLegacyPreset(id)
+      this.deferredPresets.delete(id)
+    } catch (error) {
+      // A second Desktop/Web host may currently own this session's writer.
+      if (!(error instanceof Error && error.name === 'SessionAlreadyOwnedError')) throw error
+      this.deferredPresets.add(id)
+    }
+  }
+  async retryLegacySessions(ids: string[]) {
+    for (const id of ids) {
+      if (this.deferredPresets.has(id)) await this.prepareLegacySession(id)
+    }
+  }
   async models() {
     const catalog = await this.ctx.sessionController.modelCatalog()
     return catalog.groups.flatMap((group) =>
@@ -44,15 +61,50 @@ export class NativeTeam {
       throw error
     }
   }
+  // The immutable header names the creation preset. Both root and child restore use
+  // the latest selection event, so migration can preserve the entire conversation.
+  private async migrateLegacyPreset(id: string) {
+    const sid = id as SessionId
+    const persistence = this.ctx.sessionPersistence
+    const registry = this.ctx.get('agentPresets')
+    if (!registry || (await persistence.stat(sid))?.header.agentPreset !== 'role-team') return
+    const selection = (events: readonly SessionEvent[]) =>
+      events.findLast((event) => event.type === 'agent-preset/selected')?.data.agentPreset ?? 'role-team'
+    const reader = await persistence.open(sid, 'read')
+    try {
+      if (selection((await reader.read()).events) !== 'role-team') return
+    } finally {
+      await reader.close()
+    }
+    const target = await registry.resolve(registry.defaultId === 'role-team' ? 'standard' : undefined)
+    if (target.broken) throw new Error(target.broken)
+    const writer = await persistence.open(sid, 'write')
+    try {
+      const { events } = await writer.read()
+      if (selection(events) !== 'role-team') return
+      await writer.append([
+        {
+          type: 'agent-preset/selected',
+          seq: SessionSeq(events.length),
+          time: Date.now(),
+          data: { agentPreset: target.id },
+        },
+      ])
+      await writer.flush()
+    } finally {
+      await writer.close()
+    }
+  }
   async create(id: string, cwd: string) {
     const result = await this.ctx.sessionController.create({
       sessionId: id as SessionId,
       cwd,
-      agentPreset: 'role-team',
+      ...(this.ctx.get('agentPresets')?.defaultId === 'role-team' && { agentPreset: 'standard' }),
     })
     if (result.sessionId !== id) throw new Error('Session identity changed during creation')
   }
   async root(id: string) {
+    await this.retryLegacySessions([id])
     const result = await this.ctx.sessionController.resolveAgent(id as SessionId)
     if ('error' in result) throw result.error
     return result.agent

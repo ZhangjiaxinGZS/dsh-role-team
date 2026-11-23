@@ -21,6 +21,23 @@ import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/c
 // The browser supplies the shared menu. Exercise the catalog and selection callbacks here.
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
   IconEllipsisOutlineRegular: () => null,
+  Button: ({
+    children,
+    icon,
+    variant,
+    size,
+    ...props
+  }: import('react').ButtonHTMLAttributes<HTMLButtonElement> & {
+    icon?: ReactNode
+    variant?: string
+    size?: string
+  }) => (
+    <button {...props}>
+      {icon}
+      {children}
+    </button>
+  ),
+  IconEditOutlineRegular: () => null,
   IconTrashOutlineRegular: () => null,
   IconArchiveOutlineRegular: () => null,
   IconPlusOutlineRegular: () => null,
@@ -468,7 +485,7 @@ it('creates and publishes the named role before opening its first independent co
   expect(call).toHaveBeenCalledWith('createTraining', { roleId: 'author', mode: 'coach' })
 })
 
-it('starts coaching immediately and only offers team selection for a debrief', async () => {
+it('starts coaching immediately without a team debrief entry', async () => {
   const row = { trainingId: 't', sessionId: 'coach-session', roleId: 'author', mode: 'coach' }
   const call = vi.fn(async (method: string) => {
     if (method === 'listTrainings') return []
@@ -481,20 +498,7 @@ it('starts coaching immediately and only offers team selection for a debrief', a
   expect(call).toHaveBeenCalledWith('createTraining', { roleId: 'author', mode: 'coach' })
   expect(call).not.toHaveBeenCalledWith('listTeams', {})
   expect(screen.queryByRole('dialog')).toBeNull()
-  fireEvent.click(screen.getByRole('button', { name: en.ui.debrief }))
-  const modal = within(screen.getByRole('dialog'))
-  await modal.findByRole('option', { name: 'Review team' })
-  expect(modal.queryByRole('textbox')).toBeNull()
-  expect((modal.getByRole('combobox') as HTMLSelectElement).value).toBe('')
-  fireEvent.change(modal.getByRole('combobox'), { target: { value: 'run' } })
-  fireEvent.click(modal.getByRole('button', { name: en.ui.startTraining }))
-  await waitFor(() =>
-    expect(call).toHaveBeenCalledWith('createTraining', {
-      roleId: 'author',
-      mode: 'debrief',
-      sourceRunId: 'run',
-    }),
-  )
+  expect(screen.queryByRole('button', { name: en.ui.debrief })).toBeNull()
 })
 
 it('records a plain-language experience with one field, including for a legacy training-only role', async () => {

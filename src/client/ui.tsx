@@ -2,6 +2,7 @@ import {
   Menu,
   Modal as NativeModal,
   IconEllipsisOutlineRegular,
+  IconEditOutlineRegular,
   IconTrashOutlineRegular,
   IconArchiveOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -149,18 +150,22 @@ export function Modal({
     </NativeModal>
   )
 }
+type MenuAction = 'deleteRole' | 'archiveTeam' | 'edit' | 'deleteMemory'
+const actionIcons = {
+  deleteRole: IconTrashOutlineRegular,
+  archiveTeam: IconArchiveOutlineRegular,
+  edit: IconEditOutlineRegular,
+  deleteMemory: IconTrashOutlineRegular,
+}
 export function MoreMenu({
   name,
-  action,
-  onAction,
+  actions,
 }: {
   name: string
-  action: 'deleteRole' | 'archiveTeam'
-  onAction: () => void
+  actions: Partial<Record<MenuAction, () => void>>
 }) {
   const { t } = useUi()
   const [open, setOpen] = useState(false)
-  const Icon = action === 'deleteRole' ? IconTrashOutlineRegular : IconArchiveOutlineRegular
   const label = t('moreActions') + ' · ' + name
   return (
     <Menu
@@ -181,13 +186,19 @@ export function MoreMenu({
           <IconEllipsisOutlineRegular size={16} />
         </button>
       }
-      items={[
-        { id: action, label: t(action), icon: <Icon size={16} />, danger: action === 'deleteRole' },
-      ]}
+      items={(Object.keys(actions) as MenuAction[]).map((id) => {
+        const Icon = actionIcons[id]
+        return {
+          id,
+          label: t(id),
+          icon: <Icon size={16} />,
+          danger: id === 'deleteRole' || id === 'deleteMemory',
+        }
+      })}
       onClose={() => setOpen(false)}
-      onSelect={() => {
+      onSelect={(id) => {
         setOpen(false)
-        onAction()
+        actions[id as MenuAction]?.()
       }}
     />
   )

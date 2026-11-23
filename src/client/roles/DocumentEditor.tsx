@@ -1,3 +1,8 @@
+import {
+  Button,
+  IconClockOutlineRegular,
+  IconPlusOutlineRegular,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import { z } from 'zod'
 import { createContext, useContext, useEffect, useState } from 'react'
 import {
@@ -10,7 +15,7 @@ import {
   type RoleMeta,
 } from '../../shared/index.js'
 import { DocumentError, parseMarkdown, serializeMarkdown } from '../../shared/markdown.js'
-import { Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
+import { MoreMenu, Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
 
 // Allow intermediate empty or trailing-space names in the form, while the write contract stays strict.
 type Conflict = Extract<EditResult, { code: 'conflict' }>
@@ -56,13 +61,15 @@ export function Documents({
     <aside className="rt-docs">
       <header>
         <h3>{t('card')}</h3>
-        <button
-          className="rt-text-button"
+        <Button
+          variant="outline"
+          size="sm"
+          icon={<IconClockOutlineRegular size={14} />}
           disabled={!role.data}
           onClick={() => showHistory(role.data!.hash)}
         >
           {t('roleHistory')}
-        </button>
+        </Button>
       </header>
       <Notice>{role.error || memories.error}</Notice>
       {role.data !== undefined && (
@@ -83,25 +90,33 @@ export function Documents({
       <section className="rt-experiences">
         <header className="rt-row">
           <h3>{t('memories')}</h3>
-          <button onClick={() => setAdding(true)}>{t('newMemory')}</button>
+          <Button
+            size="sm"
+            variant="outline"
+            icon={<IconPlusOutlineRegular size={14} />}
+            onClick={() => setAdding(true)}
+          >
+            {t('newMemory')}
+          </Button>
         </header>
         {memories.data?.map(
           (m) =>
             m && (
               <article key={m.id} className="rt-experience-card">
-                {m.meta.title !== m.body && <strong>{m.meta.title}</strong>}
-                <p>{m.body}</p>
-                <footer className="rt-row">
-                  <button onClick={() => setEntry({ ...m, remove: false })}>{t('edit')}</button>
-                  <button
-                    onClick={() => {
+                <div>
+                  {m.meta.title !== m.body && <strong>{m.meta.title}</strong>}
+                  <p>{m.body}</p>
+                </div>
+                <MoreMenu
+                  name={m.meta.title}
+                  actions={{
+                    edit: () => setEntry({ ...m, remove: false }),
+                    deleteMemory: () => {
                       action.clear()
                       setEntry({ ...m, remove: true })
-                    }}
-                  >
-                    {t('deleteMemory')}
-                  </button>
-                </footer>
+                    },
+                  }}
+                />
               </article>
             ),
         )}

@@ -23,7 +23,7 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
   const manifest = require('dsh-role-team/package.json')
   const patch = parse(await readFile(join(process.cwd(), manifest.dsh.bundle.patch), 'utf8'))
   const moduleId = patch[0].insert[0].name
-  expect(moduleId).toBe(manifest.name)
+  expect(patch[0].insert).toEqual([{ id: 'role-team', name: manifest.name }])
   const host = (await import(pathToFileURL(require.resolve(moduleId)).href)) as {
     default: typeof RoleTeam
   }

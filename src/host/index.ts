@@ -55,13 +55,21 @@ export default class RoleTeamService extends TypertRemoteService implements Role
       await domain.close()
       throw error
     }
+    this.ctx.effect(() => async () => {
+      try {
+        await this.roles.close()
+      } finally {
+        await domain.close()
+      }
+    })
     this.index = repository(domain)
-    this.ctx.inject(
+    await this.ctx.inject(
       [
         'llm',
         'agents',
         'sessionController',
         'sessionQuery',
+        'sessionPersistence',
         'agentTeams',
         'subagents',
         'workspaceRegistry',
@@ -69,7 +77,17 @@ export default class RoleTeamService extends TypertRemoteService implements Role
         'systemPrompt',
       ],
       async (host) => {
-        const runtime = new TeamRuntime(this.index, this.roles, new NativeTeam(host))
+        const native = new NativeTeam(host)
+        const sessionIds = new Set([
+          ...this.index.training.list().map((training) => training.sessionId),
+          ...this.index.generations.list().map((generation) => generation.sessionId),
+          ...this.index.runs.list().map((run) => run.rootSessionId),
+          ...this.index.seats
+            .list()
+            .flatMap((seat) => [seat.currentSessionId, ...(seat.reset ? [seat.reset.sessionId] : [])]),
+        ])
+        for (const id of sessionIds) await native.prepareLegacySession(id)
+        const runtime = new TeamRuntime(this.index, this.roles, native)
         this.mounted = runtime
         host.effect(() => () => {
           if (this.mounted === runtime) this.mounted = undefined
@@ -79,13 +97,6 @@ export default class RoleTeamService extends TypertRemoteService implements Role
         await this.roles.rescan()
       },
     )
-    this.ctx.effect(() => async () => {
-      try {
-        await this.roles.close()
-      } finally {
-        await domain.close()
-      }
-    })
   }
 
   @Remote async createTeam(request: Input<'createTeam'>) {
@@ -97,7 +108,9 @@ export default class RoleTeamService extends TypertRemoteService implements Role
   }
 
   @Remote async getTeam(request: Input<'getTeam'>) {
-    return this.runtime.getTeam(request.runId)
+    const team = this.runtime.getTeam(request.runId)
+    await this.runtime.native.retryLegacySessions(team.seats.map((seat) => seat.currentSessionId))
+    return team
   }
 
   @Remote async renameTeam(request: Input<'renameTeam'>) {
@@ -149,7 +162,9 @@ export default class RoleTeamService extends TypertRemoteService implements Role
   }
 
   @Remote async getTraining(request: Input<'getTraining'>) {
-    return this.runtime.training.getTraining(request.trainingId)
+    const row = await this.runtime.training.getTraining(request.trainingId)
+    await this.runtime.native.retryLegacySessions([row.sessionId])
+    return row
   }
 
   @Remote async listTrainings(request: Input<'listTrainings'>) {
