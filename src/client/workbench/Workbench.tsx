@@ -320,7 +320,7 @@ function MemberColumn({
       ) : (
         <SessionPane
           target={sessionTarget(version || s.currentSessionId, parent?.currentSessionId)}
-          permission={team.run.permissionPreset}
+          leaderSessionId={team.run.rootSessionId}
           onSelection={refresh}
           readOnly={readOnly}
           seat={s}

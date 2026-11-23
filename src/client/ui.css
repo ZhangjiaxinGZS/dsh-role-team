@@ -710,6 +710,17 @@ html[data-platform='darwin'] .rt-top {
   font-weight: 400;
   cursor: pointer;
 }
+.rt-permission {
+  display: inline-flex;
+  align-items: center;
+}
+.rt-model-icon {
+  display: var(--dsh-composer-model-icon-display, none);
+}
+.rt-model-trigger > span,
+.rt-model-trigger small {
+  display: var(--dsh-composer-model-text-display, block);
+}
 .rt-model-trigger > span {
   overflow: hidden;
   white-space: nowrap;

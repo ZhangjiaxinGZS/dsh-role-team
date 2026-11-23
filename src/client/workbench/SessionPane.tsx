@@ -6,11 +6,20 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react'
-import { Menu, IconChevronDownOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import {
+  Menu,
+  Tooltip,
+  IconDataOutlineRegular,
+  IconChevronDownOutlineRegular,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ModelChoice } from '../../shared/index.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { PropsRuntime, PropsRenderFactories } from '@deepseek-ai/dsh-client-ui-slots'
+import type {
+  PropsRuntime,
+  PropsRenderFactories,
+  PropsRenderSlots,
+} from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConversationViewsProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-agent/types'
@@ -19,7 +28,7 @@ import { useUi, Notice, useLoad, useAction, type Seat, type SessionTarget } from
 export type Pane = {
   target: SessionTarget
   seat?: Seat
-  permission?: string
+  leaderSessionId?: string
   readOnly?: boolean
   onSelection?: () => void
   onToolResult?: () => void
@@ -34,9 +43,9 @@ export const sessionTarget = (id: string, parent?: string | null): SessionTarget
 export function SessionPane(props: Pane) {
   return <BoundPane key={targetId(props.target)} {...props} />
 }
-function BoundPane({ target, seat, permission, readOnly = false, onSelection, onToolResult }: Pane) {
-  const { retain, SessionProvider, chat, t } = useUi(),
-    [reference, setReference] = useState<SessionReference>(),
+function useRetainedSession(target: SessionTarget) {
+  const { retain } = useUi()
+  const [reference, setReference] = useState<SessionReference>(),
     [error, setError] = useState(''),
     [attempt, retry] = useState(0)
   const id = targetId(target),
@@ -65,6 +74,18 @@ function BoundPane({ target, seat, permission, readOnly = false, onSelection, on
       ref?.release()
     }
   }, [id, parent, retain, attempt])
+  return { reference, error, retry: () => retry((v) => v + 1) }
+}
+function BoundPane({
+  target,
+  seat,
+  leaderSessionId,
+  readOnly = false,
+  onSelection,
+  onToolResult,
+}: Pane) {
+  const { SessionProvider, chat, t } = useUi()
+  const { reference, error, retry } = useRetainedSession(target)
   useEffect(() => {
     if (!reference || !onToolResult) return
     const source = reference.binding.eventSource
@@ -84,7 +105,7 @@ function BoundPane({ target, seat, permission, readOnly = false, onSelection, on
         {error ? (
           <>
             <Notice>{error}</Notice>
-            <button onClick={() => retry((v) => v + 1)}>{t('retry')}</button>
+            <button onClick={retry}>{t('retry')}</button>
           </>
         ) : (
           t('loading')
@@ -97,7 +118,7 @@ function BoundPane({ target, seat, permission, readOnly = false, onSelection, on
         <History reference={reference} />
       ) : (
         <section className="rt-session">
-          <PaneContext.Provider value={{ reference, seat, permission, onSelection }}>
+          <PaneContext.Provider value={{ reference, seat, leaderSessionId, onSelection }}>
             {chat()}
           </PaneContext.Provider>
         </section>
@@ -109,7 +130,7 @@ const PaneContext = createContext<{
   reference: SessionReference
   onSelection?: () => void
   seat?: Seat
-  permission?: string
+  leaderSessionId?: string
 } | null>(null)
 function FixedChat({ renderSlot }: ConversationViewsProps) {
   return <>{renderSlot('conversation.session', { view: 'chat' })}</>
@@ -133,26 +154,69 @@ export function SessionChat(props: PropsRuntime<'roleTeam.chat'> & PropsRenderFa
   )
 }
 
+type PermissionSlot = PropsRuntime<'conversation.input.left'> &
+  PropsRenderSlots<'roleTeam.leadPermission'>
+
+export function ChildPermission(props: PermissionSlot) {
+  const pane = useContext(PaneContext)
+  if (!pane?.seat?.parentSeatId || !pane.leaderSessionId || pane.reference.sessionId !== props.sessionId)
+    return null
+  return (
+    <LeaderPermission key={pane.leaderSessionId} {...props} leaderSessionId={pane.leaderSessionId} />
+  )
+}
+
+function LeaderPermission({
+  leaderSessionId,
+  renderSlot,
+  SessionProvider,
+  useSession,
+  useProjection,
+}: PermissionSlot & { leaderSessionId: string }) {
+  const { t } = useUi()
+  const { reference, error, retry } = useRetainedSession(sessionTarget(leaderSessionId))
+  const removed = useSession((s) => s.removed)
+  const current = useProjection('permissions')?.currentValue
+  const modes = {
+    'workspace-write': t('workspaceWrite'),
+    'danger-full-access': t('fullAccess'),
+    'read-only': t('readOnlyMode'),
+    auto: t('autoMode'),
+  }
+  const label = [current && (modes[current as keyof typeof modes] ?? current), t('followLeader')]
+    .filter(Boolean)
+    .join(' · ')
+  if (error)
+    return (
+      <button title={error} onClick={retry}>
+        {t('retry')}
+      </button>
+    )
+  if (!reference) return null
+  return (
+    <Tooltip label={label} side="top" delayMs={500} portal>
+      <span className="rt-permission">
+        <SessionProvider session={reference}>
+          {renderSlot('roleTeam.leadPermission', { locked: removed ?? true })}
+        </SessionProvider>
+      </span>
+    </Tooltip>
+  )
+}
+
 // rc.5 intentionally omits the ordinary model selector on addressed subagents.
 export function ChildControls(props: PropsRuntime<'conversation.input.right'>) {
   const pane = useContext(PaneContext)
   return pane?.seat?.parentSeatId && pane.reference.sessionId === props.sessionId ? (
-    <MemberSettings
-      permission={pane.permission}
-      onSelection={pane.onSelection}
-      seat={pane.seat}
-      {...props}
-    />
+    <MemberSettings onSelection={pane.onSelection} seat={pane.seat} {...props} />
   ) : null
 }
 function MemberSettings({
   seat,
-  permission,
   useProjection,
   onSelection,
 }: PropsRuntime<'conversation.input.right'> & {
   seat: Seat
-  permission?: string
   onSelection?: () => void
 }) {
   const { t, call } = useUi(),
@@ -161,17 +225,11 @@ function MemberSettings({
   const models = useLoad(seat.seatId, () => call('seatModels', {}))
   const projection = useProjection('modelSelection')
   const current = seat.selection ?? projection?.next ?? projection?.lastUsed
-  const permissions = useProjection('permissions') as { currentValue: string } | undefined
-  const mode = permission ?? permissions?.currentValue
-  const modes = {
-    'workspace-write': t('workspaceWrite'),
-    'danger-full-access': t('fullAccess'),
-    'read-only': t('readOnlyMode'),
-    auto: t('autoMode'),
-  }
   const catalog = models.data ?? []
   const selected = catalog.find((m) => m.provider === current?.provider && m.model === current?.model)
   const effort = current?.reasoningEffort ?? selected?.defaultEffort
+  const modelLabel = selected?.name ?? current?.model ?? t('chooseModel')
+  const effortLabel = selected?.efforts.find((e) => e.id === effort)?.name ?? effort
   const choices = new Map<string, ModelChoice>()
   const modelItems = catalog.map((m) => {
     const id = JSON.stringify([m.provider, m.model])
@@ -192,10 +250,6 @@ function MemberSettings({
       ]
   return (
     <span className="rt-child-settings">
-      <small title={t('followLeader')}>
-        {t('followLeader')}
-        {mode && ' · ' + (modes[mode as keyof typeof modes] ?? mode)}
-      </small>
       <Menu
         open={open}
         portal
@@ -224,6 +278,7 @@ function MemberSettings({
             type="button"
             className="rt-model-trigger"
             title={t('chooseModel')}
+            aria-label={[modelLabel, effortLabel].filter(Boolean).join(' ')}
             aria-haspopup="menu"
             aria-expanded={open}
             disabled={action.busy}
@@ -232,8 +287,9 @@ function MemberSettings({
               toggle(!open)
             }}
           >
-            <span>{selected?.name ?? current?.model ?? t('chooseModel')}</span>
-            <small>{selected?.efforts.find((e) => e.id === effort)?.name ?? effort}</small>
+            <IconDataOutlineRegular className="rt-model-icon" aria-hidden="true" size={16} />
+            <span>{modelLabel}</span>
+            <small>{effortLabel}</small>
             <IconChevronDownOutlineRegular aria-hidden="true" size={12} />
           </button>
         }

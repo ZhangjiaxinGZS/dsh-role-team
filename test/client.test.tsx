@@ -6,7 +6,12 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import en from '../locales/en-US.json' with { type: 'json' }
 import { Client, type Seat, type Ui } from '../src/client/ui.js'
 import { Workbench } from '../src/client/workbench/Workbench.js'
-import { ChildControls, SessionChat, targetId } from '../src/client/workbench/SessionPane.js'
+import {
+  ChildControls,
+  ChildPermission,
+  SessionChat,
+  targetId,
+} from '../src/client/workbench/SessionPane.js'
 import { LibrarySettings } from '../src/client/App.js'
 import { DocumentEditor, Documents } from '../src/client/roles/DocumentEditor.js'
 import { TrainingDetail, TrainingPanel } from '../src/client/roles/Training.js'
@@ -15,6 +20,10 @@ import { serializeMarkdown } from '../src/shared/markdown.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 // The browser supplies the shared menu. Exercise the catalog and selection callbacks here.
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
+  IconDataOutlineRegular: () => null,
+  Tooltip: ({ label, children }: { label: string; children: ReactNode }) => (
+    <span title={label}>{children}</span>
+  ),
   IconChevronDownOutlineRegular: () => null,
   Menu: ({
     anchor,
@@ -64,6 +73,10 @@ function harness(call: ReturnType<typeof vi.fn>) {
   const releases = new Map<string, ReturnType<typeof vi.fn>>(),
     stops = new Map<string, ReturnType<typeof vi.fn>>(),
     approvals = new Set<string>()
+  function NativePermission({ locked }: { locked: boolean }) {
+    const id = useContext(Scope)
+    return <button disabled={locked} aria-label={'Access: ' + id} />
+  }
   function Chat() {
     const id = useContext(Scope)
     return (
@@ -76,6 +89,16 @@ function harness(call: ReturnType<typeof vi.fn>) {
           renderFactorySlot: () => (
             <div data-conversation-region="chat">
               stream:{id}
+              <ChildPermission
+                {...({
+                  sessionId: id,
+                  useProjection: () => ({ currentValue: 'read-only' }),
+                  useSession: () => false,
+                  SessionProvider: ui.SessionProvider,
+                  renderSlot: (name: string, { locked }: { locked: boolean }) =>
+                    name === 'roleTeam.leadPermission' && <NativePermission locked={locked} />,
+                } as unknown as ComponentProps<typeof ChildPermission>)}
+              />
               <ChildControls
                 {...({ sessionId: id, useProjection: () => undefined } as unknown as ComponentProps<
                   typeof ChildControls
@@ -186,7 +209,10 @@ it('routes each column, guards the lead, and rebinds reset and read-only history
   const scout = column('scout')
   expect(scout.queryByRole('textbox')).toBeNull()
   expect(scout.queryByRole('combobox')).toBeNull()
-  expect(scout.getByText(en.ui.followLeader)).toBeTruthy()
+  expect(scout.queryByText(en.ui.followLeader, { exact: false })).toBeNull()
+  expect(await scout.findByRole('button', { name: 'Access: chief-session' })).toBeTruthy()
+  expect(scout.getByTitle(en.ui.readOnlyMode + ' · ' + en.ui.followLeader)).toBeTruthy()
+  expect(scout.queryByRole('button', { name: 'Access: scout-session' })).toBeNull()
   fireEvent.click(scout.getByTitle(en.ui.chooseModel))
   const picker = within(screen.getByRole('menu'))
   fireEvent.click(await picker.findByRole('menuitem', { name: 'Flash' }))

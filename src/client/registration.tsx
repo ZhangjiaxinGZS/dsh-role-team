@@ -1,3 +1,9 @@
+import type {
+  PermissionSelectProps,
+  PermissionSelectInjected,
+} from '@deepseek-ai/dsh-client-ui-permission-presets/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SlotComponent, StoredEntry } from '@deepseek-ai/dsh-client-ui-slots'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-gateway/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -13,9 +19,10 @@ import css from './ui.css'
 import { TYPERT_REMOTE } from '../shared/remote.js'
 import { Client, unwrap, type Labels, type Ui } from './ui.js'
 import { App, LibrarySettings } from './App.js'
-import { ChildControls, SessionChat } from './workbench/SessionPane.js'
+import { ChildControls, ChildPermission, SessionChat } from './workbench/SessionPane.js'
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
+    'roleTeam.leadPermission': SlotMap['conversation.input.permission']
     'roleTeam.chat': { kind: 'single'; scope: 'session' }
   }
   interface LocaleNamespaceMap {
@@ -43,8 +50,7 @@ function mount(ctx: Context) {
   })
   const t = ctx.locale.bind('roleTeam')
   const workspace = ctx.get('uiWorkspace') as
-    | { pickDirectory?: () => Promise<string | null> }
-    | undefined
+    { pickDirectory?: () => Promise<string | null> } | undefined
   const desktop = (
     globalThis as typeof globalThis & { __DSH_DIRECTORY_PICKER__?: { pick(): Promise<string | null> } }
   ).__DSH_DIRECTORY_PICKER__
@@ -117,6 +123,45 @@ function mount(ctx: Context) {
     ),
   )
   ctx.slots.inject('roleTeam.chat', () => ctx.slots.register({ name: 'roleTeam.chat' }, SessionChat))
+  ctx.slots.inject('conversation.input.left', () =>
+    ctx.slots.register(
+      {
+        name: 'conversation.input.left',
+        id: 'role-team-member-permission',
+        children: { 'roleTeam.leadPermission': { kind: 'single', scope: 'session' } },
+      },
+      ChildPermission,
+    ),
+  )
+  // Reuse the installed permission picker, including its catalog and risk confirmation.
+  // Only this outlet is rendered under the lead session; the rest of the composer stays member-scoped.
+  ctx.slots.inject('roleTeam.leadPermission', () => {
+    const slot = 'conversation.input.permission'
+    let active: StoredEntry | undefined
+    let remove: (() => void) | undefined
+    const sync = () => {
+      const entry = ctx.slots.entriesOfSlot(slot)[0]
+      if (entry === active) return
+      remove?.()
+      remove = undefined
+      active = entry
+      if (entry?.locale !== 'permission.access' || !entry.inject) return
+      remove = ctx.slots.register(
+        {
+          name: 'roleTeam.leadPermission',
+          locale: entry.locale,
+          inject: entry.inject as unknown as (id: SessionId) => PermissionSelectInjected,
+        },
+        entry.component as SlotComponent<PermissionSelectProps>,
+      )
+    }
+    sync()
+    const unsubscribe = ctx.slots.subscribe(slot, sync)
+    return () => {
+      unsubscribe()
+      remove?.()
+    }
+  })
   ctx.slots.inject('conversation.input.right', () =>
     ctx.slots.register(
       {
