@@ -17,7 +17,7 @@ export function RoleLibrary({
   changed: () => void
 }) {
   const { t, call } = useUi(),
-    [showProfile, toggle] = useState(true),
+    [view, setView] = useState<'chatOnly' | 'splitView' | 'settingsOnly'>('splitView'),
     [role, setRole] = useState(''),
     [session, setSession] = useState<{ roleId: string; trainingId: string }>(),
     [modal, setModal] = useState(''),
@@ -61,20 +61,20 @@ export function RoleLibrary({
           <div className="rt-detail" key={id}>
             <header>
               <h2>{active?.name ?? id}</h2>
-              <button
-                className="rt-profile-toggle"
-                aria-expanded={showProfile}
-                onClick={() => toggle(!showProfile)}
-              >
-                {t('profile')}
-              </button>
+              <div className="rt-segment" role="group" aria-label={t('roleView')}>
+                {(['chatOnly', 'splitView', 'settingsOnly'] as const).map((mode) => (
+                  <button key={mode} aria-pressed={view === mode} onClick={() => setView(mode)}>
+                    {t(mode)}
+                  </button>
+                ))}
+              </div>
             </header>
             {active?.error && (
               <Notice>
                 {active.error.file} · {t('line')} {active.error.line} · {active.error.message}
               </Notice>
             )}
-            <div className="rt-split" data-expanded={showProfile}>
+            <div className="rt-split" data-view={view}>
               <TrainingPanel
                 key={id + (session?.roleId === id ? session.trainingId : '')}
                 roleId={id}
@@ -83,9 +83,7 @@ export function RoleLibrary({
                 initialId={session?.roleId === id ? session.trainingId : undefined}
                 changed={changed}
               />
-              {showProfile && (
-                <Documents roleId={id} revision={active?.revision ?? null} changed={changed} />
-              )}
+              <Documents roleId={id} revision={active?.revision ?? null} changed={changed} />
             </div>
           </div>
         ) : (
@@ -98,12 +96,12 @@ export function RoleLibrary({
       {modal === 'create' && (
         <CreateRole
           close={() => setModal('')}
-          save={async (name, id) => {
+          save={async (name, id, summary) => {
             if (roles.some((r) => r.id === id)) throw new Error(t('duplicateRole'))
             const result = await call('saveDocument', {
               roleId: id,
               expectedHash: null,
-              text: serializeMarkdown({ id, name }, ''),
+              text: serializeMarkdown({ id, name, ...(summary && { summary }) }, ''),
             })
             if (!result.ok)
               throw new Error(result.code === 'conflict' ? t('duplicateRole') : result.error.message)
@@ -129,12 +127,13 @@ function CreateRole({
   save,
 }: {
   close: () => void
-  save: (name: string, id: string) => Promise<void>
+  save: (name: string, id: string, summary: string) => Promise<void>
 }) {
   const { t } = useUi(),
     action = useAction()
   const [name, setName] = useState(''),
-    [custom, setCustom] = useState('')
+    [custom, setCustom] = useState(''),
+    [summary, setSummary] = useState('')
   const [suffix] = useState(() =>
     Array.from(crypto.getRandomValues(new Uint8Array(5)), (n) => n.toString(16).padStart(2, '0')).join(
       '',
@@ -155,7 +154,7 @@ function CreateRole({
           void action.run(async () => {
             const id = fileId.safeParse(custom.trim() || generated)
             if (!id.success) throw new Error(t('idHint'))
-            await save(name.trim(), id.data)
+            await save(name.trim(), id.data, summary.trim())
           })
         }}
       >
@@ -168,6 +167,10 @@ function CreateRole({
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
+        </label>
+        <label>
+          {t('duty')}
+          <input maxLength={160} value={summary} onChange={(e) => setSummary(e.target.value)} />
         </label>
         <details>
           <summary>{t('customId')}</summary>

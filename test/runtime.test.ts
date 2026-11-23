@@ -244,7 +244,7 @@ it('admits only published memory, same-run notes and team tools at the model bou
     service.createTeam({ title: 'bad', roleId, workspaceCwd: join(folder, 'roles') }),
   ).rejects.toThrow(/separate/)
 })
-it('pins each team until the next confirmed turn and restores adopted snapshots after restart', async () => {
+it('uses the latest published role and memory on the next turn across teams and cold starts', async () => {
   const a = await newTeam('A'),
     b = await newTeam('B')
   const opened = Promise.withResolvers<void>(),
@@ -260,10 +260,12 @@ it('pins each team until the next confirmed turn and restores adopted snapshots 
   try {
     await writeFile(join(folder, 'roles', roleId, 'role.md'), role('rule-two'))
     await vi.waitFor(async () =>
-      expect((await service.getTeam({ runId: a.run.runId })).seats[0].pendingRoleRev).toBe(2),
+      expect((await service.readSnapshot(roleId, 2)).role.body).toBe('rule-two'),
     )
-    await service.versionDecision({ seatId: a.run.leaderSeatId, revision: 2, decision: 'next-turn' })
-    await service.versionDecision({ seatId: b.run.leaderSeatId, revision: 2, decision: 'keep' })
+    await service.rememberExperience({ roleId, body: 'updated-lesson' })
+    await prompt(b.run.rootSessionId, 'new team turn')
+    expect(JSON.stringify(request(b.run.rootSessionId).messages)).toContain('updated-lesson')
+    expect(JSON.stringify(request(b.run.rootSessionId).messages[0])).toContain('rule-two')
     expect(JSON.stringify(request(a.run.rootSessionId).messages)).not.toContain('rule-two')
     expect((await service.getTeam({ runId: a.run.runId })).seats[0].adoptedRoleRev).toBe(1)
     await service.promptSeat({
@@ -280,14 +282,14 @@ it('pins each team until the next confirmed turn and restores adopted snapshots 
   expect(JSON.stringify(request(a.run.rootSessionId).messages)).toContain('same turn follow-up')
   expect(JSON.stringify(request(a.run.rootSessionId).messages)).not.toContain('rule-two')
   const c = await newTeam('C')
-  expect(c.seats[0].adoptedRoleRev).toBe(2)
+  expect(c.seats[0].adoptedRoleRev).toBe(3)
   await ctx.fiber.dispose()
   await boot()
   await prompt(a.run.rootSessionId, 'next')
   await prompt(b.run.rootSessionId, 'next')
   expect(JSON.stringify(request(a.run.rootSessionId).messages[0])).toContain('rule-two')
-  expect(JSON.stringify(request(b.run.rootSessionId).messages)).not.toContain('rule-two')
-  expect((await service.getTeam({ runId: a.run.runId })).seats[0].adoptedRoleRev).toBe(2)
+  expect(JSON.stringify(request(b.run.rootSessionId).messages[0])).toContain('rule-two')
+  expect((await service.getTeam({ runId: a.run.runId })).seats[0].adoptedRoleRev).toBe(3)
 })
 it('saves training changes directly and routes temporary requirements only to the linked run', async () => {
   const a = await newTeam('A'),
@@ -408,7 +410,10 @@ it('finishes retiring an interrupted chat replacement on cold start', async () =
   const first = await service.createTraining({ roleId, mode: 'coach' })
   const second = await service.createTraining({ roleId, mode: 'coach' })
   await service.index.training.put(first)
-  await service.index.training.update(second.trainingId, (row) => ({ ...row, replaces: [first.trainingId] }))
+  await service.index.training.update(second.trainingId, (row) => ({
+    ...row,
+    replaces: [first.trainingId],
+  }))
   await ctx.fiber.dispose()
   await boot()
   expect(await service.listTrainings({ roleId })).toMatchObject([{ trainingId: second.trainingId }])
@@ -553,11 +558,22 @@ it('delivers a localized membership notice and mirrors the lead permission to li
   await ctx.plugin(Permissions, {})
   const team = await newTeam('甲')
   const root = ctx.agents.get(team.run.rootSessionId as SessionId)!
-  const first = await service.addMember({ runId: team.run.runId, roleId, displayName: '审稿' })
+  const memberId = 'new-editor'
+  await service.saveDocument({
+    roleId: memberId,
+    expectedHash: null,
+    text: serializeMarkdown(
+      { id: memberId, name: 'Editor', summary: '核对引文' },
+      'UNSHARED_EDITOR_DETAILS',
+    ),
+  })
+  const first = await service.addMember({ runId: team.run.runId, roleId: memberId, displayName: '审稿' })
   await ctx.subagents.waitForTreeWork(root)
   await root.whenIdle()
   expect(JSON.stringify(request(root.id).messages)).toContain('成员「审稿」已加入团队并就绪')
-  expect(first.nativeAgentName).toBe('reviewer')
+  expect(first.nativeAgentName).toBe('new-editor')
+  expect(JSON.stringify(request(root.id).messages)).toContain('核对引文')
+  expect(JSON.stringify(request(root.id).messages)).not.toContain('UNSHARED_EDITOR_DETAILS')
   const started = Promise.withResolvers<void>(),
     finish = Promise.withResolvers<void>()
   model.pause = async (req) => {
@@ -580,8 +596,12 @@ it('delivers a localized membership notice and mirrors the lead permission to li
     await vi.waitFor(() =>
       expect(ctx.permissionPresets.current(live.session)).toBe('danger-full-access'),
     )
-    const second = await service.addMember({ runId: team.run.runId, roleId, displayName: '审稿' })
-    expect(second.nativeAgentName).toBe('reviewer-2')
+    const second = await service.addMember({
+      runId: team.run.runId,
+      roleId: memberId,
+      displayName: '审稿',
+    })
+    expect(second.nativeAgentName).toBe('new-editor-2')
     expect(
       ctx.permissionPresets.current(ctx.agents.get(second.currentSessionId as SessionId)!.session),
     ).toBe('danger-full-access')

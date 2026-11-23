@@ -16,7 +16,7 @@ import { Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
 type Conflict = Extract<EditResult, { code: 'conflict' }>
 type Buffer = { text: string; base: FileContents | null; source: boolean; conflict?: Conflict }
 export const EditorBuffers = createContext<Map<string, Buffer> | null>(null)
-const roleForm = roleMeta.extend({ name: z.string() })
+const roleForm = roleMeta.extend({ name: z.string(), summary: z.string().optional() })
 const memoryForm = memoryMeta.extend({ title: z.string() })
 export function Documents({
   roleId,
@@ -30,6 +30,8 @@ export function Documents({
   const { call, t } = useUi()
   const [version, refresh] = useState(0)
   const [entry, setEntry] = useState<{ id: string; file: FileContents; remove: boolean }>()
+  const [historyHash, showHistory] = useState('')
+  const buffers = useContext(EditorBuffers)
   const [adding, setAdding] = useState(false)
   const action = useAction()
   const updated = () => {
@@ -54,10 +56,29 @@ export function Documents({
     <aside className="rt-docs">
       <header>
         <h3>{t('card')}</h3>
+        <button
+          className="rt-text-button"
+          disabled={!role.data}
+          onClick={() => showHistory(role.data!.hash)}
+        >
+          {t('roleHistory')}
+        </button>
       </header>
       <Notice>{role.error || memories.error}</Notice>
       {role.data !== undefined && (
         <DocumentEditor key={roleId} file={{ roleId }} initial={role.data} changed={updated} />
+      )}
+      {historyHash && (
+        <RoleHistory
+          roleId={roleId}
+          hash={historyHash}
+          close={() => showHistory('')}
+          dirty={() => !!buffers?.has(roleId + '/role.md')}
+          done={() => {
+            showHistory('')
+            updated()
+          }}
+        />
       )}
       <section className="rt-experiences">
         <header className="rt-row">
@@ -136,6 +157,76 @@ export function Documents({
           </Modal>
         ))}
     </aside>
+  )
+}
+function RoleHistory({
+  roleId,
+  hash,
+  close,
+  dirty,
+  done,
+}: {
+  roleId: string
+  hash: string
+  close: () => void
+  dirty: () => boolean
+  done: () => void
+}) {
+  const { call, t } = useUi(),
+    action = useAction()
+  const rows = useLoad(roleId, () => call('roleHistory', { roleId }))
+  const [revision, select] = useState<number>()
+  const entry = rows.data?.find((r) => r.publishedRevision === revision) ?? rows.data?.[0]
+  return (
+    <Modal title={t('roleHistory')} close={close} locked={action.busy}>
+      <Notice>{rows.error || action.error}</Notice>
+      {entry ? (
+        <>
+          <label>
+            {t('revision')}
+            <select value={entry.publishedRevision} onChange={(e) => select(Number(e.target.value))}>
+              {rows.data?.map((r) => (
+                <option key={r.publishedRevision} value={r.publishedRevision}>
+                  r{r.publishedRevision} · {new Date(r.publishedAt).toLocaleString()} ·{' '}
+                  {r.role.meta.summary || r.role.meta.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <article className="rt-history-preview">
+            <h3>{entry.role.meta.name}</h3>
+            <p>{entry.role.meta.summary}</p>
+            <pre>{entry.role.body}</pre>
+          </article>
+          <footer>
+            <button
+              className="rt-primary"
+              disabled={action.busy}
+              onClick={() =>
+                action.run(async () => {
+                  if (dirty()) throw new Error(t('finishEditing'))
+                  const result = await call('restoreRole', {
+                    roleId,
+                    revision: entry.publishedRevision,
+                    expectedHash: hash,
+                  })
+                  if (!result.ok)
+                    throw new Error(
+                      result.code === 'conflict' ? t('restoreConflict') : result.error.message,
+                    )
+                  if (result.status.error) throw new Error(result.status.error.message)
+                  done()
+                })
+              }
+            >
+              {t('restoreRole')}
+            </button>
+          </footer>
+        </>
+      ) : (
+        <p>{t(rows.data ? 'noVersions' : 'loading')}</p>
+      )}
+    </Modal>
   )
 }
 function ExperienceForm({
@@ -323,6 +414,18 @@ export function DocumentEditor({
                 }
               />
             </label>
+            {'name' in doc.meta && (
+              <label>
+                {t('duty')}
+                <input
+                  maxLength={160}
+                  value={doc.meta.summary ?? ''}
+                  onChange={(e) =>
+                    edit(serializeMarkdown({ ...doc.meta, summary: e.target.value }, doc.body))
+                  }
+                />
+              </label>
+            )}
             {'status' in doc.meta && (
               <label>
                 {t('status')}

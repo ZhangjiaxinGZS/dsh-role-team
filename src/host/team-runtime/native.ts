@@ -18,6 +18,7 @@ export class NativeTeam {
         provider: group.id,
         model: model.id,
         name: model.name,
+        defaultEffort: model.reasoning?.defaultEffort,
         efforts: (model.reasoning?.efforts ?? []).map(({ id, name }) => ({ id, name })),
       })),
     )

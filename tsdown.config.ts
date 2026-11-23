@@ -33,7 +33,13 @@ export default defineConfig([
     platform: 'browser',
     dts: false,
     clean: false,
-    external: ['react', 'react-dom', 'react/jsx-runtime', 'zod'],
+    external: [
+      'react',
+      'react-dom',
+      'react/jsx-runtime',
+      'zod',
+      '@deepseek-ai/dsh-client-ui-primitives',
+    ],
     noExternal: [/^yaml/, /^@deepseek-ai\/dsh-typert-protocol/],
     inputOptions: {
       moduleTypes: { '.css': 'text' },

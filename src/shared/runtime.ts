@@ -1,5 +1,14 @@
 import { z } from 'zod'
-import { fileId, indexRecords, editResult, revision, conversationLocale, modelChoice } from './index.js'
+import {
+  fileId,
+  indexRecords,
+  editResult,
+  revision,
+  conversationLocale,
+  modelChoice,
+  snapshotSchema,
+  hash,
+} from './index.js'
 
 const id = z.string().min(1).max(256)
 const workspaceCwd = z.string().min(1)
@@ -10,6 +19,11 @@ const seat = z.strictObject({ seatId: id })
 const training = z.strictObject({ trainingId: id })
 const team = z.strictObject({ run: indexRecords.team_runs, seats: z.array(indexRecords.team_seats) })
 export const runtimeMethods = {
+  roleHistory: [
+    z.strictObject({ roleId: fileId }),
+    z.array(snapshotSchema.pick({ publishedRevision: true, publishedAt: true, role: true })).max(10),
+  ],
+  restoreRole: [z.strictObject({ roleId: fileId, revision, expectedHash: hash }), editResult],
   createTeam: [
     z.strictObject({ title, roleId: fileId, workspaceCwd, locale: conversationLocale.optional() }),
     team,
@@ -33,6 +47,7 @@ export const runtimeMethods = {
         provider: id,
         model: id,
         name: title,
+        defaultEffort: id.optional(),
         efforts: z.array(z.strictObject({ id, name: title })),
       }),
     ),

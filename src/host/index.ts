@@ -50,9 +50,6 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     try {
       this.roles = await RoleStore.open(this.pathSetting.get(), {
         onError: (error) => this.ctx.logger.warn(String(error)),
-        observed: async (status) => {
-          await this.mounted?.observe(status)
-        },
       })
     } catch (error) {
       await domain.close()
@@ -191,6 +188,12 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     )
   }
 
+  @Remote async roleHistory({ roleId }: Input<'roleHistory'>) {
+    return this.roles.roleHistory(roleId)
+  }
+  @Remote async restoreRole({ roleId, revision, expectedHash }: Input<'restoreRole'>) {
+    return this.roles.restoreRole(roleId, revision, expectedHash)
+  }
   @Remote listRoles() {
     return this.roles.listRoles()
   }

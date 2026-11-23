@@ -20,53 +20,127 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
     runs = useLoad('runs', () => call('listTeams', {}))
   const [selected, setSelected] = useState(''),
     [setup, setSetup] = useState(false)
+  const [collapsed, setCollapsed] = useState(false),
+    [archive, setArchive] = useState<Run>()
+  const action = useAction()
   const list = runs.data ?? [],
-    id = selected || list.find((r) => r.status === 'active')?.runId || list[0]?.runId
-  const opened = (run: Run) => {
-    setSelected(run.runId)
-    runs.refresh()
-    setSetup(false)
-  }
+    active = list.filter((r) => r.status === 'active')
+  const id = selected || active[0]?.runId || list.find((r) => r.status === 'archived')?.runId
+  const toggle = (
+    <button
+      className="rt-icon"
+      title={t(collapsed ? 'expandTeams' : 'collapseTeams')}
+      aria-label={t(collapsed ? 'expandTeams' : 'collapseTeams')}
+      aria-expanded={!collapsed}
+      onClick={() => setCollapsed(!collapsed)}
+    >
+      ☰
+    </button>
+  )
+  const teamRow = (r: Run) => (
+    <div key={r.runId} className="rt-team-item">
+      <button aria-current={id === r.runId ? 'page' : undefined} onClick={() => setSelected(r.runId)}>
+        {r.title}
+      </button>
+      {r.status === 'active' && (
+        <button
+          title={t('archiveTeam')}
+          aria-label={t('archiveTeam') + ' · ' + r.title}
+          onClick={() => {
+            action.clear()
+            setArchive(r)
+          }}
+        >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path d="M2 2.5h12v3H2zM3.5 5.5v8h9v-8M6 8h4" />
+          </svg>
+        </button>
+      )}
+    </div>
+  )
   return (
     <section className="rt-work">
-      <header className="rt-toolbar">
-        <div className="rt-heading">
-          {list.length ? (
-            <select
-              className="rt-team-select"
-              aria-label={t('chooseTeam')}
-              value={id ?? ''}
-              onChange={(e) => setSelected(e.target.value)}
-            >
-              {list.map((r) => (
-                <option key={r.runId} value={r.runId}>
-                  {r.title}
-                  {r.status === 'archived' ? ' · ' + t('archive') : ''}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <h2>{t('team')}</h2>
+      {!collapsed && (
+        <aside className="rt-team-list" aria-label={t('teamsList')}>
+          <header>
+            <h3>{t('teamsList')}</h3>
+            <button title={t('newTeam')} aria-label={t('newTeam')} onClick={() => setSetup(true)}>
+              ＋
+            </button>
+          </header>
+          {active.map(teamRow)}
+          {list.some((r) => r.status === 'archived') && (
+            <details>
+              <summary>{t('archive')}</summary>
+              {list.filter((r) => r.status === 'archived').map(teamRow)}
+            </details>
           )}
-        </div>
-        <button className="rt-primary" onClick={() => setSetup(true)}>
-          ＋ {t('newTeam')}
-        </button>
-      </header>
-      <Notice>{runs.error}</Notice>
-      {id ? (
-        <TeamBoard key={id} id={id} roles={roles} />
-      ) : (
-        <div className="rt-empty">
-          <h2>{t(runs.data ? 'emptyTeams' : 'loading')}</h2>
-          <p>{t('emptyTeamHint')}</p>
-        </div>
+        </aside>
       )}
-      {setup && <TeamSetup roles={roles} close={() => setSetup(false)} onDone={opened} />}
+      <div className="rt-board">
+        <Notice>{runs.error}</Notice>
+        {id ? (
+          <TeamBoard key={id} id={id} roles={roles} toggle={toggle} />
+        ) : (
+          <>
+            <div className="rt-controls">{toggle}</div>
+            <div className="rt-empty">
+              <h2>{t(runs.data ? 'emptyTeams' : 'loading')}</h2>
+              <button className="rt-primary" onClick={() => setSetup(true)}>
+                {t('newTeam')}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+      {archive && (
+        <Modal title={t('archiveTeam')} close={() => setArchive(undefined)} locked={action.busy}>
+          <p>
+            {archive.title} · {t('archiveTeamHint')}
+          </p>
+          <Notice>{action.error}</Notice>
+          <footer>
+            <button disabled={action.busy} onClick={() => setArchive(undefined)}>
+              {t('cancel')}
+            </button>
+            <button
+              disabled={action.busy}
+              onClick={() =>
+                action.run(async () => {
+                  await call('archiveTeam', { runId: archive.runId })
+                  setSelected(active.find((r) => r.runId !== archive.runId)?.runId ?? '')
+                  setArchive(undefined)
+                  runs.refresh()
+                })
+              }
+            >
+              {t('archiveTeam')}
+            </button>
+          </footer>
+        </Modal>
+      )}
+      {setup && (
+        <TeamSetup
+          roles={roles}
+          close={() => setSetup(false)}
+          onDone={(r) => {
+            setSelected(r.runId)
+            runs.refresh()
+            setSetup(false)
+          }}
+        />
+      )}
     </section>
   )
 }
-function TeamBoard({ id, roles }: { id: string; roles: RoleChoice[] }) {
+function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; toggle: React.ReactNode }) {
   const { call, t } = useUi(),
     team = useLoad(id, () => call('getTeam', { runId: id }), 2500)
   const [single, setSingle] = useState(false),
@@ -93,33 +167,9 @@ function TeamBoard({ id, roles }: { id: string; roles: RoleChoice[] }) {
   return (
     <>
       <Notice>{team.error}</Notice>
-      <div className="rt-roster">
-        <div className="rt-chips">
-          {seats.map((s) => (
-            <button
-              key={s.seatId}
-              className="rt-chip"
-              aria-pressed={target === s.seatId}
-              onClick={() => {
-                setFocus(s.seatId)
-                if (!single)
-                  document
-                    .getElementById('seat-' + s.seatId)
-                    ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
-              }}
-            >
-              {s.parentSeatId === null ? '♛ ' : ''}
-              {s.displayName}
-              <small>G{s.currentGeneration}</small>
-              {s.pendingRoleRev && <i aria-label={t('pending')} />}
-            </button>
-          ))}
-        </div>
-        <button disabled={!active} onClick={() => setAdd(true)}>
-          ＋ {t('addMember')}
-        </button>
-      </div>
-      <div className="rt-controls">
+      <header className="rt-controls">
+        {toggle}
+        <strong title={data.run.title}>{data.run.title}</strong>
         <div className="rt-segment">
           {(['columns', 'focus'] as const).map((k, i) => (
             <button aria-pressed={single === !!i} key={k} onClick={() => setSingle(!!i)}>
@@ -127,10 +177,29 @@ function TeamBoard({ id, roles }: { id: string; roles: RoleChoice[] }) {
             </button>
           ))}
         </div>
+        {single && (
+          <div className="rt-chips">
+            {seats.map((s) => (
+              <button
+                key={s.seatId}
+                className="rt-chip"
+                aria-pressed={target === s.seatId}
+                onClick={() => setFocus(s.seatId)}
+              >
+                {s.parentSeatId === null ? '♛ ' : ''}
+                {s.displayName}
+                <small>G{s.currentGeneration}</small>
+              </button>
+            ))}
+          </div>
+        )}
+        <button disabled={!active} onClick={() => setAdd(true)}>
+          ＋ {t('addMember')}
+        </button>
         <button aria-expanded={drawer} onClick={() => setDrawer(!drawer)}>
           {t('board')}
         </button>
-      </div>
+      </header>
       <div className="rt-floor">
         <div className={'rt-columns' + (single ? ' rt-single' : '')}>
           {seats
@@ -190,7 +259,6 @@ function MemberColumn({
   toggleFocus: () => void
 }) {
   const { call, t } = useUi(),
-    a = useAction(),
     [reset, setReset] = useState(false),
     [version, setVersion] = useState(''),
     [showHistory, setHistory] = useState(false)
@@ -204,12 +272,6 @@ function MemberColumn({
     : team.seats.some((c) => c.parentSeatId === s.seatId && c.status !== 'archived')
       ? t('protectParent')
       : ''
-  const rev = s.pendingRoleRev ?? s.pendingMemoryRev
-  const apply = (decision: 'keep' | 'next-turn') =>
-    a.run(async () => {
-      await call('versionDecision', { seatId: s.seatId, revision: rev!, decision })
-      refresh()
-    })
   return (
     <article className="rt-column" id={'seat-' + s.seatId}>
       <header>
@@ -270,25 +332,6 @@ function MemberColumn({
           <Notice>{history.error}</Notice>
         </div>
       )}
-      {!!rev && !readOnly && (
-        <div className="rt-update">
-          <span>
-            {t('pending')} · r{rev}
-          </span>
-          <button disabled={a.busy} onClick={() => apply('next-turn')}>
-            {t('next')}
-          </button>
-          <button disabled={a.busy} onClick={() => apply('keep')}>
-            {t('keep')}
-          </button>
-        </div>
-      )}
-      {s.approved && (
-        <small className="rt-strip">
-          {t('scheduled')} · r{s.approved.revision}
-        </small>
-      )}
-      <Notice>{a.error}</Notice>
       {s.status === 'resetting' && !version ? (
         <div className="rt-pane-status">
           {t('resetting')} <button onClick={() => setReset(true)}>{t('retryReset')}</button>
@@ -297,6 +340,7 @@ function MemberColumn({
         <SessionPane
           target={sessionTarget(version || s.currentSessionId, parent?.currentSessionId)}
           permission={team.run.permissionPreset}
+          onSelection={refresh}
           readOnly={readOnly}
           seat={s}
         />

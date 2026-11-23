@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SessionId } from '@deepseek-ai/dsh-session'
-import type { IndexRecord, RoleStatus, Snapshot, ModelChoice } from '../../shared/index.js'
+import type { IndexRecord, Snapshot, ModelChoice } from '../../shared/index.js'
 import type { Input } from '../../shared/runtime.js'
 import { RoleStore } from '../role-store/index.js'
 import { generationKey, type Index } from '../storage/index.js'
@@ -42,23 +42,6 @@ export class TeamRuntime {
     const rev = (await this.roles.listRoles()).find((r) => r.roleId === roleId)?.publishedRevision
     if (!rev) throw new Error('Role has no published snapshot')
     return this.snapshot(roleId, rev)
-  }
-  async observe(status: RoleStatus) {
-    const rev = status.publishedRevision
-    if (!rev) return
-    for (const seat of this.index.seats.list()) {
-      if (
-        seat.roleId !== status.roleId ||
-        rev <= Math.max(seat.seenRevision ?? 0, seat.adoptedRoleRev, seat.pendingRoleRev ?? 0) ||
-        seat.status === 'archived'
-      )
-        continue
-      await this.index.seats.update(seat.seatId, (current) =>
-        rev <= Math.max(current.seenRevision ?? 0, current.adoptedRoleRev, current.pendingRoleRev ?? 0)
-          ? current
-          : { ...current, pendingRoleRev: rev, pendingMemoryRev: rev },
-      )
-    }
   }
   seat(id: string) {
     const row = this.index.seats.get(id)
@@ -286,12 +269,7 @@ export class TeamRuntime {
   private async finishJoin(seat: Seat) {
     const run = this.active(seat.runId)
     const snap = await this.snapshot(seat.roleId, seat.adoptedRoleRev)
-    const duty =
-      snap.role.body
-        .split('\n')
-        .map((line) => line.trim())
-        .find((line) => line && !line.startsWith('#'))
-        ?.slice(0, 160) || (run.locale === 'en' ? 'Awaiting assignment' : '待队长安排')
+    const duty = snap.role.meta.summary || (run.locale === 'en' ? 'Awaiting assignment' : '待队长安排')
     const message =
       run.locale === 'en'
         ? `${seat.displayName} (${seat.nativeAgentName}) has joined and is ready. Responsibilities: ${duty}.`
@@ -314,10 +292,14 @@ export class TeamRuntime {
   }
   /** Restore interrupted creation intents before the next UI operation addresses their seats. */
   async recover() {
-    const interrupted = this.index.training.list().filter((row) => row.initializing || row.replaces?.length)
-    await Promise.all([...new Set(interrupted.map((row) => row.roleId))].map((roleId) =>
-      this.ordered('training/' + roleId, () => this.training.recover(roleId)),
-    ))
+    const interrupted = this.index.training
+      .list()
+      .filter((row) => row.initializing || row.replaces?.length)
+    await Promise.all(
+      [...new Set(interrupted.map((row) => row.roleId))].map((roleId) =>
+        this.ordered('training/' + roleId, () => this.training.recover(roleId)),
+      ),
+    )
     for (const run of this.index.runs.list()) {
       if (run.status === 'creating') {
         const leader = this.index.seats.get(run.leaderSeatId)
@@ -377,23 +359,8 @@ export class TeamRuntime {
     return note
   }
   async versionDecision(input: Input<'versionDecision'>) {
-    const { seatId, revision, decision } = input
-    const seat = this.seat(seatId)
-    this.active(seat.runId)
-    await this.snapshot(seat.roleId, revision)
-    return this.index.seats.update(seatId, (row) => {
-      if (row.status !== 'active' || row.pendingRoleRev !== revision)
-        throw new Error('Pending revision changed. Refresh the seat.')
-      const agent = this.native.ctx.agents.get(row.currentSessionId as SessionId)
-      const afterTurn = agent ? this.native.ctx.agents.turnBoundaryOf(agent.session).lastTurn : 0
-      return {
-        ...row,
-        seenRevision: revision,
-        approved: decision === 'next-turn' ? { revision, afterTurn } : row.approved,
-        pendingRoleRev: null,
-        pendingMemoryRev: null,
-      }
-    })
+    // Compatibility for older clients. Published changes apply automatically.
+    return this.seat(input.seatId)
   }
   promptSeat(input: Input<'promptSeat'>) {
     const check = () => {
@@ -499,7 +466,6 @@ export class TeamRuntime {
     await this.snapshot(seat.roleId, seat.adoptedRoleRev)
     await this.snapshot(seat.roleId, seat.adoptedMemoryRev)
     if (seat.reset) await this.snapshot(seat.roleId, seat.reset.revision)
-    if (seat.approved) await this.snapshot(seat.roleId, seat.approved.revision)
     let frozen:
       | { turn: number; role: Snapshot; memory: Snapshot; context: string; adopting: boolean }
       | undefined
@@ -508,16 +474,14 @@ export class TeamRuntime {
       if (frozen?.turn === turn) return frozen
       const row = current()
       const replacement = row.reset?.sessionId === agent.id ? row.reset.revision : undefined
-      const selected =
-        replacement ??
-        (row.approved && turn > row.approved.afterTurn ? row.approved.revision : undefined)
+      const published = replacement === undefined ? this.roles.published(row.roleId) : undefined
       const read = (revision: number) => {
         const s = this.cache.get(row.roleId + '/' + revision)
         if (!s) throw new Error('Required role snapshot is unavailable')
         return s
       }
-      const role = read(selected ?? row.adoptedRoleRev),
-        memory = read(selected ?? row.adoptedMemoryRev)
+      const role = published ?? read(replacement ?? row.adoptedRoleRev),
+        memory = published ?? read(replacement ?? row.adoptedMemoryRev)
       const previous =
         generation > 1 ? index.generations.get(generationKey(row.seatId, generation - 1)) : undefined
       const notes =
@@ -549,7 +513,7 @@ export class TeamRuntime {
         role,
         memory,
         context,
-        adopting: replacement === undefined && selected !== undefined,
+        adopting: replacement === undefined,
       })
     }
     agent.ctx.systemPrompt.suppressRuntimeContext()
@@ -562,6 +526,8 @@ export class TeamRuntime {
         [
           run.locale === 'en' ? 'Work and reply in English.' : '请用中文协作、报到并回复用户。',
           seat.displayName,
+          ...(view().role.role.meta.name !== seat.displayName ? [view().role.role.meta.name] : []),
+          view().role.role.meta.summary,
           view().role.role.body,
         ].join('\n'),
     })
@@ -577,14 +543,23 @@ export class TeamRuntime {
       const decision = await next()
       const selected = view()
       const rev = selected.role.publishedRevision
-      if (decision.kind === 'enter' && selected.adopting && current().adoptedRoleRev < rev)
+      const row = current()
+      const needsAdoption =
+        row.adoptedRoleRev < rev ||
+        row.adoptedMemoryRev < rev ||
+        row.pendingRoleRev != null ||
+        row.pendingMemoryRev != null ||
+        row.approved != null
+      if (decision.kind === 'enter' && selected.adopting && needsAdoption)
         await index.seats.update(seat.seatId, (s) =>
-          s.status === 'active' && s.currentSessionId === agent.id && s.adoptedRoleRev < rev
+          s.status === 'active' && s.currentSessionId === agent.id && s.adoptedRoleRev <= rev
             ? {
                 ...s,
                 adoptedRoleRev: rev,
                 adoptedMemoryRev: rev,
-                approved: s.approved?.revision === rev ? undefined : s.approved,
+                approved: undefined,
+                pendingRoleRev: null,
+                pendingMemoryRev: null,
               }
             : s,
         )

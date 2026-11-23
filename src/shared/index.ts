@@ -13,6 +13,12 @@ const names = z.array(z.string().min(1))
 export const roleMeta = z.strictObject({
   id: fileId,
   name: z.string().trim().min(1),
+  summary: z
+    .string()
+    .trim()
+    .max(160)
+    .regex(/^[^\r\n]*$/)
+    .optional(),
   version: revision.optional(),
   model: z.string().min(1).optional(),
   skills: names.optional(),

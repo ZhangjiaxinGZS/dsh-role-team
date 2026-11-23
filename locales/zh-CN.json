@@ -153,6 +153,21 @@
     "remember": "记住",
     "editExperience": "编辑经验",
     "rememberHint": "在对话里说「记住……」，角色会把经验记在这里。",
-    "optionalTitle": "添加标题（可选）"
+    "optionalTitle": "添加标题（可选）",
+    "chatOnly": "全屏聊天",
+    "splitView": "分屏",
+    "settingsOnly": "全屏设定",
+    "roleView": "角色视图",
+    "duty": "职责简介",
+    "roleHistory": "设定历史",
+    "restoreRole": "恢复此版设定",
+    "noVersions": "暂无历史设定",
+    "finishEditing": "请先保存当前修改，再恢复历史设定。",
+    "restoreConflict": "角色设定刚刚发生变化，请重新打开历史版本核对。",
+    "teamsList": "团队列表",
+    "expandTeams": "展开团队栏",
+    "collapseTeams": "折叠团队栏",
+    "archiveTeam": "归档团队",
+    "archiveTeamHint": "归档后将停止团队内活跃的会话。"
   }
 }

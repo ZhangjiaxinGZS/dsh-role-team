@@ -16,7 +16,7 @@ type Training = IndexRecord<'training_sessions'>
 type Proposal = NonNullable<Training['proposals']>[number]
 const text = z.string().trim().min(1).max(24000)
 const inputs = [
-  z.strictObject({ name: z.string().min(1).max(160), body: text }),
+  z.strictObject({ name: z.string().min(1).max(160), summary: roleMeta.shape.summary, body: text }),
   z.strictObject({ body: text }),
   z.strictObject({ content: text.max(8000) }),
   z.strictObject({ memoryId: fileId, title: z.string().trim().min(1).max(160), body: text }),
@@ -180,6 +180,7 @@ export class TrainingRuntime {
             ? 'Reply in English. In this private coaching chat, update your own role with update_role when learning a lasting responsibility or preference. Preserve unrelated settings. Use remember_experience for reusable lessons and revise_experience to correct a saved lesson. Briefly tell the user what you saved after success. Keep one-off requests and team-specific details out of the role profile.'
             : '请用中文回复。在这次一对一培养中，学到持久的职责或偏好时，用 update_role 直接更新自己的角色设定，保留其他设定。值得复用的经验用 remember_experience 记住，纠正已有经验用 revise_experience。写入成功后简短告诉用户记住了什么。临时要求和团队专属细节留在本次对话或关联团队。',
           snapshot?.role.meta.name ?? row.roleId,
+          snapshot?.role.meta.summary,
           snapshot?.role.body,
           ...(snapshot?.memories.map((m) => '[' + m.meta.id + '] ' + m.meta.title + '\n' + m.body) ??
             []),
@@ -192,7 +193,7 @@ export class TrainingRuntime {
       agent.ctx.tools.register({
         name,
         description: [
-          'Save your complete revised name and role instructions. Preserve existing responsibilities unless corrected.',
+          'Save your complete revised name and role instructions. Use summary for a short one-line duty to introduce yourself to the team. Preserve existing responsibilities unless corrected.',
           'Remember a durable lesson for this role. Supply the lesson in plain text.',
           'Record a temporary note for the linked team only.',
           'Correct one saved lesson by its memoryId from your profile. Supply its revised title and full content.',
@@ -215,11 +216,14 @@ export class TrainingRuntime {
             return (await this.addNote({ runId: row.sourceRunId, content })).noteId
           }
           if (name === 'update_role') {
-            const { name: displayName, body } = inputs[0].parse(args)
+            const { name: displayName, summary, body } = inputs[0].parse(args)
             const meta = base
               ? parseMarkdown(base.text, roleMeta, row.roleId, 'role.md').meta
               : { id: row.roleId }
-            const next = serializeMarkdown({ ...meta, name: displayName }, body)
+            const next = serializeMarkdown(
+              { ...meta, name: displayName, ...(summary !== undefined && { summary }) },
+              body,
+            )
             const result = await this.roles.saveDocument({
               ...ref,
               text: next,

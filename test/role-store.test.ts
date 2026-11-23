@@ -1,4 +1,14 @@
-import { mkdir, mkdtemp, readFile, readdir, rename, rm, stat, symlink, writeFile } from 'node:fs/promises'
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { memoryMeta, roleMeta } from '../src/shared/index.js'
@@ -124,9 +134,9 @@ it('publishes a manual atomic editor save through the watcher without explicit s
   await rename(join(dir, '.editor'), join(dir, 'role.md'))
   await vi.waitFor(
     async () =>
-      expect(JSON.parse(await readFile(join(dir, 'snapshots/rev-0002.json'), 'utf8')).role.body).toContain(
-        '外部修改',
-      ),
+      expect(
+        JSON.parse(await readFile(join(dir, 'snapshots/rev-0002.json'), 'utf8')).role.body,
+      ).toContain('外部修改'),
     { timeout: 5000 },
   )
   expect((await store.rescan())[0].publishedRevision).toBe(2)
@@ -151,7 +161,11 @@ it('removes memories and retires roles while retaining pinned snapshots', async 
   await save(card)
   await save(memory('published'), null, 'budget')
   expect(
-    await store.deleteDocument({ roleId, memoryId: 'budget', expectedHash: digest(memory('published')) }),
+    await store.deleteDocument({
+      roleId,
+      memoryId: 'budget',
+      expectedHash: digest(memory('published')),
+    }),
   ).toMatchObject({ ok: true })
   expect(await store.listMemories(roleId)).toEqual([])
   expect(await store.deleteDocument({ roleId, expectedHash: digest(card) })).toMatchObject({ ok: true })
@@ -177,4 +191,28 @@ it('rejects links at the role, memory directory, document and snapshot boundarie
   await rm(join(root, roleId, 'snapshots'), { recursive: true })
   await symlink(outside, join(root, roleId, 'snapshots'), 'dir')
   await expect(store.readSnapshot(roleId, 1)).rejects.toThrow()
+})
+
+it('restores a recent distinct role setting as a new revision, preserving experience and checking for conflicts', async () => {
+  let hash: string | null = null
+  for (let i = 1; i <= 13; i++) {
+    const result = await save(serializeMarkdown({ ...role, summary: 'Duty ' + i }, 'Details ' + i), hash)
+    if (!result.ok) throw Error('Fixture write failed')
+    hash = result.hash
+  }
+  await save(memory('published'), null, 'budget')
+  const history = await store.roleHistory(roleId)
+  expect(history.map((s) => s.publishedRevision)).toEqual([12, 11, 10, 9, 8, 7, 6, 5, 4, 3])
+  expect(await store.restoreRole(roleId, 4, digest('stale'))).toMatchObject({
+    ok: false,
+    code: 'conflict',
+  })
+  await expect(store.restoreRole(roleId, 1, hash!)).rejects.toThrow()
+  expect(await store.restoreRole(roleId, 4, hash!)).toMatchObject({
+    ok: true,
+    status: { publishedRevision: 15 },
+  })
+  const restored = await store.readSnapshot(roleId, 15)
+  expect(restored.role).toMatchObject({ meta: { summary: 'Duty 4' }, body: 'Details 4' })
+  expect(restored.memories).toHaveLength(1)
 })

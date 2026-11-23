@@ -99,9 +99,11 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
     })
     const injected = new Set<string>()
     const plugin = factory!((id) => {
-      expect(['react', 'react/jsx-runtime', 'zod']).toContain(id)
+      expect(['@deepseek-ai/dsh-client-ui-primitives', 'react', 'react/jsx-runtime', 'zod']).toContain(
+        id,
+      )
       injected.add(id)
-      return require(id)
+      return id === '@deepseek-ai/dsh-client-ui-primitives' ? {} : require(id)
     })
     // Use the published renderer's SlotRegistry and Cordis lifecycle with the packaged browser factory.
     type Renderer = typeof import('@deepseek-ai/dsh-client-ui-renderer/client')
@@ -156,7 +158,12 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
       await settingsOwner.dispose()
       await vi.waitFor(() => expect(clientCtx.slots.entriesOfSlot('settings.section')).toHaveLength(0))
       expect(clientCtx.slots.entriesOfSlot('main')).toHaveLength(1)
-      expect([...injected].sort()).toEqual(['react', 'react/jsx-runtime', 'zod'])
+      expect([...injected].sort()).toEqual([
+        '@deepseek-ai/dsh-client-ui-primitives',
+        'react',
+        'react/jsx-runtime',
+        'zod',
+      ])
       await clientFiber.dispose()
       expect(clientCtx.slots.entriesOfSlot('main')).toHaveLength(0)
     } finally {

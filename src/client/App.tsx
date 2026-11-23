@@ -45,7 +45,7 @@ export function App() {
   const path = useLoad('path', () => call('libraryInfo', {}))
   return (
     <main className="rt-app">
-      <header className="rt-top">
+      <header className="rt-top" data-window-drag>
         <h1>{t('title')}</h1>
         <nav>
           {(['teams', 'library'] as const).map((k) => (

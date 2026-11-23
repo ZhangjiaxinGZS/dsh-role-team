@@ -19,13 +19,17 @@ import {
   type RoleStatus,
   type Snapshot,
 } from '../../shared/index.js'
-import { digest, DocumentError, parseMarkdown } from './markdown.js'
+import { digest, DocumentError, parseMarkdown, serializeMarkdown } from './markdown.js'
 import { directory, readFileText, stageText } from './files.js'
 
 export const defaultRoleDir = () => join(homedir(), '.dsh-role-team', 'roles')
 const snapshotName = (rev: number) => 'rev-' + String(rev).padStart(4, '0') + '.json'
 
 export class RoleStore {
+  private readonly current = new Map<string, Snapshot>()
+  published(roleId: string) {
+    return this.current.get(roleId)
+  }
   private watcher?: FSWatcher
   private interval?: NodeJS.Timeout
   private debounce?: NodeJS.Timeout
@@ -34,7 +38,6 @@ export class RoleStore {
   private constructor(
     readonly root: string,
     private readonly onError: (error: unknown) => void,
-    private readonly observed?: (status: RoleStatus) => Promise<void>,
   ) {}
 
   static async open(
@@ -42,7 +45,6 @@ export class RoleStore {
     options: {
       scanIntervalMs?: number
       onError?: (error: unknown) => void
-      observed?: (status: RoleStatus) => Promise<void>
     } = {},
   ) {
     if (!isAbsolute(path)) throw new Error('roleStoreDir must be an absolute path')
@@ -52,7 +54,6 @@ export class RoleStore {
     const store = new RoleStore(
       await realpath(configured),
       options.onError ?? ((error) => console.error(error)),
-      options.observed,
     )
     try {
       await store.rescan()
@@ -163,6 +164,31 @@ export class RoleStore {
       return this.snapshot(archived ?? (await this.rolePath(roleId)), roleId, rev)
     })
   }
+  roleHistory(roleId: string) {
+    return this.locked(async () => {
+      const dir = await this.rolePath(roleId)
+      const head = await this.latest(dir)
+      const history: Pick<Snapshot, 'role' | 'publishedAt' | 'publishedRevision'>[] = []
+      if (!head) return history
+      let last = (await this.snapshot(dir, roleId, head)).role
+      for (let rev = head - 1; rev >= 1 && history.length < 10; rev--) {
+        const { role, publishedAt, publishedRevision } = await this.snapshot(dir, roleId, rev)
+        if (JSON.stringify(role) === JSON.stringify(last)) continue
+        history.push({ role, publishedAt, publishedRevision })
+        last = role
+      }
+      return history
+    })
+  }
+  async restoreRole(roleId: string, rev: number, expectedHash: string) {
+    const target = (await this.roleHistory(roleId)).find((r) => r.publishedRevision === rev)
+    if (!target) throw new Error('This role version is no longer in the recent history')
+    return this.change(
+      { roleId, expectedHash },
+      serializeMarkdown(target.role.meta, target.role.body),
+      true,
+    )
+  }
   private async retiredRole(roleId: string) {
     const dir = join(this.root, '.retired')
     if (!(await directory(dir))) return null
@@ -170,13 +196,18 @@ export class RoleStore {
     return (await directory(archived)) ? archived : null
   }
 
-  private async publish(roleId: string): Promise<RoleStatus> {
+  private async publish(roleId: string, force = false): Promise<RoleStatus> {
     const role = await this.rolePath(roleId)
     let previous: number | null = null
     let file = join(role, 'snapshots')
     try {
       if (await this.retiredRole(roleId)) throw new Error('Role ID is retired: ' + roleId)
       previous = await this.latest(role)
+      let last = this.current.get(roleId)
+      if (previous !== null && last?.publishedRevision !== previous) {
+        last = await this.snapshot(role, roleId, previous)
+        this.current.set(roleId, last)
+      }
       file = join(role, 'role.md')
       const source = await readFileText(file)
       if (!source) throw new Error('role.md is missing')
@@ -194,7 +225,7 @@ export class RoleStore {
           memories.push({ meta: { ...memory.meta, status: 'published' }, body: memory.body })
       }
       const sourceHash = digest(JSON.stringify(hashes))
-      if (previous !== null && (await this.snapshot(role, roleId, previous)).sourceHash === sourceHash)
+      if (!force && previous !== null && last?.sourceHash === sourceHash)
         return { roleId, publishedRevision: previous, error: null }
       const next = (previous ?? 0) + 1
       const value: Snapshot = {
@@ -217,6 +248,7 @@ export class RoleStore {
       } finally {
         await staged.discard()
       }
+      this.current.set(roleId, value)
       return { roleId, publishedRevision: next, error: null }
     } catch (error) {
       return {
@@ -236,7 +268,6 @@ export class RoleStore {
       for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
         if (!fileId.safeParse(entry.name).success || !entry.isDirectory()) continue
         const status = await this.publish(entry.name)
-        await this.observed?.(status)
         result.push(status)
       }
       return result
@@ -252,6 +283,7 @@ export class RoleStore {
   private change(
     ref: FileRef & { expectedHash: string | null },
     proposed: string | null,
+    restore = false,
   ): Promise<EditResult> {
     return this.locked(async () => {
       const create = ref.expectedHash === null
@@ -261,9 +293,13 @@ export class RoleStore {
       const existingPath = await this.documentPath(ref)
       const check = async (): Promise<EditResult | null> => {
         const current = await readFileText(existingPath)
-        if (current && (memoryId !== undefined || ref.expectedHash !== null) && proposed === current.text) {
+        if (
+          !restore &&
+          current &&
+          (memoryId !== undefined || ref.expectedHash !== null) &&
+          proposed === current.text
+        ) {
           const status = await this.publish(roleId)
-          await this.observed?.(status)
           if (status.error) return { ok: false, code: 'invalid', error: status.error }
           return { ok: true, hash: current.hash, status }
         }
@@ -308,8 +344,7 @@ export class RoleStore {
       } else {
         await unlink(existingPath)
       }
-      const status = await this.publish(roleId)
-      await this.observed?.(status)
+      const status = await this.publish(roleId, restore)
       return {
         ok: true,
         status,

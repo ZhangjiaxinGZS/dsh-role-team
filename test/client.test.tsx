@@ -13,6 +13,36 @@ import { TrainingDetail, TrainingPanel } from '../src/client/roles/Training.js'
 import { TeamSetup } from '../src/client/team-setup/TeamSetup.js'
 import { serializeMarkdown } from '../src/shared/markdown.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
+// The browser supplies the shared menu. Exercise the catalog and selection callbacks here.
+vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
+  IconChevronDownOutlineRegular: () => null,
+  Menu: ({
+    anchor,
+    open,
+    items,
+    onSelect,
+  }: {
+    anchor: ReactNode
+    open: boolean
+    items: { id: string; submenu?: { id: string; label: string }[] }[]
+    onSelect: (id: string) => void
+  }) => (
+    <>
+      {anchor}
+      {open && (
+        <div role="menu">
+          {items
+            .flatMap((i) => i.submenu ?? [])
+            .map((i) => (
+              <button key={i.id} role="menuitem" onClick={() => onSelect(i.id)}>
+                {i.label}
+              </button>
+            ))}
+        </div>
+      )}
+    </>
+  ),
+}))
 afterEach(cleanup)
 const Scope = createContext('')
 const seat = (sid: string, parent: string | null): Seat => ({
@@ -158,12 +188,8 @@ it('routes each column, guards the lead, and rebinds reset and read-only history
   expect(scout.queryByRole('combobox')).toBeNull()
   expect(scout.getByText(en.ui.followLeader)).toBeTruthy()
   fireEvent.click(scout.getByTitle(en.ui.chooseModel))
-  const picker = within(screen.getByRole('dialog'))
-  const option = await picker.findByRole('option', { name: 'demo · Flash' })
-  fireEvent.change(picker.getByRole('combobox'), {
-    target: { value: (option as HTMLOptionElement).value },
-  })
-  fireEvent.click(picker.getByText(en.ui.save))
+  const picker = within(screen.getByRole('menu'))
+  fireEvent.click(await picker.findByRole('menuitem', { name: 'Flash' }))
   await waitFor(() =>
     expect(call).toHaveBeenCalledWith('selectSeatModel', {
       seatId: 'scout',
@@ -171,14 +197,12 @@ it('routes each column, guards the lead, and rebinds reset and read-only history
       selection: { provider: 'demo', model: 'flash', reasoningEffort: undefined },
     }),
   )
-  fireEvent.click(scout.getByText(en.ui.next))
-  await waitFor(() =>
-    expect(call).toHaveBeenCalledWith('versionDecision', {
-      seatId: 'scout',
-      revision: 2,
-      decision: 'next-turn',
-    }),
-  )
+  expect(scout.queryByText(en.ui.next)).toBeNull()
+  expect(document.querySelector('.rt-chips')).toBeNull()
+  fireEvent.click(screen.getByLabelText(en.ui.collapseTeams))
+  expect(screen.queryByLabelText(en.ui.teamsList)).toBeNull()
+  fireEvent.click(screen.getByLabelText(en.ui.expandTeams))
+  expect(screen.getByLabelText(en.ui.teamsList)).toBeTruthy()
   fireEvent.click(scout.getByLabelText(en.ui.reset))
   const dialog = within(screen.getByRole('dialog'))
   fireEvent.change(dialog.getByRole('textbox'), { target: { value: 'handoff' } })
@@ -343,7 +367,7 @@ it('loads notes only for the selected team and releases the old root on a switch
   await screen.findByText('stream:alpha-session')
   fireEvent.click(screen.getByText(en.ui.board))
   await screen.findByText('ALPHA-9527')
-  fireEvent.change(screen.getByLabelText(en.ui.chooseTeam), { target: { value: 'beta' } })
+  fireEvent.click(within(screen.getByLabelText(en.ui.teamsList)).getByRole('button', { name: 'beta' }))
   await screen.findByText('stream:beta-session')
   expect(screen.queryByText('ALPHA-9527')).toBeNull()
   fireEvent.click(screen.getByText(en.ui.board))
@@ -380,6 +404,7 @@ it('creates and publishes the named role before opening its first independent co
   fireEvent.click(screen.getByRole('button', { name: /New role/ }))
   const form = within(screen.getByRole('dialog'))
   fireEvent.change(form.getByLabelText(en.ui.name), { target: { value: 'Author' } })
+  fireEvent.change(form.getByLabelText(en.ui.duty), { target: { value: 'Write stories' } })
   fireEvent.click(form.getByText(en.ui.create))
   await screen.findByText('stream:s')
   expect(call.mock.calls[0]).toEqual([
@@ -387,7 +412,7 @@ it('creates and publishes the named role before opening its first independent co
     expect.objectContaining({
       roleId: 'author',
       expectedHash: null,
-      text: expect.stringContaining('name: Author'),
+      text: expect.stringContaining('summary: Write stories'),
     }),
   ])
   expect(changed).toHaveBeenCalledOnce()
@@ -454,4 +479,42 @@ it('rebinds the only visible training chat and releases the previous session', a
   expect(screen.queryByText('stream:previous')).toBeNull()
   expect(screen.queryByRole('combobox')).toBeNull()
   expect(h.releases.get('previous')).toHaveBeenCalledOnce()
+})
+
+it('keeps the role editor across views and restores the chosen revision against the displayed file', async () => {
+  const changed = vi.fn()
+  const meta = { id: 'editor', name: 'Editor', summary: 'Edit' }
+  const file = { text: serializeMarkdown(meta, 'Current'), hash: 'f'.repeat(64) }
+  const call = vi.fn(async (method: string) => {
+    if (method === 'readDocument') return file
+    if (method === 'roleHistory')
+      return [2, 1].map((n) => ({
+        publishedRevision: n,
+        publishedAt: '2026-11-23T00:00:00Z',
+        role: { meta, body: 'Role version ' + n },
+      }))
+    if (method === 'restoreRole') return { ok: true, status: {} }
+    return []
+  })
+  harness(call).mount(
+    <RoleLibrary roles={[{ id: 'editor', name: 'Editor', revision: 3 }]} changed={changed} />,
+  )
+  const editor = await screen.findByDisplayValue('Current')
+  for (const mode of ['chatOnly', 'settingsOnly', 'splitView'] as const) {
+    fireEvent.click(screen.getByRole('button', { name: en.ui[mode] }))
+    expect(editor.closest('.rt-split')?.getAttribute('data-view')).toBe(mode)
+    expect(editor.isConnected).toBe(true)
+  }
+  fireEvent.click(screen.getByRole('button', { name: en.ui.roleHistory }))
+  const history = within(screen.getByRole('dialog'))
+  await history.findByText('Role version 2')
+  fireEvent.change(history.getByRole('combobox'), { target: { value: '1' } })
+  await history.findByText('Role version 1')
+  fireEvent.click(history.getByRole('button', { name: en.ui.restoreRole }))
+  await waitFor(() => expect(changed).toHaveBeenCalledOnce())
+  expect(call).toHaveBeenCalledWith('restoreRole', {
+    roleId: 'editor',
+    revision: 1,
+    expectedHash: file.hash,
+  })
 })

@@ -6,6 +6,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react'
+import { Menu, IconChevronDownOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ModelChoice } from '../../shared/index.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -13,13 +14,14 @@ import type { PropsRuntime, PropsRenderFactories } from '@deepseek-ai/dsh-client
 import type { ConversationViewsProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-agent/types'
-import { useUi, Modal, Notice, useLoad, useAction, type Seat, type SessionTarget } from '../ui.js'
+import { useUi, Notice, useLoad, useAction, type Seat, type SessionTarget } from '../ui.js'
 
 export type Pane = {
   target: SessionTarget
   seat?: Seat
   permission?: string
   readOnly?: boolean
+  onSelection?: () => void
   onToolResult?: () => void
 }
 export function targetId(target: SessionTarget) {
@@ -32,7 +34,7 @@ export const sessionTarget = (id: string, parent?: string | null): SessionTarget
 export function SessionPane(props: Pane) {
   return <BoundPane key={targetId(props.target)} {...props} />
 }
-function BoundPane({ target, seat, permission, readOnly = false, onToolResult }: Pane) {
+function BoundPane({ target, seat, permission, readOnly = false, onSelection, onToolResult }: Pane) {
   const { retain, SessionProvider, chat, t } = useUi(),
     [reference, setReference] = useState<SessionReference>(),
     [error, setError] = useState(''),
@@ -95,7 +97,9 @@ function BoundPane({ target, seat, permission, readOnly = false, onToolResult }:
         <History reference={reference} />
       ) : (
         <section className="rt-session">
-          <PaneContext.Provider value={{ reference, seat, permission }}>{chat()}</PaneContext.Provider>
+          <PaneContext.Provider value={{ reference, seat, permission, onSelection }}>
+            {chat()}
+          </PaneContext.Provider>
         </section>
       )}
     </SessionProvider>
@@ -103,6 +107,7 @@ function BoundPane({ target, seat, permission, readOnly = false, onToolResult }:
 }
 const PaneContext = createContext<{
   reference: SessionReference
+  onSelection?: () => void
   seat?: Seat
   permission?: string
 } | null>(null)
@@ -132,18 +137,28 @@ export function SessionChat(props: PropsRuntime<'roleTeam.chat'> & PropsRenderFa
 export function ChildControls(props: PropsRuntime<'conversation.input.right'>) {
   const pane = useContext(PaneContext)
   return pane?.seat?.parentSeatId && pane.reference.sessionId === props.sessionId ? (
-    <MemberSettings permission={pane.permission} seat={pane.seat} {...props} />
+    <MemberSettings
+      permission={pane.permission}
+      onSelection={pane.onSelection}
+      seat={pane.seat}
+      {...props}
+    />
   ) : null
 }
 function MemberSettings({
   seat,
   permission,
   useProjection,
-}: PropsRuntime<'conversation.input.right'> & { seat: Seat; permission?: string }) {
+  onSelection,
+}: PropsRuntime<'conversation.input.right'> & {
+  seat: Seat
+  permission?: string
+  onSelection?: () => void
+}) {
   const { t, call } = useUi(),
     action = useAction()
   const [open, toggle] = useState(false)
-  const models = useLoad(String(open), () => (open ? call('seatModels', {}) : Promise.resolve([])))
+  const models = useLoad(seat.seatId, () => call('seatModels', {}))
   const projection = useProjection('modelSelection')
   const current = seat.selection ?? projection?.next ?? projection?.lastUsed
   const permissions = useProjection('permissions') as { currentValue: string } | undefined
@@ -154,98 +169,76 @@ function MemberSettings({
     'read-only': t('readOnlyMode'),
     auto: t('autoMode'),
   }
-  const [draft, setDraft] = useState<ModelChoice>()
-  const selected = models.data?.find((m) => m.provider === draft?.provider && m.model === draft?.model)
-  const apply = (provider: string, model: string, reasoningEffort?: string) =>
-    action.run(async () => {
-      await call('selectSeatModel', {
-        seatId: seat.seatId,
-        generation: seat.currentGeneration,
-        selection: { provider, model, reasoningEffort },
-      })
-      toggle(false)
-    })
+  const catalog = models.data ?? []
+  const selected = catalog.find((m) => m.provider === current?.provider && m.model === current?.model)
+  const effort = current?.reasoningEffort ?? selected?.defaultEffort
+  const choices = new Map<string, ModelChoice>()
+  const modelItems = catalog.map((m) => {
+    const id = JSON.stringify([m.provider, m.model])
+    choices.set(id, { provider: m.provider, model: m.model, reasoningEffort: m.defaultEffort })
+    return { id, label: m.name }
+  })
+  const effortItems =
+    selected?.efforts.map((e) => {
+      const id = 'effort/' + e.id
+      choices.set(id, { provider: selected.provider, model: selected.model, reasoningEffort: e.id })
+      return { id, label: e.name }
+    }) ?? []
+  const items = !modelItems.length
+    ? [{ id: 'empty', label: models.error || t(models.data ? 'noModels' : 'loading'), disabled: true }]
+    : [
+        { id: 'models', label: t('chooseModel'), submenu: modelItems },
+        ...(effortItems.length ? [{ id: 'efforts', label: t('effort'), submenu: effortItems }] : []),
+      ]
   return (
     <span className="rt-child-settings">
       <small title={t('followLeader')}>
         {t('followLeader')}
         {mode && ' · ' + (modes[mode as keyof typeof modes] ?? mode)}
       </small>
-      <button
-        type="button"
-        title={t('chooseModel')}
-        onClick={() => {
-          setDraft(current ?? undefined)
-          toggle(true)
+      <Menu
+        open={open}
+        portal
+        side="top"
+        align="end"
+        compact
+        autoFocus
+        items={items}
+        selectedIds={[JSON.stringify([current?.provider, current?.model]), 'effort/' + effort]}
+        onClose={() => toggle(false)}
+        onSelect={(id) => {
+          const selection = choices.get(id)
+          if (selection)
+            void action.run(async () => {
+              await call('selectSeatModel', {
+                seatId: seat.seatId,
+                generation: seat.currentGeneration,
+                selection,
+              })
+              onSelection?.()
+              toggle(false)
+            })
         }}
-      >
-        {current?.model ?? t('chooseModel')}
-        {current?.reasoningEffort && ' · ' + current.reasoningEffort} ▾
-      </button>
-      {open && (
-        <Modal title={t('chooseModel')} close={() => toggle(false)} locked={action.busy}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (draft && selected) void apply(draft.provider, draft.model, draft.reasoningEffort)
+        anchor={
+          <button
+            type="button"
+            className="rt-model-trigger"
+            title={t('chooseModel')}
+            aria-haspopup="menu"
+            aria-expanded={open}
+            disabled={action.busy}
+            onClick={() => {
+              if (!open) models.refresh()
+              toggle(!open)
             }}
           >
-            <label>
-              {t('chooseModel')}
-              <select
-                disabled={action.busy}
-                value={selected ? JSON.stringify([selected.provider, selected.model]) : ''}
-                onChange={(e) => {
-                  const [provider, model] = JSON.parse(e.target.value)
-                  setDraft({ provider, model })
-                }}
-              >
-                <option value="" disabled>
-                  {t('chooseModel')}
-                </option>
-                {models.data?.map((m) => (
-                  <option
-                    key={JSON.stringify([m.provider, m.model])}
-                    value={JSON.stringify([m.provider, m.model])}
-                  >
-                    {m.provider} · {m.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {!!selected?.efforts.length && (
-              <label>
-                {t('effort')}
-                <select
-                  disabled={action.busy}
-                  value={draft?.reasoningEffort ?? ''}
-                  onChange={(e) =>
-                    setDraft({
-                      provider: selected.provider,
-                      model: selected.model,
-                      reasoningEffort: e.target.value || undefined,
-                    })
-                  }
-                >
-                  <option value="">{t('modelDefault')}</option>
-                  {selected.efforts.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {models.data?.length === 0 && <small>{t('noModels')}</small>}
-            <Notice>{models.error || action.error}</Notice>
-            <footer>
-              <button className="rt-primary" disabled={!selected || action.busy}>
-                {t('save')}
-              </button>
-            </footer>
-          </form>
-        </Modal>
-      )}
+            <span>{selected?.name ?? current?.model ?? t('chooseModel')}</span>
+            <small>{selected?.efforts.find((e) => e.id === effort)?.name ?? effort}</small>
+            <IconChevronDownOutlineRegular aria-hidden="true" size={12} />
+          </button>
+        }
+      />
+      <Notice>{action.error}</Notice>
     </span>
   )
 }

@@ -153,6 +153,21 @@
     "remember": "Remember",
     "editExperience": "Edit experience",
     "rememberHint": "Ask the role to remember a lesson in your conversation. It will appear here.",
-    "optionalTitle": "Add a title (optional)"
+    "optionalTitle": "Add a title (optional)",
+    "chatOnly": "Full chat",
+    "splitView": "Split view",
+    "settingsOnly": "Full settings",
+    "roleView": "Role view",
+    "duty": "Duty summary",
+    "roleHistory": "Setting history",
+    "restoreRole": "Restore these settings",
+    "noVersions": "No previous settings yet.",
+    "finishEditing": "Save your edits before restoring settings.",
+    "restoreConflict": "The settings changed. Reopen history to review the latest version.",
+    "teamsList": "Teams",
+    "expandTeams": "Expand team list",
+    "collapseTeams": "Collapse team list",
+    "archiveTeam": "Archive team",
+    "archiveTeamHint": "Archive this team and stop its active sessions?"
   }
 }
