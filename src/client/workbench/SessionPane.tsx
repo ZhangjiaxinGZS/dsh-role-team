@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import {
   Menu,
   Tooltip,
@@ -24,6 +24,7 @@ export type Pane = {
   leaderSessionId?: string
   readOnly?: boolean
   onSelection?: () => void
+  focusOnOpen?: boolean
   onToolResult?: () => void
 }
 export function targetId(target: SessionTarget) {
@@ -76,9 +77,37 @@ function BoundPane({
   readOnly = false,
   onSelection,
   onToolResult,
+  focusOnOpen,
 }: Pane) {
   const { SessionProvider, chat, t } = useUi()
   const { reference, error, retry } = useRetainedSession(target)
+  const container = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const pane = container.current
+    if (!focusOnOpen || !reference || !pane) return
+    const focusEditor = () => {
+      const editor = pane.querySelector<HTMLElement>('[data-composer-input]')
+      if (!editor) return false
+      const active = document.activeElement
+      if (
+        editor.getClientRects().length &&
+        (!active ||
+          active === document.body ||
+          active.matches(
+            '.rt-top button, .rt-rolelist .rt-list-row > button, .rt-rolelist header button, .rt-detail > header .rt-primary, .rt-pane-status button',
+          ))
+      ) {
+        editor.focus({ preventScroll: true })
+      }
+      return true
+    }
+    if (focusEditor()) return
+    const observer = new MutationObserver(() => {
+      if (focusEditor()) observer.disconnect()
+    })
+    observer.observe(pane, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [focusOnOpen, reference])
   useEffect(() => {
     if (!reference || !onToolResult) return
     const source = reference.binding.eventSource
@@ -107,7 +136,7 @@ function BoundPane({
     )
   return (
     <SessionProvider session={reference}>
-      <section className="rt-session" aria-label={readOnly ? t('readOnly') : undefined}>
+      <section ref={container} className="rt-session" aria-label={readOnly ? t('readOnly') : undefined}>
         <PaneContext.Provider
           value={{
             reference,

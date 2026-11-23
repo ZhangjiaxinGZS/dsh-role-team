@@ -155,6 +155,11 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     return this.runtime.training.rememberExperience(roleId, body, title)
   }
 
+  @Remote async openTraining(request: Input<'openTraining'>) {
+    return this.runtime.ordered('training/' + request.roleId, () =>
+      this.runtime.training.openTraining(request),
+    )
+  }
   @Remote async createTraining(request: Input<'createTraining'>) {
     return this.runtime.ordered('training/' + request.roleId, () =>
       this.runtime.training.createTraining(request),

@@ -6,23 +6,20 @@ import { IconPlusOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { MoreMenu, Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
 import type { RoleChoice } from '../team-setup/TeamSetup.js'
 import { Documents } from './DocumentEditor.js'
-import { TrainingPanel } from './Training.js'
+import { TrainingDetail } from './Training.js'
 export type LibraryRole = RoleChoice & { error?: Diagnostic | null; empty?: boolean }
 export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[]; changed: () => void }) {
   const { t, call } = useUi(),
-    [view, setView] = useState<'chatOnly' | 'splitView' | 'settingsOnly'>('splitView'),
+    [view, setView] = useState<RoleView>('splitView'),
     [role, setRole] = useState(''),
-    [session, setSession] = useState<{ roleId: string; trainingId: string }>(),
     [modal, setModal] = useState(''),
     [deleting, setDeleting] = useState<LibraryRole>(),
     [deleted, setDeleted] = useState<string[]>([]),
-    [startError, setStartError] = useState(''),
     roles = catalog.filter((r) => !deleted.includes(r.id)),
     id = role || roles[0]?.id
   const active = roles.find((r) => r.id === id)
   return (
     <section className="rt-library">
-      <Notice>{startError}</Notice>
       <div className="rt-library-grid">
         <aside className="rt-rolelist rt-list" aria-label={t('rolesList')}>
           <header>
@@ -42,7 +39,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
                 aria-current={id === r.id ? 'page' : undefined}
                 onClick={() => {
                   setRole(r.id)
-                  setSession(undefined)
+                  if (view === 'settingsOnly') setView('splitView')
                 }}
               >
                 {r.name}
@@ -52,39 +49,15 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
           ))}
         </aside>
         {id ? (
-          <div className="rt-detail" key={id}>
-            <header>
-              <div className="rt-row">
-                <h2>{active?.name ?? id}</h2>
-              </div>
-              <div className="rt-segment" role="group" aria-label={t('roleView')}>
-                {(['chatOnly', 'splitView', 'settingsOnly'] as const).map((mode) => (
-                  <button key={mode} aria-pressed={view === mode} onClick={() => setView(mode)}>
-                    {t(mode)}
-                  </button>
-                ))}
-              </div>
-              {active && (
-                <MoreMenu name={active.name} actions={{ deleteRole: () => setDeleting(active) }} />
-              )}
-            </header>
-            {active?.error && (
-              <Notice>
-                {active.error.file} · {t('line')} {active.error.line} · {active.error.message}
-              </Notice>
-            )}
-            <div className="rt-split" data-view={view}>
-              <TrainingPanel
-                key={id + (session?.roleId === id ? session.trainingId : '')}
-                roleId={id}
-                empty={active?.empty}
-                hasRole={active?.revision != null}
-                initialId={session?.roleId === id ? session.trainingId : undefined}
-                changed={changed}
-              />
-              <Documents roleId={id} revision={active?.revision ?? null} changed={changed} />
-            </div>
-          </div>
+          <RoleDetail
+            key={id}
+            id={id}
+            active={active}
+            view={view}
+            setView={setView}
+            setDeleting={setDeleting}
+            changed={changed}
+          />
         ) : (
           <div className="rt-empty">
             <h2>{t('emptyRoles')}</h2>
@@ -100,9 +73,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
             setDeleted((previous) => [...previous, deleting.id])
             if (deleting.id === id) {
               setRole(roles.find((r) => r.id !== deleting.id)?.id ?? '')
-              setSession(undefined)
             }
-            setStartError('')
             setDeleting(undefined)
             changed()
           }}
@@ -121,20 +92,88 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
             if (!result.ok)
               throw new Error(result.code === 'conflict' ? t('duplicateRole') : result.error.message)
             setRole(id)
-            setSession(undefined)
+            if (view === 'settingsOnly') setView('splitView')
             changed()
             setModal('')
-            // Keep a successfully created role visible even if its first conversation cannot start.
-            try {
-              const row = await call('createTraining', { roleId: id, mode: 'coach' })
-              setSession(row)
-            } catch (error) {
-              setStartError(String(error))
-            }
           }}
         />
       )}
     </section>
+  )
+}
+type RoleView = 'chatOnly' | 'splitView' | 'settingsOnly'
+function RoleDetail({
+  id,
+  active,
+  view,
+  setView,
+  setDeleting,
+  changed,
+}: {
+  id: string
+  active?: LibraryRole
+  view: RoleView
+  setView: (view: RoleView) => void
+  setDeleting: (role: LibraryRole) => void
+  changed: () => void
+}) {
+  const { t, call } = useUi()
+  const training = useLoad(id, () => call('openTraining', { roleId: id }), 2400)
+  const start = useAction()
+  return (
+    <div className="rt-detail">
+      <header>
+        <div className="rt-row">
+          <h2>{active?.name ?? id}</h2>
+        </div>
+        <button
+          className="rt-primary"
+          title={t('freshChatHint')}
+          disabled={start.busy || !training.data?.trainingId}
+          onClick={() =>
+            start.run(async () => {
+              await call('createTraining', {
+                roleId: id,
+                mode: active?.revision == null && active ? 'create' : 'coach',
+              })
+              if (view === 'settingsOnly') setView('splitView')
+              training.refresh()
+            })
+          }
+        >
+          {t('newTraining')}
+        </button>
+        <div className="rt-segment" role="group" aria-label={t('roleView')}>
+          {(['chatOnly', 'splitView', 'settingsOnly'] as const).map((mode) => (
+            <button key={mode} aria-pressed={view === mode} onClick={() => setView(mode)}>
+              {t(mode)}
+            </button>
+          ))}
+        </div>
+        {active && <MoreMenu name={active.name} actions={{ deleteRole: () => setDeleting(active) }} />}
+      </header>
+      {active?.error && (
+        <Notice>
+          {active.error.file} · {t('line')} {active.error.line} · {active.error.message}
+        </Notice>
+      )}
+      <div className="rt-split" data-view={view}>
+        <section className="rt-training">
+          <Notice>{training.error || start.error}</Notice>
+          {training.error && <button onClick={training.refresh}>{t('retry')}</button>}
+          {active?.empty && <p className="rt-intro">{t('firstTopic')}</p>}
+          {training.data?.trainingId && (
+            <TrainingDetail
+              key={training.data.trainingId}
+              row={training.data}
+              refresh={training.refresh}
+              changed={changed}
+            />
+          )}
+        </section>
+        <Documents roleId={id} revision={active?.revision ?? null} changed={changed} />
+      </div>
+    </div>
   )
 }
 function DeleteRole({ role, close, done }: { role: LibraryRole; close: () => void; done: () => void }) {

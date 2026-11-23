@@ -14,7 +14,6 @@ import {
 } from '../src/client/workbench/SessionPane.js'
 import { LibrarySettings } from '../src/client/App.js'
 import { DocumentEditor, Documents } from '../src/client/roles/DocumentEditor.js'
-import { TrainingDetail, TrainingPanel } from '../src/client/roles/Training.js'
 import { TeamSetup } from '../src/client/team-setup/TeamSetup.js'
 import { serializeMarkdown } from '../src/shared/markdown.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -358,13 +357,18 @@ it('reviews each proposal only in its training session', async () => {
     { id: 'two', status: 'pending', diff: '+habit', memoryId: 'habit' },
   ]
   const call = vi.fn(async (method: string, input: { proposalId?: string }) => {
-    if (method === 'getTraining') return { sessionId: 'training', proposals: [...proposals] }
+    if (method === 'openTraining')
+      return { trainingId: 'train-id', sessionId: 'training', proposals: [...proposals] }
+    if (method === 'listMemories') return []
+    if (method === 'readDocument') return null
     proposals.find((p) => p.id === input.proposalId)!.status =
       method === 'confirmProposal' ? 'confirmed' : 'rejected'
     return { ok: true }
   })
   const changed = vi.fn()
-  harness(call).mount(<TrainingDetail trainingId="train-id" changed={changed} />)
+  harness(call).mount(
+    <RoleLibrary roles={[{ id: 'editor', name: 'Editor', revision: 1 }]} changed={changed} />,
+  )
   const first = (await screen.findByText('+new role')).closest('article')!,
     second = screen.getByText('+habit').closest('article')!
   fireEvent.click(within(first).getByText(en.ui.approve))
@@ -462,8 +466,7 @@ it('creates and publishes the named role before opening its first independent co
   const changed = vi.fn()
   const call = vi.fn(async (method: string) => {
     if (method === 'saveDocument') return { ok: true }
-    if (method === 'createTraining') return { roleId: 'author', trainingId: 't' }
-    if (method === 'getTraining') return { sessionId: 's' }
+    if (method === 'openTraining') return { roleId: 'author', trainingId: 't', sessionId: 's' }
     return method === 'readDocument' ? null : []
   })
   harness(call).mount(<RoleLibrary roles={[]} changed={changed} />)
@@ -482,20 +485,23 @@ it('creates and publishes the named role before opening its first independent co
     }),
   ])
   expect(changed).toHaveBeenCalledOnce()
-  expect(call).toHaveBeenCalledWith('createTraining', { roleId: 'author', mode: 'coach' })
+  expect(call).toHaveBeenCalledWith('openTraining', { roleId: 'author' })
 })
 
 it('starts coaching immediately without a team debrief entry', async () => {
   const row = { trainingId: 't', sessionId: 'coach-session', roleId: 'author', mode: 'coach' }
   const call = vi.fn(async (method: string) => {
-    if (method === 'listTrainings') return []
-    if (method === 'listTeams') return [{ runId: 'run', title: 'Review team', status: 'active' }]
-    return row
+    if (method === 'openTraining') return row
+    return method === 'readDocument' ? null : []
   })
-  harness(call).mount(<TrainingPanel roleId="author" hasRole changed={() => {}} />)
-  fireEvent.click(screen.getByRole('button', { name: en.ui.newTraining }))
+  harness(call).mount(
+    <RoleLibrary roles={[{ id: 'author', name: 'Author', revision: 1 }]} changed={() => {}} />,
+  )
   await screen.findByText('stream:coach-session')
-  expect(call).toHaveBeenCalledWith('createTraining', { roleId: 'author', mode: 'coach' })
+  const toolbar = screen.getByRole('heading', { name: 'Author' }).closest('header')!
+  expect(within(toolbar).getByRole('button', { name: en.ui.newTraining })).toBeTruthy()
+  expect(screen.queryByRole('heading', { name: en.ui.training })).toBeNull()
+  expect(call).toHaveBeenCalledWith('openTraining', { roleId: 'author' })
   expect(call).not.toHaveBeenCalledWith('listTeams', {})
   expect(screen.queryByRole('dialog')).toBeNull()
   expect(screen.queryByRole('button', { name: en.ui.debrief })).toBeNull()
@@ -520,17 +526,18 @@ it('records a plain-language experience with one field, including for a legacy t
 it('rebinds the only visible training chat and releases the previous session', async () => {
   let current = { roleId: 'scout', trainingId: 'old', sessionId: 'previous' }
   const call = vi.fn(async (method: string) => {
-    if (method === 'listTrainings') return [current]
+    if (method === 'openTraining') return current
+    if (method === 'listMemories') return []
+    if (method === 'readDocument') return null
     if (method === 'createTraining') current = { ...current, trainingId: 'new', sessionId: 'fresh' }
     return current
   })
   const h = harness(call)
-  h.mount(<TrainingPanel roleId="scout" hasRole changed={() => {}} />)
+  h.mount(<RoleLibrary roles={[{ id: 'scout', name: 'Scout', revision: 1 }]} changed={() => {}} />)
   await screen.findByText('stream:previous')
   fireEvent.click(screen.getByRole('button', { name: en.ui.newTraining }))
   await screen.findByText('stream:fresh')
   expect(screen.queryByText('stream:previous')).toBeNull()
-  expect(screen.queryByRole('combobox')).toBeNull()
   expect(h.releases.get('previous')).toHaveBeenCalledOnce()
 })
 

@@ -82,7 +82,6 @@
 .rt-row,
 .rt-inline,
 .rt-column > header,
-.rt-training > header,
 .rt-docs > header,
 .rt-editor > footer,
 .rt-modal footer,
@@ -237,7 +236,6 @@ html[data-platform='darwin'] .rt-top {
   overflow-x: auto;
 }
 .rt-detail h2,
-.rt-training h3,
 .rt-docs h3,
 .rt-column h3 {
   font-size: 14px;
@@ -319,7 +317,6 @@ html[data-platform='darwin'] .rt-top {
   border-inline-start: 1px solid var(--dsw-alias-border-l4);
 }
 .rt-column > header,
-.rt-training > header,
 .rt-docs > header {
   flex: none;
   padding: 6px 12px;
@@ -374,14 +371,12 @@ html[data-platform='darwin'] .rt-top {
   padding-bottom: 16px;
 }
 .rt-docs > header,
-.rt-training > header,
 .rt-editor > footer,
 .rt-experiences > header {
   justify-content: space-between;
 }
 .rt-experiences > header,
-.rt-editor > footer,
-.rt-training > header {
+.rt-editor > footer {
   flex-wrap: wrap;
 }
 .rt-editor,

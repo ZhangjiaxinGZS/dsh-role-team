@@ -426,6 +426,18 @@ it('replaces only the selected role chat and carries its self-authored profile i
   expect(messages).not.toContain('Ask for evidence.')
   expect(messages).not.toContain('discard-old-dialog-9527')
 })
+it('reuses the current training across concurrent opens, cold start and an explicit replacement', async () => {
+  const [a, b] = await Promise.all([service.openTraining({ roleId }), service.openTraining({ roleId })])
+  expect(a.sessionId).toBe(b.sessionId)
+  expect(await service.listTrainings({ roleId })).toHaveLength(1)
+  await ctx.fiber.dispose()
+  await boot()
+  expect((await service.openTraining({ roleId })).sessionId).toBe(a.sessionId)
+  const next = await service.createTraining({ roleId, mode: 'coach' })
+  expect(next.sessionId).not.toBe(a.sessionId)
+  expect((await service.openTraining({ roleId })).sessionId).toBe(next.sessionId)
+  expect(await service.listTrainings({ roleId })).toHaveLength(1)
+})
 it('finishes retiring an interrupted chat replacement on cold start', async () => {
   const first = await service.createTraining({ roleId, mode: 'coach' })
   const second = await service.createTraining({ roleId, mode: 'coach' })

@@ -93,6 +93,20 @@ export class TrainingRuntime {
     }
     for (const row of this.current(roleId)) await this.retirePrevious(row)
   }
+  async openTraining(request: Input<'openTraining'>) {
+    const current = (await this.listTrainings(request.roleId)).at(-1)
+    if (
+      current &&
+      !this.native.ctx.workspaceRegistry.archivedSessionIds.some((id) => id === current.sessionId)
+    ) {
+      await this.native.retryLegacySessions([current.sessionId])
+      return current
+    }
+    return this.createTraining({
+      ...request,
+      mode: current && !(await this.roles.readDocument({ roleId: request.roleId })) ? 'create' : 'coach',
+    })
+  }
   async createTraining(input: Input<'createTraining'>) {
     const { mode, sourceRunId } = input
     const roleId = fileId.parse(input.roleId)

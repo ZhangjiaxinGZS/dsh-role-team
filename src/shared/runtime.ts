@@ -78,6 +78,10 @@ export const runtimeMethods = {
     }),
     fileId,
   ],
+  openTraining: [
+    z.strictObject({ roleId: fileId, locale: conversationLocale.optional() }),
+    indexRecords.training_sessions,
+  ],
   createTraining: [
     z.strictObject({
       roleId: fileId,

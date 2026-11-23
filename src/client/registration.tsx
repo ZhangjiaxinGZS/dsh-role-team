@@ -50,7 +50,8 @@ function mount(ctx: Context) {
   })
   const t = ctx.locale.bind('roleTeam')
   const workspace = ctx.get('uiWorkspace') as
-    { pickDirectory?: () => Promise<string | null> } | undefined
+    | { pickDirectory?: () => Promise<string | null> }
+    | undefined
   const desktop = (
     globalThis as typeof globalThis & { __DSH_DIRECTORY_PICKER__?: { pick(): Promise<string | null> } }
   ).__DSH_DIRECTORY_PICKER__
@@ -60,7 +61,7 @@ function mount(ctx: Context) {
     retain: (target) => ctx.sessions.retain(target, options),
     call: (async (method, ...args) => {
       const input =
-        method === 'createTeam' || method === 'createTraining'
+        method === 'createTeam' || method === 'createTraining' || method === 'openTraining'
           ? [{ ...Object(args[0]), locale: ctx.locale.getLocale().active === 'zh' ? 'zh' : 'en' }]
           : args
       return unwrap(await Reflect.apply(ctx.remote.roleTeam[method], ctx.remote.roleTeam, input))
