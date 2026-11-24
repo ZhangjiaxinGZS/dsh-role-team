@@ -515,8 +515,7 @@ export function SeatResetModal({
   done: () => void
 }) {
   const { t, call } = useUi(),
-    a = useAction(),
-    [handoff, write] = useState(seat.reset?.handoff ?? '')
+    a = useAction()
   return (
     <Modal title={t('reset')} close={close} locked={a.busy}>
       <form
@@ -526,22 +525,13 @@ export function SeatResetModal({
             await call('resetSeat', {
               seatId: seat.seatId,
               generation: seat.currentGeneration,
-              handoff,
+              handoff: seat.reset?.handoff ?? '',
             })
             done()
           })
         }}
       >
-        <p>{t('resetHint')}</p>
-        <label>
-          {t('handoff')}
-          <textarea
-            maxLength={8000}
-            value={handoff}
-            readOnly={!!seat.reset}
-            onChange={(e) => write(e.target.value)}
-          />
-        </label>
+        <p>{t('resetHint').replace('{name}', () => seat.displayName)}</p>
         <Notice>{a.error}</Notice>
         <footer>
           <button type="button" onClick={close} disabled={a.busy}>
