@@ -470,6 +470,30 @@ it('reuses the current training across concurrent opens, cold start and an expli
   expect((await service.openTraining({ roleId })).sessionId).toBe(next.sessionId)
   expect(await service.listTrainings({ roleId })).toHaveLength(1)
 })
+it('starts coaching with full access and carries the native selection across restarts and replacements', async () => {
+  const permissions = async () => {
+    ctx.provide('shell', { sandboxMode: 'workspace-write' } as never)
+    ctx.provide('approval', { config: { policy: 'ask' } } as never)
+    await ctx.plugin(Permissions, {})
+    return ctx.permissionPresets
+  }
+  const presets = await permissions()
+  const first = await service.openTraining({ roleId })
+  const session = ctx.agents.get(first.sessionId as SessionId)!.session
+  expect(presets.current(session)).toBe('danger-full-access')
+  presets.set(session, 'workspace-write')
+  await ctx.fiber.dispose()
+  await boot()
+  const restored = await permissions()
+  const second = await service.createTraining({ roleId, mode: 'coach', expectedTrainingId: first.trainingId })
+  const next = ctx.agents.get(second.sessionId as SessionId)!.session
+  expect(restored.current(next)).toBe('workspace-write')
+  await expect(service.createTraining({ roleId, mode: 'coach', expectedTrainingId: first.trainingId })).rejects.toThrow(/already been replaced/)
+  expect((await service.openTraining({ roleId })).trainingId).toBe(second.trainingId)
+  restored.set(next, 'danger-full-access')
+  const third = await service.createTraining({ roleId, mode: 'coach', expectedTrainingId: second.trainingId })
+  expect(restored.current(ctx.agents.get(third.sessionId as SessionId)!.session)).toBe('danger-full-access')
+})
 it('finishes retiring an interrupted chat replacement on cold start', async () => {
   const first = await service.createTraining({ roleId, mode: 'coach' })
   const second = await service.createTraining({ roleId, mode: 'coach' })

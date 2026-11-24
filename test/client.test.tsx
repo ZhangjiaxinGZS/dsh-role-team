@@ -35,7 +35,7 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
     variant?: string
     size?: string
   }) => (
-    <button {...props}>
+    <button data-variant={variant} data-size={size} data-icon={!!icon} {...props}>
       {icon}
       {children}
     </button>
@@ -571,7 +571,18 @@ it('rebinds the only visible training chat and releases the previous session', a
   const h = harness(call)
   h.mount(<RoleLibrary roles={[{ id: 'scout', name: 'Scout', revision: 1 }]} changed={() => {}} />)
   await screen.findByText('stream:previous')
-  fireEvent.click(screen.getByRole('button', { name: en.ui.newTraining }))
+  const fresh = screen.getByRole('button', { name: en.ui.newTraining })
+  const supplement = screen.getByRole('button', { name: en.ui.newMemory })
+  for (const key of ['variant', 'size', 'icon']) expect(fresh.dataset[key]).toBe(supplement.dataset[key])
+  fireEvent.click(fresh)
+  const dialog = within(screen.getByRole('dialog', { name: en.ui.newTraining }))
+  expect(dialog.getByText(en.ui.freshChatHint)).toBeTruthy()
+  fireEvent.click(dialog.getByRole('button', { name: en.ui.cancel }))
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(screen.getByText('stream:previous')).toBeTruthy()
+  expect(call.mock.calls.some(([method]) => method === 'createTraining')).toBe(false)
+  fireEvent.click(fresh)
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: en.ui.confirm }))
   await screen.findByText('stream:fresh')
   expect(screen.queryByText('stream:previous')).toBeNull()
   expect(h.releases.get('previous')).toHaveBeenCalledOnce()

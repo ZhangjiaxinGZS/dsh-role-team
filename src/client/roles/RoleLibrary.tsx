@@ -2,7 +2,7 @@ import { rememberRoleView, useNavigation, useRoleView } from '../navigation.js'
 import { duplicateRoleName, roleNameKey } from '../../shared/index.js'
 import { useEffect, useState } from 'react'
 import type { Diagnostic } from '../../shared/index.js'
-import { IconPlusOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconPlusOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { MoreMenu, Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
 import type { RoleChoice } from '../team-setup/TeamSetup.js'
 import { Documents } from './DocumentEditor.js'
@@ -118,28 +118,51 @@ function RoleDetail({
   const [view, setView] = useRoleView(id)
   const training = useLoad(id, () => call('openTraining', { roleId: id }), 2400)
   const start = useAction()
+  const [replacing, setReplacing] = useState<string>()
   const chatActions = (
     <div className="rt-chat-actions">
-      <button
-        title={t('freshChatHint')}
+      <Button
+        size="sm"
+        variant="outline"
+        icon={<IconPlusOutlineRegular size={14} />}
         disabled={start.busy || !training.data?.trainingId}
-        onClick={() =>
-          start.run(async () => {
-            await call('createTraining', {
-              roleId: id,
-              mode: active?.revision == null && active ? 'create' : 'coach',
-            })
-            training.refresh()
-          })
-        }
+        onClick={() => {
+          start.clear()
+          setReplacing(training.data?.trainingId)
+        }}
       >
         {t('newTraining')}
-      </button>
+      </Button>
       {view === 'chatOnly' && <button onClick={() => setView('splitView')}>{t('card')}</button>}
     </div>
   )
   return (
     <div className="rt-detail">
+      {replacing && (
+        <Modal title={t('newTraining')} close={() => setReplacing(undefined)} locked={start.busy}>
+          <p>{t('freshChatHint')}</p>
+          <Notice>{start.error}</Notice>
+          <footer>
+            <Button variant="outline" data-modal-autofocus disabled={start.busy} onClick={() => setReplacing(undefined)}>
+              {t('cancel')}
+            </Button>
+            <Button
+              disabled={start.busy || replacing !== training.data?.trainingId}
+              onClick={() => start.run(async () => {
+                await call('createTraining', {
+                  roleId: id,
+                  mode: active?.revision == null && active ? 'create' : 'coach',
+                  expectedTrainingId: replacing,
+                })
+                training.refresh()
+                setReplacing(undefined)
+              })}
+            >
+              {t('confirm')}
+            </Button>
+          </footer>
+        </Modal>
+      )}
       {active?.error && (
         <Notice>
           {active.error.file} · {t('line')} {active.error.line} · {active.error.message}
@@ -147,7 +170,7 @@ function RoleDetail({
       )}
       <div className="rt-split" data-view={view}>
         <section className="rt-training">
-          <Notice>{training.error || start.error}</Notice>
+          <Notice>{training.error}</Notice>
           {training.error && <button onClick={training.refresh}>{t('retry')}</button>}
           {training.data?.trainingId ? (
             <TrainingDetail

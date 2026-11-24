@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path'
 import { directory } from '../role-store/files.js'
 import { z } from 'zod'
 import { createUserMessage, type ContextFormed } from '@deepseek-ai/dsh-llm'
+import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { fileId, roleMeta, memoryMeta, type EditResult, type IndexRecord } from '../../shared/index.js'
 import type { Input } from '../../shared/runtime.js'
@@ -123,6 +124,9 @@ export class TrainingRuntime {
       throw new Error('Unknown active team')
     if (mode !== 'create' && !(await this.roles.readDocument({ roleId })))
       throw new Error('Role must exist for coaching')
+    const previous = this.current(roleId).at(-1)
+    if (input.expectedTrainingId && input.expectedTrainingId !== previous?.trainingId)
+      throw new Error('The conversation has already been replaced.')
     const row: Training = {
       trainingId: randomUUID(),
       sessionId: 'rt-training-' + randomUUID(),
@@ -204,6 +208,15 @@ export class TrainingRuntime {
     return ref.memoryId
   }
   async install(agent: Agent, row: Training) {
+    const presets = this.native.ctx.get('permissionPresets')
+    if (row.initializing && presets) {
+      // The previous session log is the durable record of the role's native picker selection.
+      const previous = this.current(row.roleId).at(-1)
+      const preset = previous
+        ? await this.native.ctx.sessionQuery.inspectSession(previous.sessionId as SessionId, (session) => presets.current(session))
+        : 'danger-full-access'
+      presets.set(agent.session, preset)
+    }
     const ref = { roleId: row.roleId }
     let base = await this.roles.readDocument(ref)
     const loadSnapshot = async () => {

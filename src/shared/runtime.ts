@@ -94,6 +94,7 @@ export const runtimeMethods = {
       roleId: fileId,
       locale: conversationLocale.optional(),
       mode: indexRecords.training_sessions.shape.mode,
+      expectedTrainingId: id.optional(),
       workspaceCwd: workspaceCwd.optional(),
       sourceRunId: id.optional(),
     }),
