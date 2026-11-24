@@ -112,7 +112,7 @@ export const indexRecords = {
     agentPreset: key.optional(),
     leaderSeatId: key,
     workspaceCwd: key,
-    status: z.enum(['creating', 'active', 'archived', 'failed']),
+    status: z.enum(['creating', 'active', 'archived', 'deleting', 'failed']),
     createdAt: timestamp,
   }),
   team_seats: z.strictObject({

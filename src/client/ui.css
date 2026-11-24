@@ -496,8 +496,7 @@ html[data-platform='darwin'] .rt-top {
   overflow: auto;
   max-height: 34%;
 }
-.rt-proposals article,
-.rt-strip {
+.rt-proposals article {
   padding: 6px 12px;
 }
 .rt-diff pre,

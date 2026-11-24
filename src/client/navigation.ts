@@ -3,11 +3,11 @@ import { useState } from 'react'
 type Navigation = {
   page: 'teams' | 'library'
   role: string
-  team: string
+  team: string | null
 }
 
 type RoleView = 'chatOnly' | 'splitView' | 'settingsOnly'
-const defaults: Navigation = { page: 'teams', role: '', team: '' }
+const defaults: Navigation = { page: 'teams', role: '', team: null }
 const memory = new Map<string, string>()
 
 function read(key: string) {
@@ -37,7 +37,7 @@ export function useNavigation<K extends keyof Navigation>(key: K) {
   })
   return [
     value,
-    (next: Navigation[K]) => {
+    (next: NonNullable<Navigation[K]>) => {
       remember(key, next)
       update(next)
     },

@@ -216,7 +216,7 @@ function harness(call: ReturnType<typeof vi.fn>) {
     openView,
   }
 }
-it('routes each column, guards the lead, and rebinds reset and read-only history to distinct references', async () => {
+it('routes each column, limits reset to eligible members, and moves reset into the focused chat toolbar', async () => {
   const lead = seat('chief', null)
   let child = { ...seat('scout', 'chief'), pendingMemoryRev: 2 as number | null }
   const run = {
@@ -245,11 +245,6 @@ it('routes each column, guards the lead, and rebinds reset and read-only history
       case 'resetSeat':
         child = { ...child, currentGeneration: 2, currentSessionId: 'scout-new' }
         return child
-      case 'listGenerations':
-        return [
-          { sessionId: 'scout-session', generation: 1, archivedAt: '2026-11-23T00:00:00Z' },
-          { sessionId: 'scout-new', generation: 2 },
-        ]
       default:
         throw Error(method + JSON.stringify(input))
     }
@@ -261,9 +256,8 @@ it('routes each column, guards the lead, and rebinds reset and read-only history
   const column = (name: string) => within(document.getElementById('seat-' + name)!)
   expect(column('chief').queryByRole('textbox')).toBeNull()
   expect(column('chief').getByText('approve:chief-session')).toBeTruthy()
-  fireEvent.click(column('chief').getByLabelText(en.ui.reset))
-  await screen.findByText(en.ui.protectLead)
-  fireEvent.click(screen.getByLabelText(en.ui.close))
+  expect(column('chief').queryByLabelText(en.ui.reset)).toBeNull()
+  expect(column('chief').queryByLabelText(en.ui.history)).toBeNull()
   const scout = column('scout')
   expect(scout.queryByRole('textbox')).toBeNull()
   expect(scout.queryByRole('combobox')).toBeNull()
@@ -294,21 +288,17 @@ it('routes each column, guards the lead, and rebinds reset and read-only history
   await screen.findByText('stream:scout-new')
   expect(h.releases.get('scout-session')).toHaveBeenCalledOnce()
   expect(call).toHaveBeenCalledWith('resetSeat', { seatId: 'scout', generation: 1, handoff: 'handoff' })
-  fireEvent.click(scout.getByLabelText(en.ui.history))
-  await scout.findByRole('option', { name: /2026/ })
-  fireEvent.change(scout.getByRole('combobox', { name: en.ui.history }), {
-    target: { value: 'scout-session' },
-  })
-  const history = await scout.findByRole('region', { name: en.ui.readOnly })
-  expect(await within(history).findByText('stream:scout-session')).toBeTruthy()
-  expect(within(history).queryByRole('button', { name: 'Access: chief-session' })).toBeNull()
-  expect(scout.queryByRole('textbox')).toBeNull()
-  expect(h.releases.get('scout-new')).toHaveBeenCalledOnce()
-  fireEvent.click(screen.getByText(en.ui.focus))
-  await waitFor(() => expect(document.querySelectorAll('.rt-column')).toHaveLength(1))
+  expect(scout.queryByLabelText(en.ui.history)).toBeNull()
+  fireEvent.click(scout.getByRole('button', { name: en.ui.focus }))
+  expect(document.querySelectorAll('.rt-column')).toHaveLength(1)
+  expect(document.querySelector('.rt-column > header')).toBeNull()
+  const toolbar = within(document.querySelector<HTMLElement>('.rt-column .rt-session-bar')!)
+  expect(toolbar.getByRole('tablist')).toBeTruthy()
+  fireEvent.click(toolbar.getByRole('button', { name: en.ui.reset }))
+  expect(screen.getByRole('dialog')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: en.ui.cancel }))
   view.unmount()
-  expect(h.releases.get('chief-session')).toHaveBeenCalledOnce()
-  expect(h.releases.get('scout-session')).toHaveBeenCalledOnce()
+  expect(h.releases.get('scout-new')).toHaveBeenCalledOnce()
 })
 it('opens an archived team only when selected, and uses the native transcript for history', async () => {
   const run = {
@@ -318,12 +308,14 @@ it('opens an archived team only when selected, and uses the native transcript fo
     leaderSeatId: 'chief',
     rootSessionId: 'chief-session',
   }
+  let removed = false
   const call = vi.fn(async (method: string) => {
-    if (method === 'listTeams') return [run]
+    if (method === 'listTeams') return removed ? [] : [run]
+    if (method === 'deleteTeam') return removed = true
     if (method === 'getTeam') return { run, seats: [{ ...seat('chief', null), status: 'archived' }] }
     throw Error(method)
   })
-  harness(call).mount(<Workbench roles={[]} />)
+  const h = harness(call), mounted = h.mount(<Workbench roles={[]} />)
   await screen.findByText(en.ui.emptyTeams)
   expect(call).not.toHaveBeenCalledWith('getTeam', { runId: 'a' })
   fireEvent.click(screen.getByText(en.ui.archive))
@@ -331,6 +323,25 @@ it('opens an archived team only when selected, and uses the native transcript fo
   const pane = await screen.findByRole('region', { name: en.ui.readOnly })
   expect(await within(pane).findByText('stream:chief-session')).toBeTruthy()
   expect(pane.querySelector('[data-read-only]')).toBeTruthy()
+  fireEvent.click(screen.getByText(en.ui.focus))
+  expect(document.querySelector('.rt-column > header')).toBeNull()
+  expect(screen.queryByRole('button', { name: en.ui.reset })).toBeNull()
+  const openDelete = () => {
+    fireEvent.click(screen.getByRole('button', { name: /More actions.*Past team/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: en.ui.deleteTeam }))
+    return within(screen.getByRole('dialog'))
+  }
+  fireEvent.click(openDelete().getByRole('button', { name: en.ui.cancel }))
+  expect(screen.getByText('stream:chief-session')).toBeTruthy()
+  expect(removed).toBe(false)
+  fireEvent.click(openDelete().getByRole('button', { name: en.ui.deleteTeam }))
+  await screen.findByText(en.ui.emptyTeams)
+  await waitFor(() => expect(screen.queryByText('Past team')).toBeNull())
+  expect(call).toHaveBeenCalledWith('deleteTeam', { runId: 'a' })
+  mounted.unmount()
+  h.mount(<Workbench roles={[]} />)
+  await screen.findByText(en.ui.emptyTeams)
+  expect(screen.queryByText('Past team')).toBeNull()
 })
 it('keeps both versions on a conflict and requires an explicit second save against the disk hash', async () => {
   const initial = {
@@ -458,6 +469,7 @@ it('switches teams and releases the old root', async () => {
   })
   const h = harness(call)
   h.mount(<Workbench roles={[]} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'alpha' }))
   await screen.findByText('stream:alpha-session')
   fireEvent.click(within(screen.getByLabelText(en.ui.teamsList)).getByRole('button', { name: 'beta' }))
   await screen.findByText('stream:beta-session')

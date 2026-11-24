@@ -39,6 +39,7 @@ export const runtimeMethods = {
   getTeam: [run, team],
   renameTeam: [run.extend({ title }), indexRecords.team_runs],
   archiveTeam: [run, indexRecords.team_runs],
+  deleteTeam: [run, z.boolean()],
   addMember: [
     run.extend({ roleId: fileId, parentSeatId: id.optional(), displayName: title.optional() }),
     indexRecords.team_seats,

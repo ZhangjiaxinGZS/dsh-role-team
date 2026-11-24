@@ -300,6 +300,10 @@ export class TeamRuntime {
       ),
     )
     for (const run of this.index.runs.list()) {
+      if (run.status === 'deleting') {
+        await this.deleteTeam(run.runId)
+        continue
+      }
       if (run.status === 'creating') {
         const leader = this.index.seats.get(run.leaderSeatId)
         if (!leader) {
@@ -336,9 +340,29 @@ export class TeamRuntime {
       }
     }
   }
+  deleteTeam(runId: string) {
+    return this.ordered(runId, async () => {
+      const run = this.index.runs.get(runId)
+      if (!run) return false
+      if (run.status !== 'archived' && run.status !== 'deleting')
+        throw new Error('Only archived teams can be deleted')
+      if (run.status === 'archived')
+        await this.index.runs.update(runId, (r) => ({ ...r, status: 'deleting' }))
+      // Keep seat ownership until every generation has been removed. Recovery
+      // can repeat these deletes after a failure at any table boundary.
+      const seats = this.index.seats.list().filter((s) => s.runId === runId)
+      const ids = new Set(seats.map((s) => s.seatId))
+      for (const g of this.index.generations.list()) {
+        if (ids.has(g.seatId)) await this.index.generations.delete(generationKey(g.seatId, g.generation))
+      }
+      for (const seat of seats) await this.index.seats.delete(seat.seatId)
+      return this.index.runs.delete(runId)
+    })
+  }
   archiveTeam(runId: string) {
     return this.ordered(runId, async () => {
       const { run, seats } = this.getTeam(runId)
+      if (run.status === 'deleting') throw new Error('Team deletion is in progress')
       if (
         run.status !== 'archived' &&
         (run.status === 'active' || (await this.native.exists(run.rootSessionId)))

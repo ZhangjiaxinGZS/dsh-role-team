@@ -3,10 +3,9 @@ import {
   IconChevronRightOutlineRegular,
   IconPanelLeftOutlineRegular,
   IconPlusOutlineRegular,
-  IconClockOutlineRegular,
+  Button,
   IconFullscreenOutlineRegular,
   IconRefreshOutlineRegular,
-  IconCompareSplitOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useState } from 'react'
 import {
@@ -29,11 +28,11 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
   const [selected, setSelected] = useNavigation('team'),
     [setup, setSetup] = useState(false)
   const [collapsed, setCollapsed] = useState(false),
-    [archive, setArchive] = useState<Run>()
+    [confirm, setConfirm] = useState<{ run: Run; method: 'archiveTeam' | 'deleteTeam' }>()
   const action = useAction()
   const list = runs.data ?? [],
     active = list.filter((r) => r.status === 'active')
-  const id = list.find((r) => r.runId === selected)?.runId ?? active[0]?.runId
+  const id = selected === '' ? undefined : list.find((r) => r.runId === selected)?.runId ?? active[0]?.runId
   const toggle = (
     <button
       className="rt-icon"
@@ -45,24 +44,20 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
       <IconPanelLeftOutlineRegular size={16} />
     </button>
   )
-  const teamRow = (r: Run) => (
-    <div key={r.runId} className="rt-list-row">
-      <button aria-current={id === r.runId ? 'page' : undefined} onClick={() => setSelected(r.runId)}>
-        {r.title}
-      </button>
-      {r.status === 'active' && (
+  const teamRow = (r: Run) => {
+    const method = r.status === 'active' ? 'archiveTeam' : 'deleteTeam'
+    return (
+      <div key={r.runId} className="rt-list-row">
+        <button aria-current={id === r.runId ? 'page' : undefined} onClick={() => setSelected(r.runId)}>
+          {r.title}
+        </button>
         <MoreMenu
           name={r.title}
-          actions={{
-            archiveTeam: () => {
-              action.clear()
-              setArchive(r)
-            },
-          }}
+          actions={{ [method]: () => { action.clear(); setConfirm({ run: r, method }) } }}
         />
-      )}
-    </div>
-  )
+      </div>
+    )
+  }
   return (
     <section className="rt-work">
       {!collapsed && (
@@ -98,7 +93,7 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
           <>
             <div className="rt-controls">{toggle}</div>
             <div className="rt-empty">
-              <h2>{t(runs.data ? 'emptyTeams' : 'loading')}</h2>
+              <h2>{t(!runs.data ? 'loading' : active.length ? 'selectTeam' : 'emptyTeams')}</h2>
               <button className="rt-primary" onClick={() => setSetup(true)}>
                 {t('newTeam')}
               </button>
@@ -106,28 +101,29 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
           </>
         )}
       </div>
-      {archive && (
-        <Modal title={t('archiveTeam')} close={() => setArchive(undefined)} locked={action.busy}>
-          <p>
-            {archive.title} · {t('archiveTeamHint')}
-          </p>
+      {confirm && (
+        <Modal title={t(confirm.method)} close={() => setConfirm(undefined)} locked={action.busy}>
+          <p>{confirm.run.title} · {t(confirm.method === 'deleteTeam' ? 'deleteTeamHint' : 'archiveTeamHint')}</p>
           <Notice>{action.error}</Notice>
           <footer>
-            <button disabled={action.busy} onClick={() => setArchive(undefined)}>
+            <button data-modal-autofocus disabled={action.busy} onClick={() => setConfirm(undefined)}>
               {t('cancel')}
             </button>
             <button
               disabled={action.busy}
               onClick={() =>
                 action.run(async () => {
-                  await call('archiveTeam', { runId: archive.runId })
-                  setSelected(active.find((r) => r.runId !== archive.runId)?.runId ?? '')
-                  setArchive(undefined)
+                  await call(confirm.method, { runId: confirm.run.runId })
+                  if (id === confirm.run.runId) {
+                    const next = confirm.method === 'archiveTeam' && active.find((r) => r.runId !== id)
+                    setSelected(next ? next.runId : '')
+                  }
+                  setConfirm(undefined)
                   runs.refresh()
                 })
               }
             >
-              {t('archiveTeam')}
+              {t(confirm.method)}
             </button>
           </footer>
         </Modal>
@@ -249,88 +245,40 @@ function MemberColumn({
   single: boolean
   toggleFocus: () => void
 }) {
-  const { call, t } = useUi(),
-    [reset, setReset] = useState(false),
-    [version, setVersion] = useState(''),
-    [showHistory, setHistory] = useState(false)
-  const history = useLoad(s.seatId + ':' + s.currentGeneration + ':' + showHistory, () =>
-    showHistory ? call('listGenerations', { seatId: s.seatId }) : Promise.resolve([]),
-  )
+  const { t } = useUi(), [reset, setReset] = useState(false)
   const parent = team.seats.find((row) => row.seatId === s.parentSeatId)
-  const readOnly = !!version || s.status === 'archived' || team.run.status !== 'active'
-  const protectedBy = !parent
-    ? t('protectLead')
-    : team.seats.some((c) => c.parentSeatId === s.seatId && c.status !== 'archived')
-      ? t('protectParent')
-      : ''
+  const readOnly = s.status === 'archived' || team.run.status !== 'active'
+  const canReset = !readOnly && s.status === 'active' && !s.joining && !!parent &&
+    !team.seats.some((child) => child.parentSeatId === s.seatId && child.status !== 'archived')
   return (
     <article className="rt-column" id={'seat-' + s.seatId}>
-      <header>
-        <div className="rt-grow">
-          <h3>
-            {s.displayName} {!parent && <span aria-label={t('leader')}>♛</span>}
-          </h3>
-        </div>
-        <button
-          className="rt-icon"
-          title={t(single ? 'columns' : 'focus')}
-          aria-label={t(single ? 'columns' : 'focus')}
-          onClick={toggleFocus}
-        >
-          {single ? (
-            <IconCompareSplitOutlineRegular size={16} />
-          ) : (
+      {!single && (
+        <header>
+          <div className="rt-grow">
+            <h3>{s.displayName} {!parent && <span aria-label={t('leader')}>♛</span>}</h3>
+          </div>
+          <button className="rt-icon" title={t('focus')} aria-label={t('focus')} onClick={toggleFocus}>
             <IconFullscreenOutlineRegular size={16} />
+          </button>
+          {canReset && (
+            <button className="rt-icon" title={t('reset')} aria-label={t('reset')} onClick={() => setReset(true)}>
+              <IconRefreshOutlineRegular size={16} />
+            </button>
           )}
-        </button>
-        <button
-          className="rt-icon"
-          title={t('history')}
-          aria-label={t('history')}
-          aria-expanded={showHistory}
-          onClick={() => {
-            setHistory(!showHistory)
-            setVersion('')
-          }}
-        >
-          <IconClockOutlineRegular size={16} />
-        </button>
-        <button
-          className="rt-icon"
-          title={protectedBy || t('reset')}
-          aria-label={t('reset')}
-          disabled={team.run.status !== 'active'}
-          onClick={() => setReset(true)}
-        >
-          <IconRefreshOutlineRegular size={16} />
-        </button>
-      </header>
-      {showHistory && (
-        <div className="rt-strip">
-          <label>
-            {t('history')}{' '}
-            <select value={version} onChange={(e) => setVersion(e.target.value)}>
-              <option value="">{t('current')}</option>
-              {history.data
-                ?.filter((g) => g.generation < s.currentGeneration)
-                .map((g) => (
-                  <option key={g.sessionId} value={g.sessionId}>
-                    {g.archivedAt && new Date(g.archivedAt).toLocaleString() + ' · '}
-                    {t('readOnly')}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <Notice>{history.error}</Notice>
-        </div>
+        </header>
       )}
-      {s.status === 'resetting' && !version ? (
+      {s.status === 'resetting' && !readOnly ? (
         <div className="rt-pane-status">
           {t('resetting')} <button onClick={() => setReset(true)}>{t('retryReset')}</button>
         </div>
       ) : (
         <SessionPane
-          target={sessionTarget(version || s.currentSessionId, parent?.currentSessionId)}
+          target={sessionTarget(s.currentSessionId, parent?.currentSessionId)}
+          toolbarActions={single && canReset && (
+            <div className="rt-chat-actions">
+              <Button variant="outline" size="sm" onClick={() => setReset(true)}>{t('reset')}</Button>
+            </div>
+          )}
           defaultPreview={single || s.seatId === team.run.leaderSeatId}
           leaderSessionId={team.run.rootSessionId}
           onSelection={refresh}
@@ -341,11 +289,9 @@ function MemberColumn({
       {reset && (
         <SeatResetModal
           seat={s}
-          protection={protectedBy}
           close={() => setReset(false)}
           done={() => {
             setReset(false)
-            setVersion('')
             refresh()
           }}
         />
@@ -355,12 +301,10 @@ function MemberColumn({
 }
 export function SeatResetModal({
   seat,
-  protection,
   close,
   done,
 }: {
   seat: Seat
-  protection: string
   close: () => void
   done: () => void
 }) {
@@ -369,43 +313,39 @@ export function SeatResetModal({
     [handoff, write] = useState(seat.reset?.handoff ?? '')
   return (
     <Modal title={t('reset')} close={close} locked={a.busy}>
-      {protection ? (
-        <p>{protection}</p>
-      ) : (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            void a.run(async () => {
-              await call('resetSeat', {
-                seatId: seat.seatId,
-                generation: seat.currentGeneration,
-                handoff,
-              })
-              done()
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          void a.run(async () => {
+            await call('resetSeat', {
+              seatId: seat.seatId,
+              generation: seat.currentGeneration,
+              handoff,
             })
-          }}
-        >
-          <p>{t('resetHint')}</p>
-          <label>
-            {t('handoff')}
-            <textarea
-              maxLength={8000}
-              value={handoff}
-              readOnly={!!seat.reset}
-              onChange={(e) => write(e.target.value)}
-            />
-          </label>
-          <Notice>{a.error}</Notice>
-          <footer>
-            <button type="button" onClick={close} disabled={a.busy}>
-              {t('cancel')}
-            </button>
-            <button className="rt-primary" disabled={a.busy}>
-              {t(a.busy ? 'working' : 'reset')}
-            </button>
-          </footer>
-        </form>
-      )}
+            done()
+          })
+        }}
+      >
+        <p>{t('resetHint')}</p>
+        <label>
+          {t('handoff')}
+          <textarea
+            maxLength={8000}
+            value={handoff}
+            readOnly={!!seat.reset}
+            onChange={(e) => write(e.target.value)}
+          />
+        </label>
+        <Notice>{a.error}</Notice>
+        <footer>
+          <button type="button" onClick={close} disabled={a.busy}>
+            {t('cancel')}
+          </button>
+          <button className="rt-primary" disabled={a.busy}>
+            {t(a.busy ? 'working' : 'reset')}
+          </button>
+        </footer>
+      </form>
     </Modal>
   )
 }

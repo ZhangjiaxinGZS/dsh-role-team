@@ -159,6 +159,9 @@
     "expandTeams": "Expand team list",
     "collapseTeams": "Collapse team list",
     "archiveTeam": "Archive team",
+    "deleteTeam": "Delete permanently",
+    "deleteTeamHint": "Permanently remove this team, its seats and their history from the workspace? Role settings, experience and native session logs are kept.",
+    "selectTeam": "Select a team",
     "archiveTeamHint": "Archive this team and stop its active sessions?"
   }
 }

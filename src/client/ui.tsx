@@ -165,9 +165,10 @@ export function Modal({
     </NativeModal>
   )
 }
-type MenuAction = 'deleteRole' | 'archiveTeam' | 'edit' | 'deleteMemory'
+type MenuAction = 'deleteRole' | 'deleteTeam' | 'archiveTeam' | 'edit' | 'deleteMemory'
 const actionIcons = {
   deleteRole: IconTrashOutlineRegular,
+  deleteTeam: IconTrashOutlineRegular,
   archiveTeam: IconArchiveOutlineRegular,
   edit: IconEditOutlineRegular,
   deleteMemory: IconTrashOutlineRegular,
@@ -207,7 +208,7 @@ export function MoreMenu({
           id,
           label: t(id),
           icon: <Icon size={16} />,
-          danger: id === 'deleteRole' || id === 'deleteMemory',
+          danger: id === 'deleteRole' || id === 'deleteTeam' || id === 'deleteMemory',
         }
       })}
       onClose={() => setOpen(false)}
