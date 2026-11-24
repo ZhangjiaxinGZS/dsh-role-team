@@ -5,12 +5,11 @@ import {
   IconChevronRightOutlineRegular,
   IconPanelLeftOutlineRegular,
   IconPlusOutlineRegular,
-  Button,
+  Tooltip,
   Menu,
   IconChevronDownOutlineRegular,
   IconSettingsOutlineRegular,
   IconClockOutlineRegular,
-  IconFullscreenOutlineRegular,
   IconRefreshOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -156,6 +155,28 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
     </section>
   )
 }
+// Every column spans the board height, so visible width also ranks visible area.
+function dominantSeat(board: HTMLElement) {
+  const columns = board.querySelectorAll<HTMLElement>(':scope > [data-seat]')
+  if (!columns.length || board.scrollWidth <= board.clientWidth) return
+  if (board.scrollLeft >= board.scrollWidth - board.clientWidth - 1) return columns[columns.length - 1].dataset.seat
+  if (board.scrollLeft <= 1) return columns[0].dataset.seat
+  const left = board.getBoundingClientRect().left + board.clientLeft
+  const right = left + board.clientWidth
+  let winner: string | undefined, bestWidth = 0, bestDistance = Infinity
+  for (const col of Array.from(columns)) {
+    const rect = col.getBoundingClientRect()
+    const width = Math.min(right, rect.right) - Math.max(left, rect.left)
+    const distance = Math.abs(rect.left + rect.right - left - right)
+    if (width > 0 && (width > bestWidth || (width === bestWidth && distance < bestDistance))) {
+      winner = col.dataset.seat
+      bestWidth = width
+      bestDistance = distance
+    }
+  }
+  return winner
+}
+
 function TeamBoard({ id, roles, toggle, onMembersChanged }: {
   id: string; roles: RoleChoice[]; toggle: React.ReactNode; onMembersChanged: () => void
 }) {
@@ -168,6 +189,42 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
   const [timers, showTimers] = useState(false)
   const [settings, showSettings] = useState(false)
   const board = useRef<HTMLDivElement>(null)
+  const [reset, setReset] = useState<Seat>()
+  const focusGesture = useRef(false)
+  useLayoutEffect(() => {
+    let timer: number
+    const markGesture = (event: KeyboardEvent | PointerEvent) => {
+      if (event instanceof KeyboardEvent ? event.key !== 'Tab' : !board.current?.contains(event.target as Node)) return
+      focusGesture.current = true
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => { focusGesture.current = false }, 0)
+    }
+    window.addEventListener('keydown', markGesture, true)
+    window.addEventListener('pointerdown', markGesture, true)
+    return () => {
+      window.removeEventListener('keydown', markGesture, true)
+      window.removeEventListener('pointerdown', markGesture, true)
+      window.clearTimeout(timer)
+    }
+  }, [])
+  const scrollLock = useRef<number>()
+  function releaseLock() {
+    window.clearTimeout(scrollLock.current)
+    scrollLock.current = undefined
+  }
+  function keepSelection() {
+    releaseLock()
+    scrollLock.current = window.setTimeout(releaseLock, 180)
+  }
+  useLayoutEffect(() => releaseLock, [])
+  // Returning from a single chat should show the same seat in the wider layout.
+  useLayoutEffect(() => {
+    const col = Array.from(board.current?.children ?? []).find(el => el.getAttribute('data-seat') === focus)
+    if (!single && col) {
+      keepSelection()
+      col.scrollIntoView?.({ block: 'nearest', inline: 'start', behavior: 'instant' })
+    }
+  }, [single])
   const defaults = usePaneWidths('workbench')
   const width = Math.min(960, Math.max(320, defaults.widths.column ?? 480))
   const columns = usePaneWidths('team.' + id + '.members')
@@ -188,9 +245,13 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
     active = data.run.status === 'active',
     seats = data.seats.filter((s) => s.status !== 'archived' || !active),
     target = seats.some(s => s.seatId === focus) ? focus : data.run.leaderSeatId
+  const selected = seats.find(s => s.seatId === target)
+  const canReset = active && selected?.status === 'active' && !selected.joining &&
+    seats.some(s => s.seatId === selected.parentSeatId) && !seats.some(s => s.parentSeatId === target && s.status !== 'archived')
   function pickSeat(seatId: string) {
     setFocus(seatId)
     if (single) return
+    keepSelection()
     const container = board.current
     const item = Array.from(container?.children ?? []).find(el => el.getAttribute('data-seat') === seatId)
     item?.scrollIntoView?.({
@@ -228,7 +289,12 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
           <IconSettingsOutlineRegular size={16} />
         </button>
       </header>
-      <MemberBar seats={seats} active={active} target={target} pickSeat={pickSeat} />
+      <MemberBar seats={seats} active={active} target={target} pickSeat={pickSeat}
+        resetSeat={canReset ? selected : undefined} onReset={setReset} />
+      {reset && <SeatResetModal seat={reset} close={() => setReset(undefined)} done={() => {
+        setReset(undefined)
+        team.refresh()
+      }} />}
       {timers && <SchedulePanel key={id} runId={id} active={active} close={() => showTimers(false)} />}
       {settings && <Modal title={t('boardSettings')} close={() => showSettings(false)}>
         <div className="rt-width-settings">
@@ -244,6 +310,13 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
       </Modal>}
       <div className="rt-floor">
         <div ref={board} className={'rt-columns' + (single ? ' rt-single' : '')}
+          onPointerDownCapture={releaseLock} onWheelCapture={releaseLock} onTouchMoveCapture={releaseLock} onKeyDownCapture={releaseLock}
+          onScroll={e => {
+            if (single) return
+            if (scrollLock.current !== undefined) return keepSelection()
+            const id = dominantSeat(e.currentTarget)
+            if (id) setFocus(id)
+          }}
           style={{
             '--rt-column-width': defaults.widths.column ? width + 'px' : undefined,
             '--rt-count': Math.max(1, seats.length),
@@ -262,9 +335,24 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
                   team={data}
                   refresh={team.refresh}
                   single={single}
-                  toggleFocus={() => {
+                  onReset={() => setReset(s)}
+                  onActivate={event => {
+                    if (single || !event.currentTarget.contains(event.target as Node)) return
+                    const editor = event.target as HTMLElement
+                    // Native composers take focus on mount and unlock, even offscreen.
+                    // Keep those calls from switching the active chat or its typing destination.
+                    if (event.type === 'focus' && editor.matches('[data-composer-input]') && !focusGesture.current) {
+                      if (s.seatId === target) return
+                      const prior = (event as React.FocusEvent).relatedTarget
+                      const priorSeat = prior instanceof Element && prior.closest<HTMLElement>('.rt-column')?.dataset.seat
+                      if (prior instanceof HTMLElement && prior.isConnected && (!priorSeat || priorSeat === target))
+                        prior.focus({ preventScroll: true })
+                      else editor.blur()
+                      return
+                    }
+                    board.current?.scrollTo?.({ left: board.current.scrollLeft, behavior: 'instant' })
+                    keepSelection()
                     setFocus(s.seatId)
-                    setLayout('focus')
                   }}
                 />
               </Fragment>
@@ -286,13 +374,15 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
     </>
   )
 }
-function MemberBar({ seats, active, target, pickSeat }: {
+function MemberBar({ seats, active, target, pickSeat, resetSeat, onReset }: {
+  resetSeat?: Seat; onReset: (seat: Seat) => void
   seats: Seat[]; active: boolean; target: string; pickSeat: (id: string) => void
 }) {
   const { t } = useUi()
   const chips = useRef<HTMLDivElement>(null)
   const track = useRef<HTMLDivElement>(null)
   const row = useRef<HTMLElement>(null)
+  const resetButton = useRef<HTMLButtonElement>(null)
   const [overflow, setOverflow] = useState(false)
   const [picker, showPicker] = useState(false)
   useLayoutEffect(() => {
@@ -303,7 +393,7 @@ function MemberBar({ seats, active, target, pickSeat }: {
     }
     const measure = () => {
       // Compare against the whole row so the menu cannot cause its own overflow.
-      const exceeds = content.scrollWidth > bar.clientWidth
+      const exceeds = content.scrollWidth > bar.clientWidth - (resetButton.current?.offsetWidth ?? 0)
       setOverflow(exceeds)
       if (!exceeds) showPicker(false)
       edges()
@@ -325,13 +415,15 @@ function MemberBar({ seats, active, target, pickSeat }: {
       strip.removeEventListener('scroll', edges)
       strip.removeEventListener('wheel', wheel)
     }
-  }, [])
+  }, [!!resetSeat])
+  useLayoutEffect(() => {
+    track.current?.querySelector('[aria-pressed="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+  }, [target, overflow, !!resetSeat])
   function select(id: string) {
     showPicker(false)
     pickSeat(id)
-    const chip = Array.from(track.current?.children ?? []).find(el => el.getAttribute('data-seat') === id)
-    chip?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
   }
+  const resetLabel = t('resetNamedSeat').replace('{name}', () => resetSeat?.displayName ?? '')
   return (
     <nav ref={row} className="rt-member-bar" aria-label={t('members')}>
       <div className="rt-chips" ref={chips}>
@@ -353,6 +445,10 @@ function MemberBar({ seats, active, target, pickSeat }: {
           label: <span className="rt-menu-member"><SeatLabel seat={s} active={active} /></span>,
         })) : []}
         onClose={() => showPicker(false)} onSelect={select} />}
+      {resetSeat && <Tooltip label={resetLabel} side="bottom" portal>
+        <button ref={resetButton} type="button" className="rt-icon rt-reset-seat" aria-label={resetLabel}
+          onClick={() => onReset(resetSeat)}><IconRefreshOutlineRegular size={16} /></button>
+      </Tooltip>}
     </nav>
   )
 }
@@ -376,64 +472,34 @@ function MemberColumn({
   team,
   refresh,
   single,
-  toggleFocus,
+  onActivate, onReset,
 }: {
   seat: Seat
   width?: number
   team: Team
   refresh: () => void
   single: boolean
-  toggleFocus: () => void
+  onActivate: (event: React.MouseEvent<HTMLElement> | React.FocusEvent<HTMLElement>) => void
+  onReset: () => void
 }) {
-  const { t } = useUi(), [reset, setReset] = useState(false)
+  const { t } = useUi()
   const parent = team.seats.find((row) => row.seatId === s.parentSeatId)
   const readOnly = s.status === 'archived' || team.run.status !== 'active'
-  const canReset = !readOnly && s.status === 'active' && !s.joining && !!parent &&
-    !team.seats.some((child) => child.parentSeatId === s.seatId && child.status !== 'archived')
   return (
-    <article style={paneStyle(width)} className="rt-column" data-seat={s.seatId} id={'seat-' + s.seatId}>
-      {!single && (
-        <header>
-          <div className="rt-grow">
-            <h3><SeatLabel seat={s} active={!readOnly} /></h3>
-          </div>
-          <button className="rt-icon" title={t('focus')} aria-label={t('focus')} onClick={toggleFocus}>
-            <IconFullscreenOutlineRegular size={16} />
-          </button>
-          {canReset && (
-            <button className="rt-icon" title={t('reset')} aria-label={t('reset')} onClick={() => setReset(true)}>
-              <IconRefreshOutlineRegular size={16} />
-            </button>
-          )}
-        </header>
-      )}
+    <article style={paneStyle(width)} className="rt-column" data-seat={s.seatId} id={'seat-' + s.seatId}
+      aria-label={s.displayName} onClickCapture={onActivate} onFocusCapture={onActivate}>
       {s.status === 'resetting' && !readOnly ? (
         <div className="rt-pane-status">
-          {t('resetting')} <button onClick={() => setReset(true)}>{t('retryReset')}</button>
+          {t('resetting')} <button onClick={onReset}>{t('retryReset')}</button>
         </div>
       ) : (
         <SessionPane
           target={sessionTarget(s.currentSessionId, parent?.currentSessionId)}
-          toolbarActions={single && canReset && (
-            <div className="rt-chat-actions">
-              <Button variant="outline" size="sm" onClick={() => setReset(true)}>{t('reset')}</Button>
-            </div>
-          )}
           defaultPreview={single || s.seatId === team.run.leaderSeatId}
           leaderSessionId={team.run.rootSessionId}
           onSelection={refresh}
           readOnly={readOnly}
           seat={s}
-        />
-      )}
-      {reset && (
-        <SeatResetModal
-          seat={s}
-          close={() => setReset(false)}
-          done={() => {
-            setReset(false)
-            refresh()
-          }}
         />
       )}
     </article>

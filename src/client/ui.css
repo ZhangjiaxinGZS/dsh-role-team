@@ -81,7 +81,6 @@
 .rt-top nav,
 .rt-row,
 .rt-inline,
-.rt-column > header,
 .rt-docs > header,
 .rt-editor > footer,
 .rt-modal footer,
@@ -244,16 +243,13 @@ html[data-platform='darwin'] .rt-top {
   gap: 4px;
 }
 .rt-docs > header h3,
-.rt-experiences > header h3,
-.rt-column h3 {
+.rt-experiences > header h3 {
   font-size: 14px;
   font-weight: 550;
 }
-.rt-grow,
 .rt-team-navigation > strong {
   min-width: 0;
 }
-.rt-grow h3,
 .rt-team-navigation > strong {
   white-space: nowrap;
   overflow: hidden;
@@ -287,14 +283,14 @@ html[data-platform='darwin'] .rt-top {
 .rt-chips { flex: 1; scrollbar-width: none; }
 .rt-chips::-webkit-scrollbar { display: none; }
 .rt-chip-track { width: max-content; gap: 3px; padding-inline: 8px; }
-.rt-column h3, .rt-chip, .rt-picker {
+.rt-chip, .rt-picker {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   max-width: 100%;
 }
 .rt-chip { max-width: 15em; }
-.rt-picker { flex: none; }
+.rt-picker, .rt-reset-seat { flex: none; }
 .rt-seat-name {
   min-width: 0;
   white-space: nowrap;
@@ -417,15 +413,11 @@ body:has(.rt-divider[data-dragging]) * {
 .rt-training {
   overflow: hidden;
 }
-.rt-column > header,
 .rt-docs > header {
   flex: none;
   padding: 6px 12px;
   min-height: 40px;
   border-bottom: 1px solid var(--dsw-alias-border-l4);
-}
-.rt-grow {
-  flex: 1;
 }
 .rt-transcript > * {
   flex: 1;

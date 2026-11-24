@@ -285,7 +285,9 @@ it('routes each column, limits reset to eligible members, and moves reset into t
   expect(screen.queryByLabelText(en.ui.teamsList)).toBeNull()
   fireEvent.click(screen.getByLabelText(en.ui.expandTeams))
   expect(screen.getByLabelText(en.ui.teamsList)).toBeTruthy()
-  fireEvent.click(scout.getByLabelText(en.ui.reset))
+  const resetScout = () => screen.getByRole('button', { name: en.ui.resetNamedSeat.replace('{name}', 'scout') })
+  fireEvent.click(document.getElementById('seat-scout')!)
+  fireEvent.click(resetScout())
   const dialog = within(screen.getByRole('dialog'))
   fireEvent.change(dialog.getByRole('textbox'), { target: { value: 'handoff' } })
   fireEvent.click(dialog.getByRole('button', { name: en.ui.reset }))
@@ -293,12 +295,12 @@ it('routes each column, limits reset to eligible members, and moves reset into t
   expect(h.releases.get('scout-session')).toHaveBeenCalledOnce()
   expect(call).toHaveBeenCalledWith('resetSeat', { seatId: 'scout', generation: 1, handoff: 'handoff' })
   expect(scout.queryByLabelText(en.ui.history)).toBeNull()
-  fireEvent.click(scout.getByRole('button', { name: en.ui.focus }))
+  fireEvent.click(screen.getByRole('button', { name: en.ui.focus }))
   expect(document.querySelectorAll('.rt-column')).toHaveLength(1)
   expect(document.querySelector('.rt-column > header')).toBeNull()
   const toolbar = within(document.querySelector<HTMLElement>('.rt-column .rt-session-bar')!)
   expect(toolbar.getByRole('tablist')).toBeTruthy()
-  fireEvent.click(toolbar.getByRole('button', { name: en.ui.reset }))
+  fireEvent.click(resetScout())
   expect(screen.getByRole('dialog')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: en.ui.cancel }))
   view.unmount()
@@ -1089,15 +1091,15 @@ it('keeps the layout and column preference, locates members, and shows live sess
   const mount = () => h.mount(<Workbench roles={[]} />)
   let view = mount()
   fireEvent.click(await screen.findByText(en.ui.columns))
-  expect(await screen.findAllByRole('img', { name: en.ui.seatWorking })).toHaveLength(2)
-  expect(screen.getAllByRole('img', { name: en.ui.seatIdle })).toHaveLength(2)
+  expect(await screen.findAllByRole('img', { name: en.ui.seatWorking })).toHaveLength(1)
+  expect(screen.getAllByRole('img', { name: en.ui.seatIdle })).toHaveLength(1)
   act(() => {
     states.set(id, { ...status, pendingInteraction: { sessionId: id, key: 'p1', kind: 'approval' } })
     listeners.forEach(fn => fn())
   })
-  expect(screen.getAllByTitle(en.ui.seatApproval)).toHaveLength(2)
+  expect(screen.getAllByTitle(en.ui.seatApproval)).toHaveLength(1)
   expect(screen.queryByText(en.ui.seatApproval)).toBeNull()
-  expect(document.querySelector('.rt-column .rt-lead-badge')?.textContent).toBe(en.ui.leader)
+  expect(document.querySelector('.rt-column > header')).toBeNull()
   fireEvent.click(screen.getByTitle(en.ui.boardSettings))
   const dialog = within(screen.getByRole('dialog'))
   fireEvent.click(dialog.getByText(en.ui.wideWidth))
@@ -1236,4 +1238,53 @@ it('submits a weekly schedule to the selected team and shows the archive impact 
   expect(await panel.findByText(en.ui.archiveTimers.replace('{n}', '2'))).toBeTruthy()
   fireEvent.click(panel.getByRole('button', { name: en.ui.cancel }))
   expect(call.mock.calls.some(([method]) => method === 'archiveTeam')).toBe(false)
+})
+
+it('follows horizontal visibility, preserves an explicit pick during motion and focuses the selected chat', async () => {
+  installWidthStorage()
+  const seats = ['a','b','c','d'].map(id => seat(id, id === 'a' ? null : 'a'))
+  const run = { runId: 'spy', title: 'Spy', leaderSeatId: 'a', rootSessionId: 'a-session', status: 'active' }
+  const h = harness(vi.fn(async (method: string) =>
+    method === 'listTeams' ? [run] : method === 'getTeam' ? { run, seats } : []))
+  h.mount(<Workbench roles={[]} />)
+  fireEvent.click(await screen.findByText(en.ui.columns))
+  await screen.findByText('stream:d-session')
+  const board = document.querySelector<HTMLElement>('.rt-columns')!
+  const widths = [400, 500, 360, 300]
+  Object.defineProperties(board, {clientWidth:{value:620}, scrollWidth:{value:1560}})
+  let x = 0
+  const columns = Array.from(board.querySelectorAll<HTMLElement>('.rt-column'))
+  for (const [i, col] of columns.entries()) {
+    const start = x
+    x += widths[i]
+    vi.spyOn(col, 'getBoundingClientRect').mockImplementation(() =>
+      ({left:start-board.scrollLeft,right:start+widths[i]-board.scrollLeft}) as DOMRect)
+  }
+  const activeSeat = () => document.querySelector<HTMLElement>('.rt-chip[aria-pressed="true"]')?.dataset.seat
+  function scroll(left: number) { board.scrollLeft=left; fireEvent.scroll(board) }
+  // The host focuses each desktop composer when it mounts, even outside the viewport.
+  const editor = document.createElement('textarea')
+  editor.setAttribute('data-composer-input', '')
+  columns[2].append(editor)
+  fireEvent.focus(editor)
+  expect(activeSeat()).toBe('a')
+  fireEvent.keyDown(document.body, {key: 'Tab'})
+  fireEvent.focus(editor)
+  expect(activeSeat()).toBe('c')
+  fireEvent.wheel(board, {deltaX: 350})
+  scroll(350)
+  expect(activeSeat()).toBe('b')
+  scroll(940)
+  expect(activeSeat()).toBe('d') // narrower than its fully visible neighbor
+  fireEvent.click(document.querySelector('.rt-chip[data-seat="a"]')!)
+  scroll(450)
+  expect(activeSeat()).toBe('a')
+  fireEvent.wheel(board, {deltaX:100})
+  scroll(520)
+  expect(activeSeat()).toBe('b')
+  fireEvent.focus(columns[2])
+  expect(activeSeat()).toBe('c')
+  fireEvent.click(screen.getByRole('button',{name:en.ui.focus}))
+  expect(document.querySelector('.rt-column')?.getAttribute('data-seat')).toBe('c')
+  expect(document.querySelectorAll('.rt-column > header')).toHaveLength(0)
 })

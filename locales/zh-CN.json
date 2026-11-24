@@ -40,6 +40,7 @@
     "current": "当前会话",
     "history": "历史对话",
     "readOnly": "只读",
+    "resetNamedSeat": "重置 {name} 会话",
     "reset": "清空上下文",
     "handoff": "新代交接摘要（可选）",
     "resetHint": "旧会话将归档。新代采用角色的最新已发布记忆和下方交接内容，并接管未完成的任务。",

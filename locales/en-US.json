@@ -40,6 +40,7 @@
     "current": "Current session",
     "history": "Past conversations",
     "readOnly": "Read only",
+    "resetNamedSeat": "Reset {name}’s session",
     "reset": "Reset context",
     "handoff": "Handoff for the new generation (optional)",
     "resetHint": "The old session will be archived. Its successor starts with published role memory and this handoff, and takes over open tasks.",
