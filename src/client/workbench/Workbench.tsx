@@ -12,7 +12,7 @@ import {
   IconRefreshOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { Fragment, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import {
   MoreMenu,
   Modal,
@@ -160,38 +160,10 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
     [add, setAdd] = useState(false)
   const single = layout === 'focus'
   const [settings, showSettings] = useState(false)
-  const [picker, showPicker] = useState(false)
   const board = useRef<HTMLDivElement>(null)
-  const chips = useRef<HTMLDivElement>(null)
   const defaults = usePaneWidths('workbench')
   const width = Math.min(960, Math.max(320, defaults.widths.column ?? 480))
   const columns = usePaneWidths('team.' + id + '.members')
-  const seatCount = team.data?.seats.length
-  useEffect(() => {
-    const strip = chips.current
-    if (!strip) return
-    const edges = () => {
-      strip.toggleAttribute('data-before', strip.scrollLeft > 1)
-      strip.toggleAttribute('data-after', strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 1)
-    }
-    const wheel = (event: WheelEvent) => {
-      if (event.ctrlKey || event.shiftKey || event.deltaX || !event.deltaY) return
-      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? strip.clientWidth : 1
-      const before = strip.scrollLeft
-      strip.scrollLeft += event.deltaY * unit
-      if (strip.scrollLeft !== before) event.preventDefault()
-    }
-    edges()
-    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(edges)
-    observer?.observe(strip)
-    strip.addEventListener('scroll', edges)
-    strip.addEventListener('wheel', wheel, { passive: false })
-    return () => {
-      observer?.disconnect()
-      strip.removeEventListener('scroll', edges)
-      strip.removeEventListener('wheel', wheel)
-    }
-  }, [single, seatCount])
   if (!team.data)
     return (
       <div className="rt-pane-status">
@@ -211,12 +183,12 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
     target = seats.some(s => s.seatId === focus) ? focus : data.run.leaderSeatId
   function pickSeat(seatId: string) {
     setFocus(seatId)
-    showPicker(false)
-    const container = single ? chips.current : board.current
+    if (single) return
+    const container = board.current
     const item = Array.from(container?.children ?? []).find(el => el.getAttribute('data-seat') === seatId)
     item?.scrollIntoView?.({
-      block: 'nearest', inline: single ? 'nearest' : 'start',
-      behavior: single || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'nearest', inline: 'start',
+      behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
     })
   }
   function changeWidth(value: number | null) {
@@ -238,32 +210,7 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
               </button>
             ))}
           </div>
-          {single && (
-            <div className="rt-chips" ref={chips}>
-              {seats.map((s) => (
-                <button
-                  key={s.seatId}
-                  className="rt-chip"
-                  data-seat={s.seatId}
-                  title={s.displayName}
-                  aria-pressed={target === s.seatId}
-                  onClick={() => setFocus(s.seatId)}
-                >
-                  <SeatLabel seat={s} active={active} />
-                </button>
-              ))}
-            </div>
-          )}
         </div>
-        <Menu open={picker} align="end" portal autoFocus selectedId={target}
-          anchor={<button className="rt-picker" aria-haspopup="menu" aria-expanded={picker} onClick={() => showPicker(!picker)}>
-            {t('members')} ({seats.length}) <IconChevronDownOutlineRegular size={12} />
-          </button>}
-          items={picker ? seats.map(s => ({
-            id: s.seatId,
-            label: <span className="rt-menu-member"><SeatLabel seat={s} active={active} /></span>,
-          })) : []}
-          onClose={() => showPicker(false)} onSelect={pickSeat} />
         <button aria-label={t('addMember')} title={t('addMember')} className="rt-add-member" disabled={!active} onClick={() => setAdd(true)}>
           <IconPlusOutlineRegular size={14} /><span>{t('addMember')}</span>
         </button>
@@ -271,6 +218,7 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
           <IconSettingsOutlineRegular size={16} />
         </button>
       </header>
+      <MemberBar seats={seats} active={active} target={target} pickSeat={pickSeat} />
       {settings && <Modal title={t('boardSettings')} close={() => showSettings(false)}>
         <div className="rt-width-settings">
           <label htmlFor="rt-column-width">{t('columnWidth')} <output htmlFor="rt-column-width">{width} px</output></label>
@@ -325,6 +273,76 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
         />
       )}
     </>
+  )
+}
+function MemberBar({ seats, active, target, pickSeat }: {
+  seats: Seat[]; active: boolean; target: string; pickSeat: (id: string) => void
+}) {
+  const { t } = useUi()
+  const chips = useRef<HTMLDivElement>(null)
+  const track = useRef<HTMLDivElement>(null)
+  const row = useRef<HTMLElement>(null)
+  const [overflow, setOverflow] = useState(false)
+  const [picker, showPicker] = useState(false)
+  useLayoutEffect(() => {
+    const strip = chips.current!, content = track.current!, bar = row.current!
+    const edges = () => {
+      strip.toggleAttribute('data-before', strip.scrollLeft > 1)
+      strip.toggleAttribute('data-after', strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 1)
+    }
+    const measure = () => {
+      // Compare against the whole row so the menu cannot cause its own overflow.
+      const exceeds = content.scrollWidth > bar.clientWidth
+      setOverflow(exceeds)
+      if (!exceeds) showPicker(false)
+      edges()
+    }
+    const wheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.shiftKey || event.deltaX || !event.deltaY) return
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? strip.clientWidth : 1
+      const before = strip.scrollLeft
+      strip.scrollLeft += event.deltaY * unit
+      if (strip.scrollLeft !== before) event.preventDefault()
+    }
+    measure()
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(measure)
+    for (const element of [bar, strip, content]) observer?.observe(element)
+    strip.addEventListener('scroll', edges)
+    strip.addEventListener('wheel', wheel, { passive: false })
+    return () => {
+      observer?.disconnect()
+      strip.removeEventListener('scroll', edges)
+      strip.removeEventListener('wheel', wheel)
+    }
+  }, [])
+  function select(id: string) {
+    showPicker(false)
+    pickSeat(id)
+    const chip = Array.from(track.current?.children ?? []).find(el => el.getAttribute('data-seat') === id)
+    chip?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+  }
+  return (
+    <nav ref={row} className="rt-member-bar" aria-label={t('members')}>
+      <div className="rt-chips" ref={chips}>
+        <div className="rt-chip-track" ref={track}>
+          {seats.map(s => (
+            <button key={s.seatId} className="rt-chip" data-seat={s.seatId} title={s.displayName}
+              aria-pressed={target === s.seatId} onClick={() => select(s.seatId)}>
+              <SeatLabel seat={s} active={active} />
+            </button>
+          ))}
+        </div>
+      </div>
+      {overflow && <Menu open={picker} align="end" portal autoFocus selectedId={target}
+        anchor={<button className="rt-picker" aria-haspopup="menu" aria-expanded={picker} onClick={() => showPicker(!picker)}>
+          {t('allMembers')} ({seats.length}) <IconChevronDownOutlineRegular size={12} />
+        </button>}
+        items={picker ? seats.map(s => ({
+          id: s.seatId,
+          label: <span className="rt-menu-member"><SeatLabel seat={s} active={active} /></span>,
+        })) : []}
+        onClose={() => showPicker(false)} onSelect={select} />}
+    </nav>
   )
 }
 const emptySubscribe = () => () => {}

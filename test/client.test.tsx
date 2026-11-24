@@ -279,7 +279,8 @@ it('routes each column, limits reset to eligible members, and moves reset into t
     }),
   )
   expect(scout.queryByText(en.ui.next)).toBeNull()
-  expect(document.querySelector('.rt-chips')).toBeNull()
+  expect(document.querySelector('.rt-controls .rt-chip')).toBeNull()
+  expect(document.querySelectorAll('.rt-member-bar .rt-chip')).toHaveLength(2)
   fireEvent.click(screen.getByLabelText(en.ui.collapseTeams))
   expect(screen.queryByLabelText(en.ui.teamsList)).toBeNull()
   fireEvent.click(screen.getByLabelText(en.ui.expandTeams))
@@ -988,6 +989,12 @@ it('stores team list and adjacent member widths, scoped to team and seats across
 
 it('keeps the layout and column preference, locates members, and shows live session status', async () => {
   installWidthStorage()
+  const resize = new Map<Element, () => void>()
+  vi.stubGlobal('ResizeObserver', class {
+    constructor(private callback: () => void) {}
+    observe(el: Element) { resize.set(el, this.callback) }
+    disconnect() {}
+  })
   const run = { runId: 'status-team', title: 'Status team', status: 'active', leaderSeatId: 'lead', rootSessionId: 'lead-session' }
   const seats = [seat('lead', null), seat('writer', 'lead')]
   const h = harness(vi.fn(async (method: string) => {
@@ -1006,13 +1013,13 @@ it('keeps the layout and column preference, locates members, and shows live sess
   const mount = () => h.mount(<Workbench roles={[]} />)
   let view = mount()
   fireEvent.click(await screen.findByText(en.ui.columns))
-  expect(await screen.findByRole('img', { name: en.ui.seatWorking })).toBeTruthy()
-  expect(screen.getByRole('img', { name: en.ui.seatIdle })).toBeTruthy()
+  expect(await screen.findAllByRole('img', { name: en.ui.seatWorking })).toHaveLength(2)
+  expect(screen.getAllByRole('img', { name: en.ui.seatIdle })).toHaveLength(2)
   act(() => {
     states.set(id, { ...status, pendingInteraction: { sessionId: id, key: 'p1', kind: 'approval' } })
     listeners.forEach(fn => fn())
   })
-  expect(screen.getByTitle(en.ui.seatApproval)).toBeTruthy()
+  expect(screen.getAllByTitle(en.ui.seatApproval)).toHaveLength(2)
   expect(screen.queryByText(en.ui.seatApproval)).toBeNull()
   expect(document.querySelector('.rt-column .rt-lead-badge')?.textContent).toBe(en.ui.leader)
   fireEvent.click(screen.getByTitle(en.ui.boardSettings))
@@ -1022,13 +1029,25 @@ it('keeps the layout and column preference, locates members, and shows live sess
   expect(dialog.getByText('680 px')).toBeTruthy()
   fireEvent.click(dialog.getByLabelText(en.ui.close))
   fireEvent.click(screen.getByText(en.ui.focus))
-  fireEvent.click(screen.getByRole('button', { name: 'Members (2)' }))
+  const bar = screen.getByRole('navigation', { name: en.ui.members })
+  const picker = () => within(bar).queryByRole('button', { name: 'All (2)' })
+  expect(picker()).toBeNull()
+  const content = bar.querySelector('.rt-chip-track')!
+  Object.defineProperty(content, 'scrollWidth', { value: 420 })
+  function sizeBar(width: number) {
+    Object.defineProperty(bar, 'clientWidth', { configurable: true, value: width })
+    act(() => resize.get(bar)!())
+  }
+  sizeBar(350)
+  fireEvent.click(picker()!)
   const menu = within(screen.getByRole('menu'))
   expect(menu.getByTitle(en.ui.seatApproval)).toBeTruthy()
   expect(menu.getByText(en.ui.leader)).toBeTruthy()
   fireEvent.click(menu.getByRole('menuitem', { name: /writer/ }))
   expect(document.querySelector('.rt-column')?.id).toBe('seat-writer')
   expect(document.querySelector('.rt-chip .rt-lead-badge')?.textContent).toBe(en.ui.leader)
+  sizeBar(420)
+  expect(picker()).toBeNull()
   view.unmount()
   view = mount()
   expect((await screen.findByText(en.ui.focus)).getAttribute('aria-pressed')).toBe('true')
