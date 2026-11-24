@@ -48,12 +48,20 @@ function Markdown({ text }: { text: string }) {
   }} />
 }
 
-function ProfileText({ meta, body }: { meta: RoleMeta; body: string }) {
-  return <>
-    <h2>{meta.name}</h2>
-    {meta.summary && <p className="rt-duty">{meta.summary}</p>}
-    {body && <Markdown text={body} />}
-  </>
+function ProfileFields({ meta, body }: { meta: RoleMeta; body: string }) {
+  const { t } = useUi()
+  return (
+    <dl className="rt-profile-fields">
+      <dt>{t('name')}</dt>
+      <dd><h2 className="rt-profile-name" title={meta.name}>{meta.name}</h2></dd>
+      <dt>{t('duty')}</dt>
+      <dd>{meta.summary || '—'}</dd>
+      <dt>{t('body')}</dt>
+      <dd className="rt-profile-body" tabIndex={body ? 0 : undefined} aria-label={t('body')}>
+        {body ? <Markdown text={body} /> : '—'}
+      </dd>
+    </dl>
+  )
 }
 
 export function Documents({
@@ -145,7 +153,7 @@ export function Documents({
       <Notice>{role.error || memories.error || (panel.mode === 'read' && role.data?.error)}</Notice>
       {panel.mode === 'read' && role.data?.profile && (
         <article className="rt-profile-text" onDoubleClick={edit}>
-          <ProfileText {...role.data.profile} />
+          <ProfileFields {...role.data.profile} />
         </article>
       )}
       {panel.mode === 'edit' && role.data && (
@@ -295,7 +303,9 @@ function RoleHistory({
             ))}
           </ol>
           <article className="rt-history-preview">
-            <ProfileText {...entry.role} />
+            <h2>{entry.role.meta.name}</h2>
+            {entry.role.meta.summary && <p className="rt-duty">{entry.role.meta.summary}</p>}
+            {entry.role.body && <Markdown text={entry.role.body} />}
           </article>
           <footer>
             <button

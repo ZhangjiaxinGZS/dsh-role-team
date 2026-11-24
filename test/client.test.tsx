@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs'
 import { RoleLibrary } from '../src/client/roles/RoleLibrary.js'
 import { createContext, useContext, type ComponentProps, type ReactNode } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -626,13 +627,18 @@ it('reads with native Markdown, edits inline, and returns to reading after cance
   harness(call).mount(<RoleLibrary roles={[{ ...meta, revision: 3 }]} changed={changed} />)
   const btn = (name: string) => screen.getByRole('button', { name })
   await screen.findByText('- Note')
+  const fields = screen.getAllByRole('term')
+  expect(fields.map(field => field.textContent)).toEqual([en.ui.name, en.ui.duty, en.ui.body])
+  const values = screen.getAllByRole('definition')
+  expect(values.map(value => value.textContent)).toEqual(['Editor', 'Duty', body])
+  expect(within(values[2]).getByTestId('native-markdown')).toBeTruthy()
   expect(screen.getAllByTestId('native-markdown').map((el) => el.textContent)).toEqual([body, '- Note'])
   expect(screen.queryByRole('button', { name: 'Source' })).toBeNull()
-  expect(screen.queryByLabelText(en.ui.body)).toBeNull()
+  expect(screen.queryByRole('textbox', { name: en.ui.body })).toBeNull()
   fireEvent.click(btn(en.ui.edit))
   fireEvent.change(screen.getByLabelText(en.ui.body), { target: { value: 'discard' } })
   fireEvent.click(btn(en.ui.cancel))
-  fireEvent.doubleClick(screen.getByText('Duty'))
+  fireEvent.doubleClick(screen.getByLabelText(en.ui.body))
   const editor = screen.getByLabelText<HTMLTextAreaElement>(en.ui.body)
   expect(editor.value).toBe(body)
   fireEvent.change(editor, { target: { value: '# New' } })
@@ -642,7 +648,7 @@ it('reads with native Markdown, edits inline, and returns to reading after cance
   expect(editor.isConnected).toBe(true)
   fireEvent.click(btn(en.ui.save))
   await screen.findByText('# New')
-  expect(screen.queryByLabelText(en.ui.body)).toBeNull()
+  expect(screen.queryByRole('textbox', { name: en.ui.body })).toBeNull()
   fireEvent.click(btn(en.ui.restoreSplit))
   fireEvent.click(btn(en.ui.collapseProfile))
   for (const key of ['variant', 'size'])
@@ -665,6 +671,25 @@ it('reads with native Markdown, edits inline, and returns to reading after cance
   expect(call).toHaveBeenCalledWith('restoreRole', {
     roleId: 'editor', revision: 1, expectedHash: 'b'.repeat(64),
   })
+})
+
+it('limits the split-view Markdown box and expands it in fullscreen with experience below both', async () => {
+  const style = document.createElement('style')
+  style.textContent = readFileSync('src/client/ui.css', 'utf8')
+  document.head.append(style)
+  try {
+    const file = { text: serializeMarkdown({ id: 'layout', name: 'Layout' }, 'Paragraph\n\n'.repeat(80)), hash: 'a'.repeat(64) }
+    const call = vi.fn(async (method: string) => method === 'readDocument' ? file : [])
+    harness(call).mount(<RoleLibrary roles={[{ id: 'layout', name: 'Layout', revision: 1 }]} changed={vi.fn()} />)
+    const box = await screen.findByRole('definition', { name: en.ui.body })
+    expect(screen.getAllByRole('definition')[1].textContent).toBe('—')
+    expect(getComputedStyle(box).overflow).toBe('auto')
+    expect(getComputedStyle(box).maxHeight).toBe('min(280px, 36vh)')
+    fireEvent.click(screen.getByRole('button', { name: en.ui.expandProfile }))
+    expect(getComputedStyle(box).maxHeight).toBe('60vh')
+    const lessons = screen.getByRole('heading', { name: en.ui.memories })
+    expect(box.compareDocumentPosition(lessons) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  } finally { style.remove() }
 })
 
 it('reports the file and line when a saved document has invalid frontmatter', async () => {

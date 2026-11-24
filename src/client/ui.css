@@ -371,9 +371,42 @@ body:has(.rt-divider[data-dragging]) * {
   margin-inline-start: auto;
 }
 .rt-history, .rt-profile-text { padding: 16px; }
-.rt-profile-text, .rt-history-preview { display: grid; gap: 8px; overflow-wrap: anywhere; }
+.rt-profile-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  margin: 0;
+}
+.rt-profile-fields > dt {
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+.rt-profile-fields > dt:not(:first-child) { margin-top: 8px; }
+.rt-profile-fields > dd {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-1);
+  overflow-wrap: anywhere;
+}
+.rt-profile-name {
+  font-size: 14px;
+  font-weight: 550;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.rt-profile-body {
+  max-height: min(280px, 36vh);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.rt-split[data-view='settingsOnly'] .rt-profile-body { max-height: 60vh; }
+.rt-history-preview { display: grid; gap: 8px; overflow-wrap: anywhere; }
 .rt-duty { color: var(--dsw-alias-label-secondary); }
-.rt-profile-text > *, .rt-history-preview > * { min-width: 0; }
+.rt-history-preview > * { min-width: 0; }
 .rt-docs > header { gap: 4px; }
 .rt-docs > header .rt-row { gap: 4px; }
 .rt-preset-label,
