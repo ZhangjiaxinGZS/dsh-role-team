@@ -1289,3 +1289,55 @@ it('follows horizontal visibility, preserves an explicit pick during motion and 
   expect(document.querySelector('.rt-column')?.getAttribute('data-seat')).toBe('c')
   expect(document.querySelectorAll('.rt-column > header')).toHaveLength(0)
 })
+
+it('renders settlement outcomes, removes only the notice wrapper and toggles overflowing Markdown', async () => {
+  const { teamMessage, TeamMessageCard } = await import('../src/client/workbench/TeamTrigger.js')
+  const notice = (ending: string, stopReason?: string, body = '**结果**\n\n- 第一项') => teamMessage({
+    source: { kind: 'subagent-settled', senderSessionId: 'rt-child-1', stopReason },
+    content: [text('Background subagent seo ' + ending), text('Its closing message:'), text(body)],
+  })!
+  function text(text: string) { return { type: 'text' as const, text } }
+  const t: Ui['t'] = k => en.ui[k]
+  const message = notice('finished and will do no further work unless you send it more.', 'completed')
+  expect(message).toMatchObject({ senderName: 'seo', senderId: 'rt-child-1', parts: [{text: '**结果**\n\n- 第一项'}] })
+  expect(notice('finished. It cannot receive follow-up messages.', undefined, '    code()').parts).toEqual([{text: '    code()'}])
+  const sized = vi.spyOn(HTMLElement.prototype,'getBoundingClientRect').mockReturnValue({ height: 370 } as DOMRect)
+  try {
+    const card = (m: typeof message) => <TeamMessageCard message={m} name="研究员" time={0} t={t} />
+    const view = render(card(message))
+    expect(screen.getByRole('button', { name: /From 研究员 · Task completed/ }).getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: en.ui.reportExpand }))
+    expect(document.querySelector('.rt-report-window')?.getAttribute('data-full')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: en.ui.reportCollapse }))
+    expect(document.querySelector('.rt-report-window')?.hasAttribute('data-full')).toBe(false)
+    sized.mockReturnValue({ height: 32 } as DOMRect)
+    for (const [ending, reason, label] of [
+      ['was stopped before it finished.', undefined, en.ui.reportAborted],
+      ['ran out of room before it finished.', 'max-tokens', en.ui.reportLimit],
+      ['declined the task.', 'refusal', en.ui.reportRefused], ['failed before it finished.', 'error', en.ui.reportError],
+      ['ended abnormally (other) before it finished.', 'other', en.ui.reportEnded],
+    ] as const) {
+      view.rerender(card(notice(ending, reason)))
+      expect(screen.getByText('From 研究员 · ' + label)).toBeTruthy()
+      expect(screen.queryByRole('button', { name: en.ui.reportExpand })).toBeNull()
+    }
+  } finally { sized.mockRestore() }
+})
+
+it('only counts real automatic settlement receipts for the addressed child', async () => {
+  const { receivedReports } = await import('../src/client/workbench/TeamReportTail.js')
+  const notice = (id: string, senderSessionId: string, marker: string, stopReason='completed') => ({
+    id, source: {kind:'subagent-settled', senderSessionId, stopReason},
+    content: [{ type:'text', text:'Background subagent seo finished and will do no further work unless you send it more.' },
+      { type:'text', text:marker }],
+  })
+  const receipt = notice('one', 'child', 'Its closing message:报告')
+  const entries = [
+    {event:{type:'agent/inbox/spliced',time:3,data:{inserted:[receipt]}}},
+    {event:{type:'user/message',time:6,data:receipt}},
+    {event:{type:'user/message',time:7,data:notice('two','other','Its closing message:他人')}},
+    {event:{type:'user/message',time:8,data:notice('three','child','It sent you a message just before finishing, so its closing message is omitted.')}},
+    {event:{type:'user/message',time:9,data:notice('four','child','Its closing message:部分结果','error')}},
+  ]
+  expect(receivedReports({entries} as unknown as Parameters<typeof receivedReports>[0], 'child')).toEqual([{time:3,text:'报告'}])
+})

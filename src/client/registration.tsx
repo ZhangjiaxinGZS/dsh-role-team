@@ -27,6 +27,7 @@ import { TYPERT_REMOTE } from '../shared/remote.js'
 import { Client, unwrap, type Labels, type Ui } from './ui.js'
 import { registerTeamMentions } from './workbench/TeamMentions.js'
 import { registerTeamTrigger } from './workbench/TeamTrigger.js'
+import { registerTeamReportTail } from './workbench/TeamReportTail.js'
 import { registerPreviewWorkspace } from './preview.js'
 import { App, LibrarySettings } from './App.js'
 import { ChildControls, ChildPermission, SessionChat } from './workbench/SessionPane.js'
@@ -101,6 +102,7 @@ function mount(ctx: Context) {
   }
   ctx.inject(['inputTriggers', 'uiConversation'], scope => registerTeamMentions(scope, shared.call, t))
   registerTeamTrigger(ctx, shared.call, t)
+  registerTeamReportTail(ctx, shared)
   function Main({
     SessionProvider,
     renderSlot,

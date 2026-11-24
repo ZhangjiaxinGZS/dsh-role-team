@@ -804,3 +804,17 @@ body:has(.rt-divider[data-dragging]) * {
 .rt-timer-list p { white-space: pre-wrap; margin-block: 4px; }
 .rt-timer-actions, .rt-timer-days { display: flex; flex-wrap: wrap; gap: 6px; }
 .rt-timer-days label { display: inline-flex; align-items: center; }
+
+.rt-report-window { max-height: 260px; overflow-y: auto; overscroll-behavior: auto; }
+.rt-report-window[data-full] { max-height: none; overflow: visible; }
+.rt-team-trigger-body { display: flow-root; }
+.rt-report footer { position: relative; padding: 3px 14px 8px; }
+.rt-report footer[data-clamped]::before {
+  content: ''; position: absolute; pointer-events: none; left: 0; right: 0; bottom: 100%; height: 14px;
+  background: linear-gradient(transparent, var(--dsw-alias-turn-trigger-bg));
+}
+.rt-report footer button {
+  border: 0; background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer; font: var(--dsw-font-xxs-12);
+}
+.rt-report footer button:hover { text-decoration: underline; }
+.rt-report-delivered { color: var(--dsw-alias-label-tertiary); font: var(--dsw-font-xxs-12); }

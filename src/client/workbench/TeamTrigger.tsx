@@ -3,7 +3,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { ContextMessageNode } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { IconChevronDownOutlineRegular, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
-import { useEffect, useId, useState, type ComponentType } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ComponentType } from 'react'
 import type { Ui } from '../ui.js'
 
 type Input = Pick<ContextMessageNode, 'source' | 'content'>
@@ -13,7 +13,7 @@ type Text = Ui['t']
 
 export function teamMessage({ source, content }: Input) {
   if (!source || typeof source !== 'object' || !('kind' in source) ||
-      (source.kind !== 'agent-message' && source.kind !== 'team-message')) return null
+      (source.kind !== 'agent-message' && source.kind !== 'team-message' && source.kind !== 'subagent-settled')) return null
   const field = (key: string) => {
     const value: unknown = Reflect.get(source, key)
     return typeof value === 'string' && value.length && value.length <= 256 ? value : undefined
@@ -27,31 +27,86 @@ export function teamMessage({ source, content }: Input) {
     else parts.push({ text: block.text })
   }
   let alias: string | undefined
+  const settled = source.kind === 'subagent-settled'
+  let status = field('stopReason')
+  let omitted = false
   const first = parts[0]
   if (first && 'text' in first) {
-    const prefix = /^Agent ([^\r\n]{1,256}?) sent a message:[ \t]?/.exec(first.text)
-    alias = prefix?.[1]
-    if (prefix) first.text = first.text.slice(prefix[0].length)
+    const text = first.text.replace(/^\s*这条通知触发了本轮回复。[ \t]*(?:\r?\n|$)/, '')
+    if (settled) {
+      // The host may emit the envelope, marker and answer in separate text blocks.
+      const prefix = /^Background subagent ([^\r\n]{1,256}?) (finished and will do no further work unless you send it more\.|finished\. It cannot receive follow-up messages\.|was stopped before it finished\.|ran out of room before it finished\.|declined the task\.|failed before it finished\.|ended abnormally \([^\r\n)]*\) before it finished\.)/.exec(text)
+      alias = prefix?.[1]
+      const summary = field('summary')
+      let body = prefix ? text.slice(prefix[0].length) : summary && text.startsWith(summary) ? text.slice(summary.length) : text
+      if (!status && prefix) {
+        const line = prefix[2]
+        status = line.startsWith('finished') ? 'completed' : line.startsWith('was stopped') ? 'aborted'
+          : line.startsWith('ran out') ? 'max-tokens' : line.startsWith('declined') ? 'refusal'
+          : line.startsWith('failed') ? 'error' : undefined
+      }
+      omitted = /^\s*It sent you a message just before finishing, so its closing message is omitted\./.test(body)
+      // Native notices have a dedicated marker block. Preserve significant Markdown
+      // whitespace at the beginning of the following answer (e.g. an indented code block).
+      if (content[1]?.type === 'text' && content[1].text === 'Its closing message:' && body.startsWith(content[1].text))
+        body = body.slice(content[1].text.length)
+      else body = body.replace(/^\s*(?:Its closing message:|It left no closing message\.|It sent you a message just before finishing, so its closing message is omitted\.)[ \t]*(?:\r?\n)?/, '')
+      first.text = body
+    } else {
+      const prefix = /^Agent ([^\r\n]{1,256}?) sent a message:[ \t]?/.exec(text)
+      alias = prefix?.[1]
+      first.text = prefix ? text.slice(prefix[0].length) : text
+    }
     first.text = first.text.replace(/^\s*这条通知触发了本轮回复。[ \t]*(?:\r?\n|$)/, '')
   }
-  return { senderId: field('senderSessionId') ?? field('senderId'), senderName: field('senderName') ?? alias, parts }
+  return { senderId: field('senderSessionId') ?? field('senderId'), senderName: field('senderName') ?? alias, parts, settled, status, omitted }
 }
 
 type Message = NonNullable<ReturnType<typeof teamMessage>>
+const statusLabels: Readonly<Partial<Record<string, Parameters<Text>[0]>>> = {
+  completed: 'reportCompleted', aborted: 'reportAborted', error: 'reportError',
+  'max-tokens': 'reportLimit', refusal: 'reportRefused',
+}
+
+function ReportBody({ message, t, id }: { message: Message; t: Text; id: string }) {
+  const content = useRef<HTMLDivElement>(null)
+  const [long, setLong] = useState(false), [full, setFull] = useState(false)
+  useLayoutEffect(() => {
+    const element = content.current!
+    const measure = () => setLong(element.getBoundingClientRect().height > 260)
+    measure()
+    const observer = typeof ResizeObserver !== 'undefined' && new ResizeObserver(measure)
+    if (observer) observer.observe(element)
+    return () => { if (observer) observer.disconnect() }
+  }, [message])
+  return <div id={id} className="rt-report">
+    <div className="rt-report-window" data-full={long && full || undefined} id={id + '-body'}>
+      <div className="rt-team-trigger-body" ref={content}>
+        {message.omitted && <small>{t('reportAlreadySent')}</small>}
+        {message.parts.map((part, i) => 'text' in part
+          ? part.text.trim() && <MarkdownText key={i} text={part.text} omitHtml labels={{
+            code: { copyLabel: t('copyCode'), copiedLabel: t('copiedCode') }, footnotes: t('footnotes'),
+          }} /> : <pre key={i}>{JSON.stringify(part.block, null, 2)?.slice(0, 8000)}</pre>)}
+      </div>
+    </div>
+    {long && <footer data-clamped={!full || undefined}><button type="button" aria-controls={id + '-body'} aria-expanded={full}
+      onClick={() => setFull(!full)}>{t(full ? 'reportCollapse' : 'reportExpand')}</button></footer>}
+  </div>
+}
+
 export function TeamMessageCard({ message, name, time, t }: { message: Message; name: string; time: number; t: Text }) {
   const [open, setOpen] = useState(true)
   const id = useId()
   const date = new Date(time)
+  const title = t('messageFrom').replace('{name}', () => name)
+  const status = message.status && Object.hasOwn(statusLabels, message.status) ? statusLabels[message.status] : undefined
   return <section className="rt-team-trigger" data-turn-trigger>
     <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
-      <span>{t('messageFrom').replace('{name}', () => name)}</span>
+      <span>{message.settled ? title + ' · ' + t(status ?? 'reportEnded') : title}</span>
       <time dateTime={date.toISOString()} title={date.toLocaleString()}>{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
       <IconChevronDownOutlineRegular size={12} />
     </button>
-    {open && <div id={id} className="rt-team-trigger-body">{message.parts.map((part, i) =>
-      'text' in part ? <MarkdownText key={i} text={part.text} omitHtml labels={{
-        code: { copyLabel: t('copyCode'), copiedLabel: t('copiedCode') }, footnotes: t('footnotes'),
-      }} /> : <pre key={i}>{JSON.stringify(part.block, null, 2)?.slice(0, 8000)}</pre>)}</div>}
+    {open && <ReportBody id={id} message={message} t={t} />}
   </section>
 }
 
