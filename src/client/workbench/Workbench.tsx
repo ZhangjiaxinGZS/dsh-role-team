@@ -1,3 +1,4 @@
+import { PaneDivider, paneStyle, usePaneWidths } from '../PaneDivider.js'
 import { useNavigation } from '../navigation.js'
 import {
   IconChevronRightOutlineRegular,
@@ -7,7 +8,7 @@ import {
   IconFullscreenOutlineRegular,
   IconRefreshOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import {
   MoreMenu,
   Modal,
@@ -44,6 +45,7 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
       <IconPanelLeftOutlineRegular size={16} />
     </button>
   )
+  const listSize = usePaneWidths('teams.list')
   const teamRow = (r: Run) => {
     const method = r.status === 'active' ? 'archiveTeam' : 'deleteTeam'
     return (
@@ -61,7 +63,7 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
   return (
     <section className="rt-work">
       {!collapsed && (
-        <aside className="rt-team-list rt-list" aria-label={t('teamsList')}>
+        <aside style={paneStyle(listSize.widths.list)} className="rt-team-list rt-list" aria-label={t('teamsList')}>
           <header>
             <h3>{t('teamsList')}</h3>
             <button
@@ -85,6 +87,7 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
           )}
         </aside>
       )}
+      {!collapsed && <PaneDivider label={t('teamsList')} kind="list" pane="list" resize={listSize.resize} />}
       <div className="rt-board">
         <Notice>{runs.error}</Notice>
         {id ? (
@@ -148,6 +151,7 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
   const [single, setSingle] = useState(false),
     [focus, setFocus] = useState(''),
     [add, setAdd] = useState(false)
+  const columns = usePaneWidths('team.' + id + '.members')
   if (!team.data)
     return (
       <div className="rt-pane-status">
@@ -200,21 +204,28 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
         </button>
       </header>
       <div className="rt-floor">
-        <div className={'rt-columns' + (single ? ' rt-single' : '')}>
+        <div className={'rt-columns' + (single ? ' rt-single' : '')}
+          style={{ '--rt-count': Math.max(1, seats.length) } as React.CSSProperties}>
           {seats
             .filter((s) => !single || s.seatId === target)
-            .map((s) => (
-              <MemberColumn
-                key={s.seatId}
-                seat={s}
-                team={data}
-                refresh={team.refresh}
-                single={single}
-                toggleFocus={() => {
-                  setFocus(s.seatId)
-                  setSingle(!single)
-                }}
-              />
+            .map((s, index) => (
+              <Fragment key={s.seatId}>
+                {!single && index > 0 && (
+                  <PaneDivider kind="members" label={seats[index - 1].displayName + ' / ' + s.displayName}
+                    pane={seats[index - 1].seatId} neighbor={s.seatId} resize={columns.resize} />
+                )}
+                <MemberColumn
+                  width={columns.widths[s.seatId]}
+                  seat={s}
+                  team={data}
+                  refresh={team.refresh}
+                  single={single}
+                  toggleFocus={() => {
+                    setFocus(s.seatId)
+                    setSingle(!single)
+                  }}
+                />
+              </Fragment>
             ))}
         </div>
       </div>
@@ -234,12 +245,14 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
 }
 function MemberColumn({
   seat: s,
+  width,
   team,
   refresh,
   single,
   toggleFocus,
 }: {
   seat: Seat
+  width?: number
   team: Team
   refresh: () => void
   single: boolean
@@ -251,7 +264,7 @@ function MemberColumn({
   const canReset = !readOnly && s.status === 'active' && !s.joining && !!parent &&
     !team.seats.some((child) => child.parentSeatId === s.seatId && child.status !== 'archived')
   return (
-    <article className="rt-column" id={'seat-' + s.seatId}>
+    <article style={paneStyle(width)} className="rt-column" id={'seat-' + s.seatId}>
       {!single && (
         <header>
           <div className="rt-grow">

@@ -143,6 +143,8 @@
     "rememberHint": "在对话里说「记住……」，角色会把经验记在这里。",
     "optionalTitle": "添加标题（可选）",
     "expandProfile": "全屏显示角色设定",
+    "resizePane": "调整宽度",
+    "resizeHint": "拖动或按左右方向键调整宽度。双击或按 Home 恢复默认宽度。",
     "restoreSplit": "还原为分屏",
     "collapseProfile": "收起角色设定",
     "duty": "职责简介",

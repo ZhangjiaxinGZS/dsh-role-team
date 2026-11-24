@@ -1,3 +1,4 @@
+import { PaneDivider, paneStyle, usePaneWidths } from '../PaneDivider.js'
 import { rememberRoleView, useNavigation, useRoleView } from '../navigation.js'
 import { duplicateRoleName, roleNameKey } from '../../shared/index.js'
 import { useEffect, useState } from 'react'
@@ -20,6 +21,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
     ).filter((r) => !deleted.includes(r.id)),
     active = roles.find((r) => r.id === role) ?? roles[0],
     id = active?.id
+  const listSize = usePaneWidths('roles.list')
   const nameTaken = (name: string, except?: string) =>
     roles.some((r) => r.id !== except && roleNameKey(r.name) === roleNameKey(name))
   useEffect(() => {
@@ -28,7 +30,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
   return (
     <section className="rt-library">
       <div className="rt-library-grid">
-        <aside className="rt-rolelist rt-list" aria-label={t('rolesList')}>
+        <aside style={paneStyle(listSize.widths.list)} className="rt-rolelist rt-list" aria-label={t('rolesList')}>
           <header>
             <h3>{t('rolesList')}</h3>
             <button
@@ -52,6 +54,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
             </div>
           ))}
         </aside>
+        <PaneDivider label={t('rolesList')} kind="list" pane="list" resize={listSize.resize} />
         {id ? (
           <RoleDetail
             key={id}
@@ -116,6 +119,7 @@ function RoleDetail({
 }) {
   const { t, call } = useUi()
   const [view, setView] = useRoleView(id)
+  const profileSize = usePaneWidths('roles.settings')
   const training = useLoad(id, () => call('openTraining', { roleId: id }), 2400)
   const start = useAction()
   const [replacing, setReplacing] = useState<string>()
@@ -168,7 +172,7 @@ function RoleDetail({
           {active.error.file} · {t('line')} {active.error.line} · {active.error.message}
         </Notice>
       )}
-      <div className="rt-split" data-view={view}>
+      <div className="rt-split" data-view={view} style={paneStyle(profileSize.widths.settings)}>
         <section className="rt-training">
           <Notice>{training.error}</Notice>
           {training.error && <button onClick={training.refresh}>{t('retry')}</button>}
@@ -183,6 +187,9 @@ function RoleDetail({
             />
           ) : chatActions}
         </section>
+        {view === 'splitView' && (
+          <PaneDivider label={t('card')} kind="profile" pane="settings" resize={profileSize.resize} />
+        )}
         <Documents
           roleId={id}
           revision={active?.revision ?? null}

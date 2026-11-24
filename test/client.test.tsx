@@ -100,7 +100,7 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
     </>
   ),
 }))
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 const Scope = createContext('')
 const seat = (sid: string, parent: string | null): Seat => ({
   seatId: sid,
@@ -870,4 +870,88 @@ it('opens the default session, follows native collapse, and reopens the last mem
   fireEvent.click(reopen())
   expect(collapse().getAttribute('aria-expanded')).toBe('true')
   expect(openSession.mock.calls).toEqual([[root], [member]])
+})
+
+function installWidthStorage() {
+  const disk = new Map<string, string>()
+  vi.stubGlobal('localStorage', {
+    getItem: (key: string) => disk.get(key) ?? null,
+    setItem: (key: string, value: string) => disk.set(key, value),
+    removeItem: (key: string) => disk.delete(key),
+  })
+}
+
+// jsdom has no pane geometry or pointer capture. Real layout and hit testing are checked in Chrome.
+function dragDivider(handle: HTMLElement, delta: number, left: number, right: number, available = left + right + 1) {
+  Object.defineProperty(handle.parentElement, 'clientWidth', { configurable: true, value: available })
+  for (const [sibling, width] of [[handle.previousElementSibling!, left], [handle.nextElementSibling!, right]] as const) {
+    vi.spyOn(sibling, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, width, 600))
+  }
+  handle.setPointerCapture = vi.fn()
+  for (const [type, clientX] of [['pointerdown', 100], ['pointermove', 100 + delta], ['pointerup', 100 + delta]] as const) {
+    const event = new MouseEvent(type, { bubbles: true, clientX, button: 0 })
+    Object.defineProperty(event, 'pointerId', { value: 1 })
+    fireEvent(handle, event)
+  }
+}
+const widthPreference = (selector: string) =>
+  document.querySelector<HTMLElement>(selector)!.style.getPropertyValue('--rt-pane-width')
+
+it('resizes the role list and profile independently, clamps both and restores defaults after remount', async () => {
+  installWidthStorage()
+  const h = harness(vi.fn(async (method: string) => method === 'readDocument' ? null : []))
+  const library = () => h.mount(<RoleLibrary roles={[{ id: 'resize-role', name: 'Resize', revision: 1 }]} changed={vi.fn()} />)
+  const separator = (name: string) => screen.getByRole('separator', { name: 'Resize · ' + name })
+  let view = library()
+  dragDivider(separator(en.ui.rolesList), 500, 190, 960)
+  dragDivider(separator(en.ui.card), -800, 620, 340)
+  expect(widthPreference('.rt-rolelist')).toBe('340px')
+  expect(widthPreference('.rt-split')).toBe('640px')
+  view.unmount()
+  view = library()
+  expect(widthPreference('.rt-rolelist')).toBe('340px')
+  expect(widthPreference('.rt-split')).toBe('640px')
+  dragDivider(separator(en.ui.rolesList), -999, 340, 800)
+  dragDivider(separator(en.ui.card), 999, 320, 640)
+  expect(widthPreference('.rt-rolelist')).toBe('140px')
+  expect(widthPreference('.rt-split')).toBe('310px')
+  fireEvent.doubleClick(separator(en.ui.rolesList))
+  fireEvent.keyDown(separator(en.ui.card), { key: 'Home' })
+  view.unmount()
+  library()
+  expect(widthPreference('.rt-rolelist')).toBe('')
+  expect(widthPreference('.rt-split')).toBe('')
+  await screen.findByRole('heading', { name: 'resize-role' })
+})
+
+it('stores team list and adjacent member widths, scoped to team and seats across remounts', async () => {
+  installWidthStorage()
+  const runs = ['width-a', 'width-b'].map(runId => ({ runId, title: runId, leaderSeatId: 'lead', status: 'active' }))
+  const h = harness(vi.fn(async (method: string, input: { runId: string }) => {
+    if (method === 'listTeams') return runs
+    if (method === 'getTeam') return { run: runs.find(r => r.runId === input.runId), seats: [seat('lead', null), seat('other', 'lead')] }
+    return []
+  }))
+  const mount = () => h.mount(<Workbench roles={[]} />)
+  const pair = () => screen.findByRole('separator', { name: 'Resize · lead / other' })
+  const sizes = () => ['.rt-team-list', '#seat-lead', '#seat-other'].map(widthPreference)
+  let view = mount()
+  fireEvent.click(await screen.findByRole('button', { name: 'width-a' }))
+  dragDivider(await pair(), 130, 400, 400)
+  dragDivider(screen.getByRole('separator', { name: 'Resize · ' + en.ui.teamsList }), 75, 180, 900)
+  expect(sizes()).toEqual(['255px', '530px', '300px'])
+  view.unmount()
+  view = mount()
+  await pair()
+  expect(sizes()).toEqual(['255px', '530px', '300px'])
+  fireEvent.click(screen.getByRole('button', { name: 'width-b' }))
+  await pair()
+  expect(sizes()).toEqual(['255px', '', ''])
+  fireEvent.click(screen.getByRole('button', { name: 'width-a' }))
+  fireEvent.doubleClick(await pair())
+  fireEvent.doubleClick(screen.getByRole('separator', { name: 'Resize · ' + en.ui.teamsList }))
+  view.unmount()
+  mount()
+  await pair()
+  expect(sizes()).toEqual(['', '', ''])
 })
