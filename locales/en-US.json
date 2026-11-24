@@ -152,6 +152,8 @@
     "back": "Back",
     "copyCode": "Copy code",
     "copiedCode": "Copied",
+    "messageFrom": "From {name}",
+    "messageMember": "Team member",
     "footnotes": "Footnotes",
     "repairFile": "Repair document formatting",
     "roleHistory": "History",

@@ -25,6 +25,7 @@ import zh from '../../locales/zh-CN.json' with { type: 'json' }
 import css from './ui.css'
 import { TYPERT_REMOTE } from '../shared/remote.js'
 import { Client, unwrap, type Labels, type Ui } from './ui.js'
+import { registerTeamTrigger } from './workbench/TeamTrigger.js'
 import { registerPreviewWorkspace } from './preview.js'
 import { App, LibrarySettings } from './App.js'
 import { ChildControls, ChildPermission, SessionChat } from './workbench/SessionPane.js'
@@ -97,6 +98,7 @@ function mount(ctx: Context) {
         ? () => workspace.pickDirectory!()
         : undefined,
   }
+  registerTeamTrigger(ctx, shared.call, t)
   function Main({
     SessionProvider,
     renderSlot,

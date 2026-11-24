@@ -790,3 +790,19 @@ body:has(.rt-divider[data-dragging]) * {
 .rt-model-trigger:hover {
   background: var(--dsw-alias-interactive-bg-hover);
 }
+
+.rt-team-trigger {
+  overflow: hidden;
+  border-radius: var(--dsw-radius-lg, 12px);
+  background: var(--dsw-alias-turn-trigger-bg);
+  color: var(--dsw-alias-label-primary);
+}
+.rt-team-trigger > button {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px;
+  border: 0; background: transparent; color: inherit; text-align: start; font: inherit; cursor: pointer;
+}
+.rt-team-trigger > button:hover { background: var(--dsw-alias-turn-trigger-bg-hover); }
+.rt-team-trigger time { margin-inline-start: auto; white-space: nowrap; color: var(--dsw-alias-label-tertiary); font: var(--dsw-font-xxs-12); }
+.rt-team-trigger [aria-expanded="true"] svg { transform: rotate(180deg); }
+.rt-team-trigger-body { padding: 0 14px 12px; overflow-wrap: anywhere; }
+.rt-team-trigger-body pre { overflow-x: auto; }

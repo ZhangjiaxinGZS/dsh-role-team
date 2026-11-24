@@ -992,3 +992,20 @@ it('executes all coaching tools in the native PTC Node runtime and records succe
   expect(calls.at(-1)?.arguments).toMatchObject({ name: 'lead' })
   expect(JSON.stringify(calls.at(-1)?.content)).toContain('系统名称')
 })
+
+it('resolves team message senders across seat generations and scopes aliases to the receiving team', async () => {
+  const { run } = await newTeam('message roster')
+  const programmer = 'fixture-programmer'
+  await service.saveDocument({ roleId: programmer, expectedHash: null,
+    text: serializeMarkdown({ id: programmer, name: '程序员' }, '开发') })
+  const member = await service.addMember({ runId: run.runId, roleId: programmer, displayName: 'dev' })
+  const who = (sender: { senderId?: string; senderName?: string }) =>
+    service.teamMessageSender({ sessionId: run.rootSessionId, ...sender })
+  expect(await who({ senderId: member.currentSessionId })).toEqual({ name: '程序员' })
+  expect(await who({ senderName: member.nativeAgentName })).toEqual({ name: '程序员' })
+  await service.resetSeat({ seatId: member.seatId, generation: 1, handoff: '' })
+  expect(await who({ senderId: member.currentSessionId })).toEqual({ name: '程序员' })
+  const other = await newTeam('separate roster')
+  expect(await who({ senderId: other.run.rootSessionId })).toEqual({ name: null })
+  expect(await service.teamMessageSender({ sessionId: 'ordinary' })).toBeNull()
+})

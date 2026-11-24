@@ -152,6 +152,8 @@
     "back": "返回",
     "copyCode": "复制代码",
     "copiedCode": "已复制",
+    "messageFrom": "来自 {name}",
+    "messageMember": "团队成员",
     "footnotes": "脚注",
     "repairFile": "修复文档格式",
     "roleHistory": "历史",

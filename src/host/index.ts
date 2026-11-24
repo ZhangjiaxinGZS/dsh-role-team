@@ -115,6 +115,24 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     return runs.map(run => ({ ...run, memberCount: counts.get(run.runId) ?? 0 }))
   }
 
+  @Remote async teamMessageSender({ sessionId, senderId, senderName }: Input<'teamMessageSender'>) {
+    const generations = this.index.generations.list()
+    const receiver = generations.find(g => g.sessionId === sessionId)
+    const seat = receiver && this.index.seats.get(receiver.seatId)
+    if (!seat) return null
+
+    const members = new Map(this.runtime.getTeam(seat.runId).seats.map(s =>
+      [s.seatId, this.roles.published(s.roleId)?.role.meta.name ?? s.displayName] as const,
+    ))
+    const candidates = generations.filter(g => members.has(g.seatId))
+    const exact = candidates.find(g => g.sessionId === senderId)
+    if (exact) return { name: members.get(exact.seatId)! }
+    // Collaboration names are unique among siblings, but can repeat in different branches.
+    const matches = new Set(candidates.filter(g => g.nativeAgentName === senderName).map(g => g.seatId))
+    const [only] = matches
+    return { name: matches.size === 1 ? members.get(only)! : null }
+  }
+
   @Remote async getTeam(request: Input<'getTeam'>) {
     const team = this.runtime.getTeam(request.runId)
     await this.runtime.native.retryLegacySessions(team.seats.map((seat) => seat.currentSessionId))

@@ -40,6 +40,10 @@ export const runtimeMethods = {
     z.array(indexRecords.team_runs.extend({ memberCount: z.int().nonnegative().optional() })),
   ],
   getTeam: [run, team],
+  teamMessageSender: [
+    z.strictObject({ sessionId: id, senderId: id.optional(), senderName: id.optional() }),
+    z.strictObject({ name: title.nullable() }).nullable(),
+  ],
   renameTeam: [run.extend({ title }), indexRecords.team_runs],
   archiveTeam: [run, indexRecords.team_runs],
   deleteTeam: [run, z.boolean()],

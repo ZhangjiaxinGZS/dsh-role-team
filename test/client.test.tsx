@@ -1133,3 +1133,37 @@ it('keeps the layout and column preference, locates members, and shows live sess
   expect(screen.getByText('480 px')).toBeTruthy()
   view.unmount()
 })
+
+it('renders team turn triggers expanded with Markdown, sender and timestamp, and delegates other turns to the native card', async () => {
+  const { registerTeamTrigger, teamMessage } = await import('../src/client/workbench/TeamTrigger.js')
+  const source = { kind: 'agent-message', senderSessionId: 'rt-child-123' }
+  const text = (text: string) => ({ type: 'text' as const, text })
+  const content = [text('Agent role-abc sent a message: '), text('这条通知触发了本轮回复。\n**请审稿**\n第二行')]
+  expect(teamMessage({ source, content })).toMatchObject({ senderId: 'rt-child-123', senderName: 'role-abc', parts: [{ text: '**请审稿**\n第二行' }] })
+  expect(teamMessage({ source: { kind: 'team-message', senderId: 'old', senderName: 'alias' }, content: [text('转述：Agent lead sent a message: 原文')] })).toMatchObject({ senderId: 'old', senderName: 'alias', parts: [{text:'转述：Agent lead sent a message: 原文'}] })
+  let Route!: React.ComponentType<{ sessionId: string; node: { data: Record<string, unknown> } }>
+  const ctx = { slots: {
+    inject: (_: string, cb: () => void) => cb(),
+    register: (opts: object, component: typeof Route) => { expect(opts).toMatchObject({ key: 'turn-trigger', priority: -1 }); Route = component },
+    entries: () => [{ options: { key: 'turn-trigger' }, locale:'chat', component: () => <button aria-expanded="false">native trigger</button> }],
+  } }
+  const lookup = vi.fn().mockResolvedValue({ name: '程序员' })
+  registerTeamTrigger(ctx as unknown as Context, lookup as Ui['call'], k => en.ui[k])
+  const node = { data: { source, content, time: Date.UTC(2026,0,1) } }
+  const view = render(<Route sessionId="rt-root-test" node={node} />)
+  const header = await screen.findByRole('button', {name:/From 程序员/})
+  expect(header.getAttribute('aria-expanded')).toBe('true')
+  expect(header.querySelector('time')?.dateTime).toBe('2026-01-01T00:00:00.000Z')
+  expect(screen.getByTestId('native-markdown').textContent).toBe('**请审稿**\n第二行')
+  fireEvent.click(header)
+  expect(screen.queryByTestId('native-markdown')).toBeNull()
+  fireEvent.click(header)
+  expect(screen.getByTestId('native-markdown')).toBeTruthy()
+  view.rerender(<Route sessionId="ordinary" node={node} />)
+  expect(screen.getByText('native trigger').getAttribute('aria-expanded')).toBe('false')
+  for (const kind of ['schedule','goal','webhook']) {
+    view.rerender(<Route sessionId="rt-root-test" node={{data:{...node.data,source:{kind}}}} />)
+    expect(screen.getByText('native trigger')).toBeTruthy()
+  }
+  expect(lookup).toHaveBeenCalledTimes(1)
+})
