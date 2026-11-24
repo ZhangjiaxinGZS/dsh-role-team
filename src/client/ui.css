@@ -284,13 +284,20 @@ html[data-platform='darwin'] .rt-top {
 }
 .rt-chip { max-width: 15em; }
 .rt-picker { flex: none; }
-.rt-seat-name, .rt-menu-name {
+.rt-seat-name {
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.rt-menu-name { display: block; max-width: min(22em, 60vw); }
+.rt-menu-member { display: flex; align-items: center; gap: 6px; max-width: min(28em, 70vw); }
+.rt-chips {
+  mask-image: linear-gradient(to right, var(--rt-edge-start, black), black 10px, black calc(100% - 10px), var(--rt-edge-end, black));
+}
+.rt-chips[data-before] { --rt-edge-start: transparent; }
+.rt-chips[data-after] { --rt-edge-end: transparent; }
+.rt-member-count { flex: none; font-variant-numeric: tabular-nums; }
+
 .rt-lead-badge {
   flex: none;
   color: var(--dsw-alias-label-secondary);
@@ -318,7 +325,7 @@ html[data-platform='darwin'] .rt-top {
   padding-bottom: 4px;
   margin-bottom: 6px;
 }
-.rt-team-list > header h3 { font-weight: 600; color: var(--dsw-alias-label-primary); }
+.rt-team-list > header h3 { font-size: 12px; font-weight: 600; color: var(--dsw-alias-label-secondary); }
 .rt-team-list .rt-list-row { margin-inline-start: 8px; }
 .rt-width-settings { display: grid; gap: 12px; }
 .rt-width-settings label { display: flex; justify-content: space-between; }

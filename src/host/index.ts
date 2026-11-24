@@ -103,8 +103,16 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     return this.runtime.createTeam(request)
   }
 
-  @Remote async listTeams(_request: Input<'listTeams'>) {
-    return this.index.runs.list()
+  @Remote async listTeams(request: Input<'listTeams'>) {
+    const runs = this.index.runs.list()
+    if (!request.includeMemberCounts) return runs
+    const archived = new Set(runs.filter(run => run.status === 'archived').map(run => run.runId))
+    const counts = new Map<string, number>()
+    for (const seat of this.index.seats.list()) {
+      if (seat.status !== 'archived' || archived.has(seat.runId))
+        counts.set(seat.runId, (counts.get(seat.runId) ?? 0) + 1)
+    }
+    return runs.map(run => ({ ...run, memberCount: counts.get(run.runId) ?? 0 }))
   }
 
   @Remote async getTeam(request: Input<'getTeam'>) {

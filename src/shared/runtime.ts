@@ -35,7 +35,10 @@ export const runtimeMethods = {
     }),
     team,
   ],
-  listTeams: [z.strictObject({}), z.array(indexRecords.team_runs)],
+  listTeams: [
+    z.strictObject({ includeMemberCounts: z.boolean().optional() }),
+    z.array(indexRecords.team_runs.extend({ memberCount: z.int().nonnegative().optional() })),
+  ],
   getTeam: [run, team],
   renameTeam: [run.extend({ title }), indexRecords.team_runs],
   archiveTeam: [run, indexRecords.team_runs],

@@ -12,7 +12,7 @@ import {
   IconRefreshOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { Fragment, useRef, useState, useSyncExternalStore } from 'react'
+import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import {
   MoreMenu,
   Modal,
@@ -29,7 +29,7 @@ import { SessionPane, sessionTarget } from './SessionPane.js'
 
 export function Workbench({ roles }: { roles: RoleChoice[] }) {
   const { call, t } = useUi(),
-    runs = useLoad('runs', () => call('listTeams', {}))
+    runs = useLoad('runs', () => call('listTeams', { includeMemberCounts: true }))
   const [selected, setSelected] = useNavigation('team'),
     [setup, setSetup] = useState(false)
   const [collapsed, setCollapsed] = useState(false),
@@ -50,13 +50,14 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
     </button>
   )
   const listSize = usePaneWidths('teams.list')
-  const teamRow = (r: Run) => {
+  const teamRow = (r: (typeof list)[number]) => {
     const method = r.status === 'active' ? 'archiveTeam' : 'deleteTeam'
     return (
       <div key={r.runId} className="rt-list-row">
         <button title={r.title} aria-current={id === r.runId ? 'page' : undefined} onClick={() => setSelected(r.runId)}>
           {r.title}
         </button>
+        {r.memberCount !== undefined && <small title={t('members')} className="rt-member-count">{r.memberCount}</small>}
         <MoreMenu
           name={r.title}
           actions={{ [method]: () => { action.clear(); setConfirm({ run: r, method }) } }}
@@ -95,7 +96,7 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
       <div className="rt-board">
         <Notice>{runs.error}</Notice>
         {id ? (
-          <TeamBoard key={id} id={id} roles={roles} toggle={toggle} />
+          <TeamBoard key={id} id={id} roles={roles} toggle={toggle} onMembersChanged={runs.refresh} />
         ) : (
           <>
             <div className="rt-controls">{toggle}</div>
@@ -149,7 +150,9 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
     </section>
   )
 }
-function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; toggle: React.ReactNode }) {
+function TeamBoard({ id, roles, toggle, onMembersChanged }: {
+  id: string; roles: RoleChoice[]; toggle: React.ReactNode; onMembersChanged: () => void
+}) {
   const { call, t } = useUi(),
     team = useLoad(id, () => call('getTeam', { runId: id }), 2500)
   const [layout, setLayout] = useNavigation('layout'),
@@ -163,6 +166,32 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
   const defaults = usePaneWidths('workbench')
   const width = Math.min(960, Math.max(320, defaults.widths.column ?? 480))
   const columns = usePaneWidths('team.' + id + '.members')
+  const seatCount = team.data?.seats.length
+  useEffect(() => {
+    const strip = chips.current
+    if (!strip) return
+    const edges = () => {
+      strip.toggleAttribute('data-before', strip.scrollLeft > 1)
+      strip.toggleAttribute('data-after', strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 1)
+    }
+    const wheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.shiftKey || event.deltaX || !event.deltaY) return
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? strip.clientWidth : 1
+      const before = strip.scrollLeft
+      strip.scrollLeft += event.deltaY * unit
+      if (strip.scrollLeft !== before) event.preventDefault()
+    }
+    edges()
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(edges)
+    observer?.observe(strip)
+    strip.addEventListener('scroll', edges)
+    strip.addEventListener('wheel', wheel, { passive: false })
+    return () => {
+      observer?.disconnect()
+      strip.removeEventListener('scroll', edges)
+      strip.removeEventListener('wheel', wheel)
+    }
+  }, [single, seatCount])
   if (!team.data)
     return (
       <div className="rt-pane-status">
@@ -185,7 +214,10 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
     showPicker(false)
     const container = single ? chips.current : board.current
     const item = Array.from(container?.children ?? []).find(el => el.getAttribute('data-seat') === seatId)
-    item?.scrollIntoView?.({ block: 'nearest', inline: single ? 'nearest' : 'start' })
+    item?.scrollIntoView?.({
+      block: 'nearest', inline: single ? 'nearest' : 'start',
+      behavior: single || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    })
   }
   function changeWidth(value: number | null) {
     defaults.resize({ column: value }, true)
@@ -229,7 +261,7 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
           </button>}
           items={picker ? seats.map(s => ({
             id: s.seatId,
-            label: <span className="rt-menu-name" title={s.displayName}>{s.displayName}</span>,
+            label: <span className="rt-menu-member"><SeatLabel seat={s} active={active} /></span>,
           })) : []}
           onClose={() => showPicker(false)} onSelect={pickSeat} />
         <button aria-label={t('addMember')} title={t('addMember')} className="rt-add-member" disabled={!active} onClick={() => setAdd(true)}>
@@ -288,6 +320,7 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
           onDone={() => {
             setAdd(false)
             team.refresh()
+            onMembersChanged()
           }}
         />
       )}

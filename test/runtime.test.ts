@@ -521,6 +521,10 @@ it('only deletes archived team indexes and resumes interrupted deletion without 
   await expect(service.deleteTeam({ runId })).rejects.toThrow(/Only archived teams/)
   expect(await service.listGenerations({ seatId: child.seatId })).toHaveLength(2)
   await service.archiveTeam({ runId })
+  expect(await service.listTeams({ includeMemberCounts: true })).toEqual(expect.arrayContaining([
+    expect.objectContaining({ runId, memberCount: 2 }),
+    expect.objectContaining({ runId: b.run.runId, memberCount: 1 }),
+  ]))
   const interrupted = vi.spyOn(service.index.seats, 'delete').mockRejectedValueOnce(new Error('disk offline'))
   await expect(service.deleteTeam({ runId })).rejects.toThrow('disk offline')
   interrupted.mockRestore()
