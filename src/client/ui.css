@@ -401,9 +401,12 @@ body:has(.rt-divider[data-dragging]) * {
 .rt-profile-body {
   max-height: min(280px, 36vh);
   overflow: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior: auto;
 }
-.rt-split[data-view='settingsOnly'] .rt-profile-body { max-height: 60vh; }
+.rt-split[data-view='settingsOnly'] .rt-profile-body {
+  max-height: none;
+  overflow: visible;
+}
 .rt-history-preview { display: grid; gap: 8px; overflow-wrap: anywhere; }
 .rt-duty { color: var(--dsw-alias-label-secondary); }
 .rt-history-preview > * { min-width: 0; }
@@ -477,7 +480,6 @@ body:has(.rt-divider[data-dragging]) * {
 .rt-docs {
   display: block;
   overflow: auto;
-  overscroll-behavior: contain;
   padding-bottom: 16px;
 }
 .rt-docs > header,
@@ -549,7 +551,10 @@ body:has(.rt-divider[data-dragging]) * {
   color: var(--dsw-alias-label-primary);
 }
 .rt-docs > .rt-editor textarea { min-height: max(18rem, 38vh); }
-.rt-split[data-view='settingsOnly'] .rt-docs > .rt-editor textarea { min-height: max(24rem, 62vh); }
+.rt-split[data-view='settingsOnly'] .rt-docs > .rt-editor textarea {
+  min-height: max(24rem, 62vh);
+  field-sizing: content;
+}
 .rt-editor > footer small { margin-inline-end: auto; }
 .rt-modal footer {
   justify-content: flex-end;

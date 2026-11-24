@@ -673,7 +673,7 @@ it('reads with native Markdown, edits inline, and returns to reading after cance
   })
 })
 
-it('limits the split-view Markdown box and expands it in fullscreen with experience below both', async () => {
+it('chains split-view scrolling and gives the full profile a single scroll surface', async () => {
   const style = document.createElement('style')
   style.textContent = readFileSync('src/client/ui.css', 'utf8')
   document.head.append(style)
@@ -684,9 +684,12 @@ it('limits the split-view Markdown box and expands it in fullscreen with experie
     const box = await screen.findByRole('definition', { name: en.ui.body })
     expect(screen.getAllByRole('definition')[1].textContent).toBe('—')
     expect(getComputedStyle(box).overflow).toBe('auto')
+    expect(getComputedStyle(box).overscrollBehavior).toBe('auto')
     expect(getComputedStyle(box).maxHeight).toBe('min(280px, 36vh)')
     fireEvent.click(screen.getByRole('button', { name: en.ui.expandProfile }))
-    expect(getComputedStyle(box).maxHeight).toBe('60vh')
+    expect(getComputedStyle(box).maxHeight).toBe('none')
+    expect(getComputedStyle(box).overflow).toBe('visible')
+    expect(getComputedStyle(box.closest('.rt-docs')!).overflow).toBe('auto')
     const lessons = screen.getByRole('heading', { name: en.ui.memories })
     expect(box.compareDocumentPosition(lessons) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   } finally { style.remove() }
