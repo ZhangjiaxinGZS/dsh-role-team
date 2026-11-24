@@ -23,6 +23,7 @@ import { serializeMarkdown } from '../src/shared/markdown.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 // The browser supplies the shared menu. Exercise the catalog and selection callbacks here.
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
+  MarkdownText: ({ text }: { text: string }) => <div data-testid="native-markdown">{text}</div>,
   IconEllipsisOutlineRegular: () => null,
   Button: ({
     children,
@@ -365,12 +366,7 @@ it('keeps both versions on a conflict and requires an explicit second save again
   expect(call.mock.calls[0][1].expectedHash).toBe(initial.hash)
   fireEvent.click(screen.getByText(en.ui.merge))
   expect(call).toHaveBeenCalledTimes(1)
-  fireEvent.click(screen.getByRole('button', { name: en.ui.source }))
-  const source = screen.getByRole('textbox')
-  fireEvent.change(source, { target: { value: '---\nid: [\n---\n' } })
-  expect(screen.getByRole('alert').textContent).toMatch(/editor\/role.md · Line \d+/)
-  expect((screen.getByText(en.ui.save) as HTMLButtonElement).disabled).toBe(true)
-  fireEvent.change(source, { target: { value: current.text + ' and mine' } })
+  fireEvent.change(screen.getByLabelText(en.ui.body), { target: { value: 'updated elsewhere and mine' } })
   fireEvent.click(screen.getByText(en.ui.save))
   await waitFor(() => expect(changed).toHaveBeenCalledOnce())
   expect(call.mock.calls[1][1]).toMatchObject({
@@ -530,6 +526,8 @@ it('blocks a duplicate display name when creating or renaming a role', async () 
   expect(form.getByText(en.ui.duplicateRole)).toBeTruthy()
   expect((form.getByRole('button', { name: en.ui.create }) as HTMLButtonElement).disabled).toBe(true)
   fireEvent.click(form.getByRole('button', { name: en.ui.close }))
+  await screen.findByRole('heading', { name: 'Author' })
+  fireEvent.click(screen.getByRole('button', { name: en.ui.edit }))
   fireEvent.change(await screen.findByLabelText(en.ui.name), { target: { value: 'eDiToR ' } })
   expect(screen.getByText(en.ui.duplicateRole)).toBeTruthy()
   expect((screen.getByRole('button', { name: en.ui.save }) as HTMLButtonElement).disabled).toBe(true)
@@ -600,51 +598,82 @@ it('rebinds the only visible training chat and releases the previous session', a
   expect(h.releases.get('previous')).toHaveBeenCalledOnce()
 })
 
-it('keeps the role editor across views and restores the chosen revision against the displayed file', async () => {
+it('reads with native Markdown, edits inline, and returns to reading after cancel, save, back and restore', async () => {
   const changed = vi.fn()
-  const meta = { id: 'editor', name: 'Editor', summary: 'Edit' }
-  const file = { text: serializeMarkdown(meta, 'Current'), hash: 'f'.repeat(64) }
-  const call = vi.fn(async (method: string) => {
-    if (method === 'readDocument') return file
+  const meta = { id: 'editor', name: 'Editor', summary: 'Duty' }
+  const body = '## Current\n\n**Detail**'
+  let file = { text: serializeMarkdown(meta, body), hash: 'f'.repeat(64) }
+  const memory = { id: 'lesson', title: 'Lesson', scope: 'role_long_term', createdAt: new Date().toISOString() }
+  const call = vi.fn(async (method: string, input: any) => {
+    if (method === 'listMemories') return ['lesson']
+    if (method === 'readDocument') return input.memoryId
+      ? { text: serializeMarkdown(memory, '- Note'), hash: 'a'.repeat(64) } : file
+    if (method === 'saveDocument') {
+      file = { text: input.text, hash: 'b'.repeat(64) }
+      return { ok: true, hash: file.hash }
+    }
     if (method === 'roleHistory')
       return [2, 1].map((n) => ({
-        publishedRevision: n,
-        publishedAt: '2026-11-23T00:00:00Z',
-        role: { meta, body: 'Role version ' + n },
+        publishedRevision: n, publishedAt: '2026-11-23T00:00:00Z',
+        role: { meta, body: '# Version ' + n },
       }))
-    if (method === 'restoreRole') return { ok: true, status: {} }
+    if (method === 'restoreRole') {
+      file = { text: serializeMarkdown(meta, '# Version ' + input.revision), hash: 'c'.repeat(64) }
+      return { ok: true, status: {} }
+    }
     return []
   })
-  harness(call).mount(
-    <RoleLibrary roles={[{ id: 'editor', name: 'Editor', revision: 3 }]} changed={changed} />,
-  )
-  const editor = await screen.findByDisplayValue('Current')
-  for (const [label, mode] of [
-    [en.ui.expandProfile, 'settingsOnly'], [en.ui.restoreSplit, 'splitView'],
-    [en.ui.collapseProfile, 'chatOnly'], [en.ui.card, 'splitView'],
-    [en.ui.expandProfile, 'settingsOnly'],
-  ]) {
-    fireEvent.click(screen.getByRole('button', { name: label }))
-    expect(profileView()).toBe(mode)
-    expect(editor.isConnected).toBe(true)
-  }
-  fireEvent.click(screen.getByRole('button', { name: en.ui.source }))
-  expect(screen.getByLabelText(en.ui.source)).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: en.ui.roleHistory }))
-  expect(screen.queryByRole('dialog')).toBeNull()
+  harness(call).mount(<RoleLibrary roles={[{ ...meta, revision: 3 }]} changed={changed} />)
+  const btn = (name: string) => screen.getByRole('button', { name })
+  await screen.findByText('- Note')
+  expect(screen.getAllByTestId('native-markdown').map((el) => el.textContent)).toEqual([body, '- Note'])
+  expect(screen.queryByRole('button', { name: 'Source' })).toBeNull()
+  expect(screen.queryByLabelText(en.ui.body)).toBeNull()
+  fireEvent.click(btn(en.ui.edit))
+  fireEvent.change(screen.getByLabelText(en.ui.body), { target: { value: 'discard' } })
+  fireEvent.click(btn(en.ui.cancel))
+  fireEvent.doubleClick(screen.getByText('Duty'))
+  const editor = screen.getByLabelText<HTMLTextAreaElement>(en.ui.body)
+  expect(editor.value).toBe(body)
+  fireEvent.change(editor, { target: { value: '# New' } })
+  fireEvent.click(btn(en.ui.expandProfile))
+  expect(profileView()).toBe('settingsOnly')
+  expect(screen.queryByRole('button', { name: en.ui.collapseProfile })).toBeNull()
+  expect(editor.isConnected).toBe(true)
+  fireEvent.click(btn(en.ui.save))
+  await screen.findByText('# New')
+  expect(screen.queryByLabelText(en.ui.body)).toBeNull()
+  fireEvent.click(btn(en.ui.restoreSplit))
+  fireEvent.click(btn(en.ui.collapseProfile))
+  for (const key of ['variant', 'size'])
+    expect(btn(en.ui.card).dataset[key]).toBe(btn(en.ui.newTraining).dataset[key])
+  fireEvent.click(btn(en.ui.card))
+  expect(profileView()).toBe('splitView')
+  fireEvent.click(btn(en.ui.roleHistory))
+  await screen.findByText('# Version 2')
+  fireEvent.click(btn(en.ui.back))
+  await screen.findByText('# New')
+  fireEvent.click(btn(en.ui.roleHistory))
   const history = within(screen.getByRole('region', { name: en.ui.roleHistory }))
-  await history.findByText('Role version 2')
-  fireEvent.click(history.getByRole('button', { name: /^Revision 1 / }))
-  await history.findByText('Role version 1')
-  fireEvent.click(history.getByRole('button', { name: en.ui.restoreRole }))
-  await waitFor(() => expect(changed).toHaveBeenCalledOnce())
+  fireEvent.click(await history.findByRole('button', { name: /^Revision 1 / }))
+  expect(history.getByTestId('native-markdown').textContent).toBe('# Version 1')
+  expect(screen.queryByRole('dialog')).toBeNull()
+  fireEvent.click(btn(en.ui.restoreRole))
+  await waitFor(() => expect(changed).toHaveBeenCalledTimes(2))
+  await screen.findByText('# Version 1')
+  expect(screen.queryByRole('region', { name: en.ui.roleHistory })).toBeNull()
   expect(call).toHaveBeenCalledWith('restoreRole', {
-    roleId: 'editor',
-    revision: 1,
-    expectedHash: file.hash,
+    roleId: 'editor', revision: 1, expectedHash: 'b'.repeat(64),
   })
 })
 
+it('reports the file and line when a saved document has invalid frontmatter', async () => {
+  const call = vi.fn(async (method: string) => method === 'readDocument'
+    ? { text: '---\nid: [\n---\n', hash: 'a'.repeat(64) } : [])
+  harness(call).mount(<Documents roleId="editor" revision={1} changed={() => {}} />)
+  expect((await screen.findByRole('alert')).textContent).toMatch(/editor\/role.md · Line \d+/)
+  expect(screen.queryByRole('button', { name: 'Source' })).toBeNull()
+})
 it('confirms the selected role by name and hash, supports cancel and clears the last role after deletion', async () => {
   const changed = vi.fn()
   const file = {

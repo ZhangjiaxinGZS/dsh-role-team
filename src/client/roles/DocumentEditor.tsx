@@ -1,7 +1,7 @@
 import {
   Button,
-  IconFullscreenOutlineRegular,
-  IconCompareSplitOutlineRegular,
+  IconEditOutlineRegular,
+  MarkdownText,
   IconCloseOutlineRegular,
   Tooltip,
   IconPlusOutlineRegular,
@@ -23,10 +23,39 @@ import { MoreMenu, Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
 
 // Allow intermediate empty or trailing-space names in the form, while the write contract stays strict.
 type Conflict = Extract<EditResult, { code: 'conflict' }>
-type Buffer = { text: string; base: FileContents | null; source: boolean; conflict?: Conflict }
+type Buffer = { text: string; base: FileContents | null; conflict?: Conflict }
 export const EditorBuffers = createContext<Map<string, Buffer> | null>(null)
 const roleForm = roleMeta.extend({ name: z.string(), summary: z.string().optional() })
 const memoryForm = memoryMeta.extend({ title: z.string() })
+const iconPaths = {
+    back: 'M13 4l-6 6 6 6M7 10h10',
+    history: 'M2 3v5h5M2.5 8a7.5 7.5 0 1 1 .7 6M10 5.5V10l3 2',
+    expand: 'M11 3h6v6M17 3l-6 6M9 17H3v-6M3 17l6-6',
+    restore: 'M17 3l-6 6m0-5v5h5M3 17l6-6m-5 0h5v5',
+}
+function ProfileIcon({ kind }: { kind: keyof typeof iconPaths }) {
+  return <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+    strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d={iconPaths[kind]} />
+  </svg>
+}
+
+function Markdown({ text }: { text: string }) {
+  const { t } = useUi()
+  return <MarkdownText text={text} omitHtml labels={{
+    code: { copyLabel: t('copyCode'), copiedLabel: t('copiedCode') },
+    footnotes: t('footnotes'),
+  }} />
+}
+
+function ProfileText({ meta, body }: { meta: RoleMeta; body: string }) {
+  return <>
+    <h2>{meta.name}</h2>
+    {meta.summary && <p className="rt-duty">{meta.summary}</p>}
+    {body && <Markdown text={body} />}
+  </>
+}
+
 export function Documents({
   roleId,
   revision,
@@ -47,7 +76,7 @@ export function Documents({
   const { call, t } = useUi()
   const [version, refresh] = useState(0)
   const [entry, setEntry] = useState<{ id: string; file: FileContents; remove: boolean }>()
-  const [historyHash, showHistory] = useState('')
+  const [panel, setPanel] = useState<{ mode: 'read' | 'edit' } | { mode: 'history'; hash: string }>({ mode: 'read' })
   const buffers = useContext(EditorBuffers)
   const [adding, setAdding] = useState(false)
   const action = useAction()
@@ -66,22 +95,45 @@ export function Documents({
       }),
     )
   })
-  const role = useLoad(JSON.stringify([roleId, revision, version]), () =>
-    call('readDocument', { roleId }),
-  )
+  const role = useLoad(JSON.stringify([roleId, revision, version]), async () => {
+    const file = await call('readDocument', { roleId })
+    if (!file) return { file, profile: { meta: { id: roleId, name: roleId }, body: '' } }
+    try {
+      return { file, profile: parseMarkdown(file.text, roleMeta, roleId, roleId + '/role.md') }
+    } catch (error) {
+      if (!(error instanceof DocumentError)) throw error
+      return { file, error: error.detail.file + ' · ' + t('line') + ' ' + error.detail.line + ' · ' + error.message }
+    }
+  })
+  const edit = () => setPanel({ mode: 'edit' })
+  const read = () => setPanel({ mode: 'read' })
   return (
     <aside className="rt-docs">
       <header>
-        <h3>{t('card')}</h3>
         <div className="rt-row">
+          {panel.mode === 'history' ? (
+            <Button size="sm" variant="outline" icon={<ProfileIcon kind="back" />} onClick={read}>
+              {t('back')}
+            </Button>
+          ) : <>
+            <h3>{t('card')}</h3>
+            {panel.mode === 'read' && <Button size="sm" variant="outline" icon={<IconEditOutlineRegular size={14} />}
+              disabled={!role.data} onClick={edit}>{t('edit')}</Button>}
+          </>}
+        </div>
+        <div className="rt-row">
+          {panel.mode === 'read' && <Button size="sm" variant="outline" icon={<ProfileIcon kind="history" />}
+            disabled={!role.data?.file} onClick={() => {
+              if (role.data?.file) setPanel({ mode: 'history', hash: role.data.file.hash })
+            }}>{t('roleHistory')}</Button>}
           {toggleSize && (
             <Tooltip label={t(fullscreen ? 'restoreSplit' : 'expandProfile')} side="bottom">
               <button className="rt-icon" onClick={toggleSize} aria-label={t(fullscreen ? 'restoreSplit' : 'expandProfile')}>
-                {fullscreen ? <IconCompareSplitOutlineRegular size={16} /> : <IconFullscreenOutlineRegular size={16} />}
+                <ProfileIcon kind={fullscreen ? 'restore' : 'expand'} />
               </button>
             </Tooltip>
           )}
-          {collapse && (
+          {collapse && !fullscreen && (
             <Tooltip label={t('collapseProfile')} side="bottom">
               <button className="rt-icon" onClick={collapse} aria-label={t('collapseProfile')}>
                 <IconCloseOutlineRegular size={16} />
@@ -90,33 +142,37 @@ export function Documents({
           )}
         </div>
       </header>
-      <Notice>{role.error || memories.error}</Notice>
-      {role.data !== undefined && (
+      <Notice>{role.error || memories.error || (panel.mode === 'read' && role.data?.error)}</Notice>
+      {panel.mode === 'read' && role.data?.profile && (
+        <article className="rt-profile-text" onDoubleClick={edit}>
+          <ProfileText {...role.data.profile} />
+        </article>
+      )}
+      {panel.mode === 'edit' && role.data && (
         <DocumentEditor
           key={roleId}
           nameTaken={nameTaken}
           file={{ roleId }}
-          initial={role.data}
-          changed={updated}
-          history={{
-            active: !!historyHash,
-            open: () => showHistory(role.data?.hash ?? ''),
-            close: () => showHistory(''),
-          }}
-        />
-      )}
-      {historyHash && (
-        <RoleHistory
-          roleId={roleId}
-          hash={historyHash}
-          dirty={() => !!buffers?.has(roleId + '/role.md')}
-          done={() => {
-            showHistory('')
+          initial={role.data.file}
+          cancel={read}
+          changed={() => {
+            read()
             updated()
           }}
         />
       )}
-      {!historyHash && (
+      {panel.mode === 'history' && (
+        <RoleHistory
+          roleId={roleId}
+          hash={panel.hash}
+          dirty={() => !!buffers?.has(roleId + '/role.md')}
+          done={() => {
+            read()
+            updated()
+          }}
+        />
+      )}
+      {panel.mode === 'read' && (
         <section className="rt-experiences">
           <header className="rt-row">
             <h3>{t('memories')}</h3>
@@ -135,7 +191,7 @@ export function Documents({
                 <article key={m.id} className="rt-experience-card">
                   <div>
                     {m.meta.title !== m.body && <strong>{m.meta.title}</strong>}
-                    <p>{m.body}</p>
+                    <Markdown text={m.body} />
                   </div>
                   <MoreMenu
                     name={m.meta.title}
@@ -239,9 +295,7 @@ function RoleHistory({
             ))}
           </ol>
           <article className="rt-history-preview">
-            <h3>{entry.role.meta.name}</h3>
-            <p>{entry.role.meta.summary}</p>
-            <pre>{entry.role.body}</pre>
+            <ProfileText {...entry.role} />
           </article>
           <footer>
             <button
@@ -335,11 +389,11 @@ export function DocumentEditor({
   file,
   initial,
   changed,
-  history,
+  cancel,
   nameTaken,
 }: {
   nameTaken?: (name: string) => boolean
-  history?: { active: boolean; open: () => void; close: () => void }
+  cancel?: () => void
   file: FileRef
   initial: FileContents | null
   changed: () => void
@@ -365,14 +419,13 @@ export function DocumentEditor({
     [draft] = useState(() => buffers?.get(path))
   const [base, setBase] = useState(draft ? draft.base : initial),
     [text, write] = useState(draft?.text ?? initial?.text ?? template),
-    [source, setSource] = useState(draft?.source ?? false),
     [conflict, setConflict] = useState<Conflict | undefined>(draft?.conflict),
     [saved, setSaved] = useState(false)
   useEffect(() => {
     if (text !== (base?.text ?? template) || conflict)
-      buffers?.set(path, { text, base, source, conflict })
+      buffers?.set(path, { text, base, conflict })
     else buffers?.delete(path)
-  }, [buffers, path, text, base, source, conflict, template])
+  }, [buffers, path, text, base, conflict, template])
   // Refresh a clean editor after external saves or approved proposals. A dirty buffer retains its CAS base.
   const [observed, setObserved] = useState(initial?.hash)
   if (initial?.hash !== observed) {
@@ -401,7 +454,6 @@ export function DocumentEditor({
   const doc = parsed
   const dirty = text !== (base?.text ?? template)
   const readable = (value: string) => {
-    if (source) return value
     try {
       const data = file.memoryId
         ? parseMarkdown(value, memoryMeta, id, path)
@@ -411,41 +463,15 @@ export function DocumentEditor({
       return value
     }
   }
-  const raw = source || !parsed,
-    edit = (value: string) => {
-      write(value)
-      setSaved(false)
-    }
-  const controls = (
-    <div className="rt-segment">
-      {(['visual', 'source'] as const).map((k) => (
-        <button
-          key={k}
-          aria-pressed={!history?.active && (k === 'source') === raw}
-          disabled={k === 'visual' && !parsed}
-          onClick={() => {
-            history?.close()
-            setSource(k === 'source')
-          }}
-        >
-          {t(k)}
-        </button>
-      ))}
-      {history && (
-        <button aria-pressed={history.active} disabled={!initial} onClick={history.open}>
-          {t('roleHistory')}
-        </button>
-      )}
-    </div>
-  )
-  const navigation = <div className="rt-row">{controls}</div>
-  if (history?.active) return <div className="rt-editor">{navigation}</div>
+  const edit = (value: string) => {
+    write(value)
+    setSaved(false)
+  }
   return (
     <div className="rt-editor">
-      {navigation}
-      {raw ? (
+      {!parsed ? (
         <label>
-          {t('source')}
+          {t('repairFile')}
           <textarea
             className="rt-code"
             value={text}
@@ -527,6 +553,10 @@ export function DocumentEditor({
       )}
       <footer>
         <small>{t(saved ? 'saved' : dirty ? 'savedDirty' : 'editNext')}</small>
+        {cancel && <Button size="sm" variant="outline" disabled={a.busy} onClick={() => {
+          buffers?.delete(path)
+          cancel()
+        }}>{t('cancel')}</Button>}
         <button
           className="rt-primary"
           disabled={a.busy || !dirty || !!diagnosis || !!conflict}

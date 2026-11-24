@@ -241,7 +241,8 @@ html[data-platform='darwin'] .rt-top {
   white-space: nowrap;
   overflow-x: auto;
 }
-.rt-docs h3,
+.rt-docs > header h3,
+.rt-experiences > header h3,
 .rt-column h3 {
   font-size: 14px;
   font-weight: 550;
@@ -346,7 +347,12 @@ html[data-platform='darwin'] .rt-top {
   gap: 4px;
   margin-inline-start: auto;
 }
-.rt-history { padding: 0 16px 16px; }
+.rt-history, .rt-profile-text { padding: 16px; }
+.rt-profile-text, .rt-history-preview { display: grid; gap: 8px; overflow-wrap: anywhere; }
+.rt-duty { color: var(--dsw-alias-label-secondary); }
+.rt-profile-text > *, .rt-history-preview > * { min-width: 0; }
+.rt-docs > header { gap: 4px; }
+.rt-docs > header .rt-row { gap: 4px; }
 .rt-preset-label,
 .rt-preset-button {
   color: var(--dsw-alias-label-secondary);
@@ -399,7 +405,7 @@ html[data-platform='darwin'] .rt-top {
 }
 .rt-split {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(250px, 34%);
+  grid-template-columns: minmax(0, 1fr) minmax(310px, 34%);
   grid-template-rows: minmax(0, 1fr);
   min-height: 0;
   flex: 1;
@@ -485,9 +491,9 @@ html[data-platform='darwin'] .rt-top {
   font-size: 14px;
   color: var(--dsw-alias-label-primary);
 }
-.rt-experience-card p {
-  white-space: pre-wrap;
-}
+.rt-docs > .rt-editor textarea { min-height: max(18rem, 38vh); }
+.rt-split[data-view='settingsOnly'] .rt-docs > .rt-editor textarea { min-height: max(24rem, 62vh); }
+.rt-editor > footer small { margin-inline-end: auto; }
 .rt-modal footer {
   justify-content: flex-end;
   flex-wrap: wrap;
@@ -500,8 +506,7 @@ html[data-platform='darwin'] .rt-top {
   padding: 6px 12px;
 }
 .rt-diff pre,
-.rt-proposals pre,
-.rt-history-preview pre {
+.rt-proposals pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   overflow: auto;

@@ -133,7 +133,7 @@ function RoleDetail({
       >
         {t('newTraining')}
       </Button>
-      {view === 'chatOnly' && <button onClick={() => setView('splitView')}>{t('card')}</button>}
+      {view === 'chatOnly' && <Button size="sm" variant="outline" onClick={() => setView('splitView')}>{t('card')}</Button>}
     </div>
   )
   return (
