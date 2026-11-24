@@ -10,8 +10,11 @@ import { TrainingRuntime } from '../training/index.js'
 import { replaceSeat } from '../seat-reset/index.js'
 import { NativeTeam } from './native.js'
 
+import { TeamSchedules } from './schedules.js'
+
 export type Seat = IndexRecord<'team_seats'>
 export class TeamRuntime {
+  readonly schedules = new TeamSchedules(this)
   readonly training: TrainingRuntime
   private readonly queue = new Map<string, Promise<unknown>>()
   private readonly restoringModel = new Set<string>()
@@ -376,12 +379,22 @@ export class TeamRuntime {
         if (ids.has(g.seatId)) await this.index.generations.delete(generationKey(g.seatId, g.generation))
       }
       for (const seat of seats) await this.index.seats.delete(seat.seatId)
+      for (const link of this.index.schedules.list()) {
+        if (link.runId === runId) await this.index.schedules.delete(link.scheduleId)
+      }
       return this.index.runs.delete(runId)
     })
   }
-  archiveTeam(runId: string) {
+  async archiveImpact(runId: string) {
+    const { rootSessionId } = this.getTeam(runId).run
+    const tasks = await this.native.ctx.get('schedule')?.catalog() ?? []
+    return tasks.filter(task => task.status === 'active' && task.target.kind === 'session' && task.target.sessionId === rootSessionId).length
+  }
+  archiveTeam(runId: string, expectedActiveSchedules?: number) {
     return this.ordered(runId, async () => {
       const { run, seats } = this.getTeam(runId)
+      if (expectedActiveSchedules !== undefined && await this.archiveImpact(runId) !== expectedActiveSchedules)
+        throw new Error(run.locale === 'en' ? 'Scheduled tasks changed. Review the count and confirm again.' : '定时任务数量已变更，请重新核对后归档。')
       if (run.status === 'deleting') throw new Error('Team deletion is in progress')
       if (
         run.status !== 'archived' &&
@@ -462,7 +475,8 @@ export class TeamRuntime {
         agent,
         this.getTeam(seat.runId).run.permissionPreset,
       )
-    isolate(agent, this.roles.root, active, run.locale)
+    isolate(agent, this.roles.root, active, run.locale, seat.parentSeatId ? 'member' : 'leader')
+    if (!seat.parentSeatId) agent.ctx.inject(['schedule'], scope => this.schedules.install(agent, seat.runId, scope))
     agent.ctx.on('tools/pre-execute', async (exec, next) => {
       if (exec.agent !== agent) return next()
       if (seat.parentSeatId)
@@ -546,6 +560,9 @@ export class TeamRuntime {
         run.locale === 'en'
           ? 'Team mentions identify collaborators. Match role-team:RUN/SEAT to the current roster below, using the seat ID even if a name has changed. A plain @name must match uniquely. Ask if ambiguous, missing, or from another team. /all or @Everyone addresses every active member. For requested collaboration, do your own part and use send_message with each other recipient’s exact address and a concrete assignment or report. Members can report to lead. A mention alone sends no message.'
           : '团队协作：标签 role-team:团队ID/席位ID 按下方本队花名册定位，改名仍按席位匹配。手写 @角色名 仅在唯一匹配时指派；重名、离队或非本队标签请先澄清。/all 或 @全体成员 指当前全队。需要协作时，自己承担本职部分，用 send_message 向其余被点名成员的准确 address 派发具体任务或汇报；成员向队长汇报用 lead。标签本身不会发送消息。',
+        run.locale === 'en'
+          ? 'Members report scheduling requests to lead. Only the leader manages team schedules. Before creating one, present the time, time zone, frequency and exact instructions and wait for explicit user confirmation. A scheduled delivery is a request to execute the confirmed work and delegate as needed. It is not authorization to schedule it again.'
+          : '成员遇到定时或延时需求，只向队长汇报。队长须先向用户列明时间、时区、频率和具体执行内容，获得明确确认后才可创建团队定时任务。收到定时投递时执行已确认的工作，按需派给成员，不能据此再次创建定时任务。',
         JSON.stringify({ ...this.mentionRoster(run.runId), selfSeatId: seat.seatId }),
       ].join('\n'),
     )

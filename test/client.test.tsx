@@ -1193,3 +1193,47 @@ it('offers team-only atomic mentions, disambiguates names and renders the serial
   expect(memberRule.match('go ' + encoded, 0, { read: () => undefined })).toMatchObject({ start: 3, end: 3 + encoded.length, data: { label: rows[1].name } })
   expect(memberRule.match('@readme.md', 0, { read: () => undefined })).toBeUndefined()
 })
+
+it('submits a weekly schedule to the selected team and shows the archive impact before confirmation', async () => {
+  const run = {
+    runId: 'a',
+    title: 'Timer Team',
+    status: 'active',
+    leaderSeatId: 'chief',
+    rootSessionId: 'chief-session',
+  }
+  const call = vi.fn(async (method: string) => {
+    if (method === 'listTeams') return [run]
+    if (method === 'getTeam') return { run, seats: [seat('chief', null)] }
+    if (method === 'teamSchedules') return []
+    if (method === 'teamArchiveImpact') return 2
+    if (method === 'createTeamSchedule') return {}
+    throw Error(method)
+  })
+  harness(call).mount(<Workbench roles={[]} />)
+  fireEvent.click(await screen.findByRole('button', { name: en.ui.teamTimers }))
+  let panel = within(await screen.findByRole('dialog'))
+  fireEvent.click(panel.getByRole('button', { name: en.ui.newTimer }))
+  fireEvent.change(panel.getByLabelText(en.ui.timerTitle), { target: { value: 'Weekly check' } })
+  fireEvent.change(panel.getByLabelText(en.ui.timerPrompt), { target: { value: 'Collect status' } })
+  fireEvent.change(panel.getByLabelText(en.ui.timerRule), { target: { value: 'weekly' } })
+  fireEvent.click(panel.getByRole('button', { name: en.ui.create }))
+  await waitFor(() =>
+    expect(call).toHaveBeenCalledWith(
+      'createTeamSchedule',
+      expect.objectContaining({
+        runId: 'a',
+        title: 'Weekly check',
+        timing: { kind: 'weekly', weekly: expect.objectContaining({ weekdays: [1] }) },
+      }),
+    ),
+  )
+  await panel.findByRole('button', { name: en.ui.newTimer })
+  fireEvent.click(panel.getByRole('button', { name: en.ui.close }))
+  fireEvent.click(screen.getByRole('button', { name: /More actions.*Timer Team/ }))
+  fireEvent.click(screen.getByRole('menuitem', { name: en.ui.archiveTeam }))
+  panel = within(screen.getByRole('dialog'))
+  expect(await panel.findByText(en.ui.archiveTimers.replace('{n}', '2'))).toBeTruthy()
+  fireEvent.click(panel.getByRole('button', { name: en.ui.cancel }))
+  expect(call.mock.calls.some(([method]) => method === 'archiveTeam')).toBe(false)
+})

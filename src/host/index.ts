@@ -149,8 +149,23 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     return this.index.runs.update(request.runId, (row) => ({ ...row, title: request.title }))
   }
 
+  @Remote async teamSchedules({ runId }: Input<'teamSchedules'>) {
+    return this.runtime.schedules.list(runId)
+  }
+  @Remote async createTeamSchedule(request: Input<'createTeamSchedule'>) {
+    return this.runtime.schedules.create(request)
+  }
+  @Remote async changeTeamSchedule(request: Input<'changeTeamSchedule'>) {
+    return this.runtime.schedules.change(request)
+  }
+  @Remote async teamScheduleHistory(request: Input<'teamScheduleHistory'>) {
+    return this.runtime.schedules.history(request)
+  }
+  @Remote async teamArchiveImpact({ runId }: Input<'teamArchiveImpact'>) {
+    return this.runtime.archiveImpact(runId)
+  }
   @Remote async archiveTeam(request: Input<'archiveTeam'>) {
-    return this.runtime.archiveTeam(request.runId)
+    return this.runtime.archiveTeam(request.runId, request.expectedActiveSchedules)
   }
 
   @Remote async deleteTeam({ runId }: Input<'deleteTeam'>) {

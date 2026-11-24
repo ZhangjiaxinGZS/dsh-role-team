@@ -102,6 +102,7 @@ export const conversationLocale = z.enum(['zh', 'en'])
 export const modelChoice = z.strictObject({ provider: key, model: key, reasoningEffort: key.optional() })
 export type ModelChoice = z.infer<typeof modelChoice>
 export const indexRecords = {
+  team_schedules: z.strictObject({ runId: key, scheduleId: key }),
   role_models: z.strictObject({ roleId: fileId, selection: modelChoice }),
   team_runs: z.strictObject({
     runId: key,

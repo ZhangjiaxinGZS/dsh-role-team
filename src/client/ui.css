@@ -806,3 +806,9 @@ body:has(.rt-divider[data-dragging]) * {
 .rt-team-trigger [aria-expanded="true"] svg { transform: rotate(180deg); }
 .rt-team-trigger-body { padding: 0 14px 12px; overflow-wrap: anywhere; }
 .rt-team-trigger-body pre { overflow-x: auto; }
+
+.rt-timer-list, .rt-timer-list article, .rt-timer-form label { display: grid; gap: 6px; min-width: 0; }
+.rt-timer-list article { border-top: 1px solid var(--dsw-alias-border-l4); padding-block: 12px; overflow-wrap: anywhere; }
+.rt-timer-list p { white-space: pre-wrap; margin-block: 4px; }
+.rt-timer-actions, .rt-timer-days { display: flex; flex-wrap: wrap; gap: 6px; }
+.rt-timer-days label { display: inline-flex; align-items: center; }

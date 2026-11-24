@@ -80,15 +80,16 @@ export function installRolePrompt(agent: Agent, text: () => string) {
   })
 }
 
-export function isolate(agent: Agent, roles: string, active: () => boolean, locale: 'zh' | 'en' = 'zh') {
+export function isolate(agent: Agent, roles: string, active: () => boolean, locale: 'zh' | 'en' = 'zh', team?: 'leader' | 'member') {
   const tools = agent.ctx.tools
   // Mask inherited lookup tools for both native and PTC executors, including late registrations.
+  const blocked = (name: string) => blockedTool(name) || (!!team && name.startsWith('schedule_')) || (team === 'member' && name.startsWith('team_schedule_'))
   const masked = new Set<string>()
   const restrictLookup = () => {
     const names = tools
       .definitions(scopeParentOf(agent))
       .map((t) => t.name)
-      .filter((name) => blockedTool(name) && !masked.has(name))
+      .filter((name) => blocked(name) && !masked.has(name))
     if (!names.length) return
     for (const name of names) masked.add(name)
     tools.restrict({ deny: names })
@@ -96,7 +97,7 @@ export function isolate(agent: Agent, roles: string, active: () => boolean, loca
   restrictLookup()
   agent.ctx.on('tools/change', restrictLookup)
   tools.guard((exec) => {
-    if (exec.agent === agent && (!active() || blockedTool(exec.name)))
+    if (exec.agent === agent && (!active() || blocked(exec.name)))
       return locale === 'en'
         ? 'Capability unavailable in this role session'
         : '当前角色会话无法使用此工具。'
@@ -114,7 +115,7 @@ export function isolate(agent: Agent, roles: string, active: () => boolean, loca
           s.name === 'deployment:persona-suffix' ||
           s.name.startsWith('mcp:') ||
           s.name.startsWith('tools:') ||
-          (s.name.startsWith('tool:') && s.name !== 'tool:session-query'),
+          (s.name.startsWith('tool:') && s.name !== 'tool:session-query' && !(team && s.name === 'tool:schedule')),
       ),
     }
   })

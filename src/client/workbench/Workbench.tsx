@@ -1,3 +1,4 @@
+import { SchedulePanel } from './SchedulePanel.js'
 import { PaneDivider, paneStyle, usePaneWidths } from '../PaneDivider.js'
 import { useNavigation } from '../navigation.js'
 import {
@@ -8,6 +9,7 @@ import {
   Menu,
   IconChevronDownOutlineRegular,
   IconSettingsOutlineRegular,
+  IconClockOutlineRegular,
   IconFullscreenOutlineRegular,
   IconRefreshOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -34,6 +36,8 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
     [setup, setSetup] = useState(false)
   const [collapsed, setCollapsed] = useState(false),
     [confirm, setConfirm] = useState<{ run: Run; method: 'archiveTeam' | 'deleteTeam' }>()
+  const archiveId = confirm?.method === 'archiveTeam' ? confirm.run.runId : ''
+  const impact = useLoad(archiveId, () => archiveId ? call('teamArchiveImpact', { runId: archiveId }) : Promise.resolve(0), archiveId ? 2500 : 0)
   const action = useAction()
   const list = runs.data ?? [],
     active = list.filter((r) => r.status === 'active')
@@ -112,16 +116,18 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
       {confirm && (
         <Modal title={t(confirm.method)} close={() => setConfirm(undefined)} locked={action.busy}>
           <p>{confirm.run.title} · {t(confirm.method === 'deleteTeam' ? 'deleteTeamHint' : 'archiveTeamHint')}</p>
-          <Notice>{action.error}</Notice>
+          {archiveId && <p>{impact.data === undefined ? t('loading') : t('archiveTimers').replace('{n}', String(impact.data))}</p>}
+          <Notice>{action.error || impact.error}</Notice>
           <footer>
             <button data-modal-autofocus disabled={action.busy} onClick={() => setConfirm(undefined)}>
               {t('cancel')}
             </button>
             <button
-              disabled={action.busy}
+              disabled={action.busy || (!!archiveId && (impact.data === undefined || !!impact.error))}
               onClick={() =>
                 action.run(async () => {
-                  await call(confirm.method, { runId: confirm.run.runId })
+                  if (confirm.method === 'archiveTeam') await call('archiveTeam', { runId: confirm.run.runId, expectedActiveSchedules: impact.data })
+                  else await call('deleteTeam', { runId: confirm.run.runId })
                   if (id === confirm.run.runId) {
                     const next = confirm.method === 'archiveTeam' && active.find((r) => r.runId !== id)
                     setSelected(next ? next.runId : '')
@@ -159,6 +165,7 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
     [focus, setFocus] = useState(''),
     [add, setAdd] = useState(false)
   const single = layout === 'focus'
+  const [timers, showTimers] = useState(false)
   const [settings, showSettings] = useState(false)
   const board = useRef<HTMLDivElement>(null)
   const defaults = usePaneWidths('workbench')
@@ -214,11 +221,15 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
         <button aria-label={t('addMember')} title={t('addMember')} className="rt-add-member" disabled={!active} onClick={() => setAdd(true)}>
           <IconPlusOutlineRegular size={14} /><span>{t('addMember')}</span>
         </button>
+        <button className="rt-icon" title={t('teamTimers')} aria-label={t('teamTimers')} onClick={() => showTimers(true)}>
+          <IconClockOutlineRegular size={16} />
+        </button>
         <button className="rt-icon" title={t('boardSettings')} aria-label={t('boardSettings')} onClick={() => showSettings(true)}>
           <IconSettingsOutlineRegular size={16} />
         </button>
       </header>
       <MemberBar seats={seats} active={active} target={target} pickSeat={pickSeat} />
+      {timers && <SchedulePanel key={id} runId={id} active={active} close={() => showTimers(false)} />}
       {settings && <Modal title={t('boardSettings')} close={() => showSettings(false)}>
         <div className="rt-width-settings">
           <label htmlFor="rt-column-width">{t('columnWidth')} <output htmlFor="rt-column-width">{width} px</output></label>

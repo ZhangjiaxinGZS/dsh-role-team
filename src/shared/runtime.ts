@@ -10,6 +10,8 @@ import {
   hash,
 } from './index.js'
 
+import { scheduleDraft, scheduleChange, scheduleHistory, scheduleRow } from './schedules.js'
+
 const id = z.string().min(1).max(256)
 const workspaceCwd = z.string().min(1)
 const title = z.string().trim().min(1).max(160)
@@ -39,6 +41,10 @@ export const runtimeMethods = {
     z.strictObject({ includeMemberCounts: z.boolean().optional() }),
     z.array(indexRecords.team_runs.extend({ memberCount: z.int().nonnegative().optional() })),
   ],
+  teamSchedules: [run, z.array(scheduleRow)],
+  createTeamSchedule: [scheduleDraft.extend({ runId: id }), scheduleRow],
+  changeTeamSchedule: [scheduleChange.extend({ runId: id }), z.boolean()],
+  teamScheduleHistory: [run.extend({ id, before: id.optional() }), scheduleHistory],
   getTeam: [run, team],
   teamMentionRoster: [
     z.strictObject({ sessionId: id }),
@@ -52,7 +58,8 @@ export const runtimeMethods = {
     z.strictObject({ name: title.nullable() }).nullable(),
   ],
   renameTeam: [run.extend({ title }), indexRecords.team_runs],
-  archiveTeam: [run, indexRecords.team_runs],
+  teamArchiveImpact: [run, z.int().nonnegative()],
+  archiveTeam: [run.extend({ expectedActiveSchedules: z.int().nonnegative().optional() }), indexRecords.team_runs],
   deleteTeam: [run, z.boolean()],
   addMember: [
     run.extend({ roleId: fileId, parentSeatId: id.optional(), displayName: title.optional() }),

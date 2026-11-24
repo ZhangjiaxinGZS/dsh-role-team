@@ -1,3 +1,5 @@
+import Schedule from '@deepseek-ai/dsh-schedule'
+import * as ScheduleTools from '@deepseek-ai/dsh-tool-schedule'
 import NodePtcRuntime from '@deepseek-ai/dsh-ptc-runtime-node'
 import SubprocessLocal from '@deepseek-ai/dsh-subprocess-local'
 import SandboxLocal from '@deepseek-ai/dsh-sandbox-local'
@@ -1038,4 +1040,188 @@ it('routes team mentions by stable seat through the current native tree and isol
   expect(JSON.stringify(request(leaf.currentSessionId).messages.filter(m => m.role === 'system'))).toContain('dev/qa')
   await service.archiveTeam({ runId: run.runId })
   expect(await service.teamMentionRoster({ sessionId: leaf.currentSessionId })).toBeNull()
+})
+
+it('scopes native schedules, delivers to the lead, synchronizes edits and stops active tasks on archive', async () => {
+  await ctx.plugin(Schedule)
+  await ctx.plugin(ScheduleTools)
+  const a = (await newTeam('Timers A')).run,
+    b = (await newTeam('Timers B')).run
+  const child = await service.addMember({ runId: a.runId, roleId })
+  const make = (title: string, seconds: number) =>
+    service.createTeamSchedule({
+      runId: a.runId,
+      title,
+      prompt: title,
+      timing: { kind: 'after', after_seconds: seconds },
+    })
+  const timer = await make('Scheduled briefing', 3600)
+  expect(service.index.schedules.get(timer.id)?.runId).toBe(a.runId)
+  expect((await ctx.schedule.catalog())[0].target).toEqual({
+    kind: 'session',
+    sessionId: a.rootSessionId,
+  })
+  expect(await service.teamSchedules({ runId: b.runId })).toEqual([])
+  expect(await service.teamArchiveImpact({ runId: a.runId })).toBe(1)
+  for (const action of ['pause', 'delete', 'run'] as const)
+    await expect(
+      service.changeTeamSchedule({
+        runId: b.runId,
+        id: timer.id,
+        expectedUpdatedAt: timer.updatedAt,
+        action,
+      }),
+    ).rejects.toThrow('not found')
+  await expect(service.teamScheduleHistory({ runId: b.runId, id: timer.id })).rejects.toThrow(
+    'not found',
+  )
+  await expect(
+    service.archiveTeam({ runId: a.runId, expectedActiveSchedules: 0 }),
+  ).rejects.toThrow()
+  await service.changeTeamSchedule({
+    runId: a.runId,
+    id: timer.id,
+    expectedUpdatedAt: timer.updatedAt,
+    action: 'pause',
+  })
+  expect(await service.teamArchiveImpact({ runId: a.runId })).toBe(0)
+  await expect(
+    service.changeTeamSchedule({
+      runId: a.runId,
+      id: timer.id,
+      expectedUpdatedAt: timer.updatedAt,
+      action: 'delete',
+    }),
+  ).rejects.toThrow('schedule_conflict')
+  const [native] = await ctx.schedule.catalog()
+  await ctx.schedule.edit({
+    id: native.id,
+    action: 'update',
+    patch: { title: 'Updated natively', active: true },
+  })
+  const [current] = await service.teamSchedules({ runId: a.runId })
+  expect(current).toMatchObject({ title: 'Updated natively', status: 'active' })
+  await service.changeTeamSchedule({
+    runId: a.runId,
+    id: timer.id,
+    expectedUpdatedAt: current.updatedAt,
+    action: 'run',
+  })
+  await vi.waitFor(async () =>
+    expect(
+      (await service.teamScheduleHistory({ runId: a.runId, id: timer.id })).records,
+    ).toHaveLength(1),
+  )
+  const alarm = await make('Scheduled handoff fixture', 1)
+  let sent = false
+  model.pause = async (req) => {
+    if (
+      req.sessionId !== a.rootSessionId ||
+      sent ||
+      !JSON.stringify(req.messages).includes('Scheduled handoff fixture')
+    )
+      return
+    sent = true
+    await tool(a.rootSessionId, 'send_message', {
+      agent: child.nativeAgentName,
+      message: 'Check the scheduled handoff',
+    })
+  }
+  await vi.waitFor(
+    () =>
+      expect(JSON.stringify(request(child.currentSessionId).messages)).toContain(
+        'Check the scheduled handoff',
+      ),
+    { timeout: 6000 },
+  )
+  expect(
+    request(child.currentSessionId).tools?.some((t) => /^(team_)?schedule_/.test(t.name)),
+  ).toBe(false)
+  await vi.waitFor(
+    async () =>
+      expect(
+        (await service.teamScheduleHistory({ runId: a.runId, id: alarm.id })).records[0]?.prompt,
+      ).toBe('Scheduled handoff fixture'),
+    { timeout: 6000 },
+  )
+  for (const task of await service.teamSchedules({ runId: a.runId }))
+    await service.changeTeamSchedule({
+      runId: a.runId,
+      id: task.id,
+      expectedUpdatedAt: task.updatedAt,
+      action: 'delete',
+    })
+  const bTimer = await service.createTeamSchedule({
+    runId: b.runId,
+    title: 'B private',
+    prompt: 'Secret B',
+    timing: { kind: 'daily', daily: { time: '09:00', time_zone: 'UTC' } },
+  })
+  // A globally retargeted task carries its previous team's prompt and receipts.
+  const moved = await ctx.schedule.create({
+    title: 'Retargeted',
+    prompt: 'private',
+    timing: { kind: 'after', after_seconds: 3600 },
+    target: { kind: 'session', sessionId: b.rootSessionId as SessionId },
+  })
+  await ctx.schedule.edit({
+    id: moved.id,
+    action: 'update',
+    patch: { target: { kind: 'session', sessionId: a.rootSessionId as SessionId } },
+  })
+  expect((await service.teamSchedules({ runId: a.runId })).map((t) => t.id)).not.toContain(moved.id)
+  await expect(service.teamScheduleHistory({ runId: a.runId, id: moved.id })).rejects.toThrow(
+    'not found',
+  )
+  await ctx.schedule.edit({ id: moved.id, action: 'delete' })
+  await make('Stop on archive', 600)
+  await service.archiveTeam({ runId: a.runId, expectedActiveSchedules: 1 })
+  expect(await service.teamArchiveImpact({ runId: a.runId })).toBe(0)
+  expect((await service.teamSchedules({ runId: b.runId }))[0].id).toBe(bTimer.id)
+})
+
+it('limits native PTC schedule access to the calling team and its confirmed lead workflow', async () => {
+  await ctx.plugin(Schedule)
+  await ctx.plugin(ScheduleTools)
+  await ctx.plugin(SubprocessLocal)
+  await ctx.plugin(SandboxLocal)
+  await ctx.plugin(SandboxPolicy, { mode: 'workspace-write' })
+  await ctx.plugin(NodePtcRuntime, { executionMode: 'per-call' })
+  await ctx.plugin(AgentPreset, {
+    id: 'ptc',
+    plugins: [{ id: 'ptc-executor', name: '@deepseek-ai/dsh-tool-executor-ptc' }],
+  })
+  const { run: a } = await service.createTeam({
+    title: 'PTC A',
+    roleId,
+    workspaceCwd: cwd,
+    agentPreset: 'ptc',
+  })
+  const { run: b } = await newTeam('PTC B')
+  const foreign = await service.createTeamSchedule({
+    runId: b.runId,
+    title: 'Foreign timer',
+    prompt: 'foreign text',
+    timing: { kind: 'after', after_seconds: 600 },
+  })
+  const events: SessionEvent[] = []
+  ctx.on('session/event', (s, e) => {
+    if (s.id === a.rootSessionId) events.push(e)
+  })
+  model.program =
+    'await tools.team_schedule_create({title:"Confirmed",prompt:"Inspect fixture",timing:{kind:"after",after_seconds:600}})'
+  await prompt(a.rootSessionId, '确认，十分钟后检查测试数据。')
+  expect((await service.teamSchedules({ runId: a.runId })).map((t) => t.title)).toEqual([
+    'Confirmed',
+  ])
+  model.program = `await tools.team_schedule_change({id:${JSON.stringify(foreign.id)},expectedUpdatedAt:${JSON.stringify(foreign.updatedAt)},action:"delete"})`
+  await prompt(a.rootSessionId, 'Try a foreign id')
+  expect(
+    events.filter((e) => e.type === 'tool/ptc-dispatch').map((e) => [e.data.name, e.data.isError]),
+  ).toEqual([
+    ['team_schedule_create', false],
+    ['team_schedule_change', true],
+  ])
+  expect((await tool(a.rootSessionId, 'schedule_list', {})).isError).toBe(true)
+  expect((await service.teamSchedules({ runId: b.runId }))[0].id).toBe(foreign.id)
 })
