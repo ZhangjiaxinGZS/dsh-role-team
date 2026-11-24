@@ -1167,3 +1167,29 @@ it('renders team turn triggers expanded with Markdown, sender and timestamp, and
   }
   expect(lookup).toHaveBeenCalledTimes(1)
 })
+
+it('offers team-only atomic mentions, disambiguates names and renders the serialized identity', async () => {
+  const { memberSource, memberRule } = await import('../src/client/workbench/TeamMentions.js')
+  const name = 'Dev [QA]'
+  const members = ['lead', 'dev/qa'].map((address, i) => ({
+    seatId: 'seat-' + i, address, name, leader: !i, duty: i ? 'Review builds' : 'Plan',
+  }))
+  const call = vi.fn().mockResolvedValue({ runId: 'team-abc', members })
+  const source = memberSource(call as Ui['call'], key => en.ui[key])
+  const session = { sessionId: 'rt-child-xyz' as import('@deepseek-ai/dsh-session').SessionId }
+  const req = { signal: new AbortController().signal, query: '', position: 'inline' as const, drilled: false }
+  expect(await source.candidates({ sessionId: 'ordinary' as typeof session.sessionId }, req)).toEqual([])
+  expect(await source.candidates(session, { ...req, quoted: true })).toEqual([])
+  expect(call).not.toHaveBeenCalled()
+  const rows = await source.candidates(session, req)
+  expect(rows.map(row => row.section)).toEqual(Array(3).fill(en.ui.mentionGroup))
+  expect(rows[0].description).toContain(en.ui.leader)
+  expect(rows[2].name).toBe(en.ui.mentionEveryone)
+  expect(await source.candidates(session, { ...req, query: 'build' })).toEqual([rows[1]])
+  const pick = await source.onPick({ candidate: rows[1], session, position: 'inline', via: 'enter', action: 'pick', span: { start: 0, end: 1, draftRev: 1 } })
+  expect(pick).toMatchObject({ insert: { label: '@Dev [QA] · dev/qa', ref: rows[1].value } })
+  const encoded = await source.codec!.serialize(rows[1].value!, req.signal)
+  expect(source.codec!.clipboardText(encoded)).toBe(encoded)
+  expect(memberRule.match('go ' + encoded, 0, { read: () => undefined })).toMatchObject({ start: 3, end: 3 + encoded.length, data: { label: rows[1].name } })
+  expect(memberRule.match('@readme.md', 0, { read: () => undefined })).toBeUndefined()
+})

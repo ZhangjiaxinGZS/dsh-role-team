@@ -115,6 +115,12 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     return runs.map(run => ({ ...run, memberCount: counts.get(run.runId) ?? 0 }))
   }
 
+  @Remote async teamMentionRoster({ sessionId }: Input<'teamMentionRoster'>) {
+    const seat = this.index.seats.list().find(s => s.currentSessionId === sessionId && s.status === 'active')
+    if (!seat || this.index.runs.get(seat.runId)?.status !== 'active') return null
+    return this.runtime.mentionRoster(seat.runId)
+  }
+
   @Remote async teamMessageSender({ sessionId, senderId, senderName }: Input<'teamMessageSender'>) {
     const generations = this.index.generations.list()
     const receiver = generations.find(g => g.sessionId === sessionId)

@@ -1009,3 +1009,33 @@ it('resolves team message senders across seat generations and scopes aliases to 
   expect(await who({ senderId: other.run.rootSessionId })).toEqual({ name: null })
   expect(await service.teamMessageSender({ sessionId: 'ordinary' })).toBeNull()
 })
+
+it('routes team mentions by stable seat through the current native tree and isolates rosters', async () => {
+  const { run, seats: [lead] } = await newTeam('Mention routing')
+  const other = await newTeam('Other team')
+  const child = await service.addMember({ runId: run.runId, roleId, displayName: 'dev' })
+  const leaf = await service.addMember({ runId: run.runId, roleId, displayName: 'qa', parentSeatId: child.seatId })
+  const roster = await service.teamMentionRoster({ sessionId: leaf.currentSessionId })
+  expect(roster?.members.map(m => [m.seatId, m.address, m.leader])).toEqual(expect.arrayContaining([
+    [lead.seatId, 'lead', true], [child.seatId, 'dev', false], [leaf.seatId, 'dev/qa', false],
+  ]))
+  expect(await service.teamMentionRoster({ sessionId: 'ordinary' })).toBeNull()
+  expect((await service.teamMentionRoster({ sessionId: other.run.rootSessionId }))?.members).toHaveLength(1)
+  const reference = `@[Reviewer](role-team:${run.runId}/${leaf.seatId})`
+  await prompt(run.rootSessionId, reference)
+  expect(JSON.stringify(request(run.rootSessionId))).toContain(reference)
+  expect(JSON.stringify(request(run.rootSessionId).messages.filter(m => m.role === "system"))).toContain(leaf.seatId)
+  // Native background members unload after a turn. Reply while the delivery has them awake.
+  model.pause = async (req) => {
+    if (req.sessionId !== leaf.currentSessionId || !JSON.stringify(req.messages).includes('Review the temporary brief')) return
+    model.pause = undefined
+    const reply = await tool(leaf.currentSessionId, 'send_message', { agent: 'lead', message: 'Temporary brief reviewed' })
+    expect(reply.isError).not.toBe(true)
+  }
+  const sent = await tool(run.rootSessionId, 'send_message', { agent: 'dev/qa', message: 'Review the temporary brief' })
+  expect(sent.isError).not.toBe(true)
+  await vi.waitFor(() => expect(JSON.stringify(request(run.rootSessionId).messages)).toContain('Temporary brief reviewed'))
+  expect(JSON.stringify(request(leaf.currentSessionId).messages.filter(m => m.role === 'system'))).toContain('dev/qa')
+  await service.archiveTeam({ runId: run.runId })
+  expect(await service.teamMentionRoster({ sessionId: leaf.currentSessionId })).toBeNull()
+})

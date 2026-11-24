@@ -58,6 +58,26 @@ export class TeamRuntime {
     if (run.status !== 'active') throw new Error('Team is not active')
     return run
   }
+  mentionRoster(runId: string) {
+    const { seats } = this.getTeam(runId)
+    const byId = new Map(seats.map(s => [s.seatId, s]))
+    const address = (seat: Seat): string => {
+      if (!seat.parentSeatId) return 'lead'
+      const path = [seat.nativeAgentName]
+      let parent = byId.get(seat.parentSeatId)
+      while (parent?.parentSeatId) {
+        path.unshift(parent.nativeAgentName)
+        parent = byId.get(parent.parentSeatId)
+      }
+      return path.join('/')
+    }
+    const members = seats.filter(s => s.status === 'active' && !s.joining).map(s => {
+      const role = this.roles.published(s.roleId) ?? this.cache.get(s.roleId + '/' + s.adoptedRoleRev)
+      return { seatId: s.seatId, name: role?.role.meta.name ?? s.displayName, duty: role?.role.meta.summary ?? '',
+        address: address(s), leader: !s.parentSeatId }
+    })
+    return { runId, members }
+  }
   nativeName(parentId: string, label: string, roleId: string) {
     const used = new Set(
       this.index.seats
@@ -523,6 +543,10 @@ export class TeamRuntime {
         ...(view().role.role.meta.name !== seat.displayName ? [view().role.role.meta.name] : []),
         view().role.role.meta.summary,
         view().role.role.body,
+        run.locale === 'en'
+          ? 'Team mentions identify collaborators. Match role-team:RUN/SEAT to the current roster below, using the seat ID even if a name has changed. A plain @name must match uniquely. Ask if ambiguous, missing, or from another team. /all or @Everyone addresses every active member. For requested collaboration, do your own part and use send_message with each other recipient’s exact address and a concrete assignment or report. Members can report to lead. A mention alone sends no message.'
+          : '团队协作：标签 role-team:团队ID/席位ID 按下方本队花名册定位，改名仍按席位匹配。手写 @角色名 仅在唯一匹配时指派；重名、离队或非本队标签请先澄清。/all 或 @全体成员 指当前全队。需要协作时，自己承担本职部分，用 send_message 向其余被点名成员的准确 address 派发具体任务或汇报；成员向队长汇报用 lead。标签本身不会发送消息。',
+        JSON.stringify({ ...this.mentionRoster(run.runId), selfSeatId: seat.seatId }),
       ].join('\n'),
     )
     agent.ctx.systemPrompt.context({

@@ -40,6 +40,13 @@ export const runtimeMethods = {
     z.array(indexRecords.team_runs.extend({ memberCount: z.int().nonnegative().optional() })),
   ],
   getTeam: [run, team],
+  teamMentionRoster: [
+    z.strictObject({ sessionId: id }),
+    z.strictObject({
+      runId: id,
+      members: z.array(z.strictObject({ seatId: id, name: z.string(), address: z.string(), duty: z.string(), leader: z.boolean() })),
+    }).nullable(),
+  ],
   teamMessageSender: [
     z.strictObject({ sessionId: id, senderId: id.optional(), senderName: id.optional() }),
     z.strictObject({ name: title.nullable() }).nullable(),

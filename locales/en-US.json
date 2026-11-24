@@ -153,6 +153,8 @@
     "copyCode": "Copy code",
     "copiedCode": "Copied",
     "messageFrom": "From {name}",
+    "mentionGroup": "Team members",
+    "mentionEveryone": "Everyone",
     "messageMember": "Team member",
     "footnotes": "Footnotes",
     "repairFile": "Repair document formatting",
