@@ -177,6 +177,13 @@
     "restoreWidth": "Restore default",
     "seatWorking": "Working",
     "seatApproval": "Awaiting approval",
-    "seatIdle": "Idle"
+    "seatIdle": "Idle",
+    "unsavedCollapse": "Save your changes before closing the profile?",
+    "unsavedSwitch": "Save your changes before switching roles?",
+    "keepEditing": "Continue editing",
+    "discardCollapse": "Close without saving",
+    "discardSwitch": "Switch without saving",
+    "saveCollapse": "Save and close",
+    "saveSwitch": "Save and switch"
   }
 }

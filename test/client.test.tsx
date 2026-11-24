@@ -18,7 +18,7 @@ import {
 import { registerPreviewWorkspace } from '../src/client/preview.js'
 import type { Context } from '@deepseek-ai/cordis'
 import { App, LibrarySettings, PreviewToggle } from '../src/client/App.js'
-import { DocumentEditor, Documents } from '../src/client/roles/DocumentEditor.js'
+import { DocumentEditor, Documents, EditorBuffers } from '../src/client/roles/DocumentEditor.js'
 import { TeamSetup } from '../src/client/team-setup/TeamSetup.js'
 import { serializeMarkdown } from '../src/shared/markdown.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -673,6 +673,82 @@ it('reads with native Markdown, edits inline, and returns to reading after cance
   expect(call).toHaveBeenCalledWith('restoreRole', {
     roleId: 'editor', revision: 1, expectedHash: 'b'.repeat(64),
   })
+})
+
+it.each(['collapse', 'switch'] as const)('protects profile edits on %s and leaves only after a successful save', async kind => {
+  const roles = ['alpha', 'beta'].map(id => ({ id, name: id.toUpperCase(), revision: 1 }))
+  const file = { text: '---\n# Preserve this comment\nid: alpha\nname: ALPHA\n---\nOriginal', hash: 'a'.repeat(64) }
+  let refuse = false
+  const call = vi.fn(async (method: string, input: any) => {
+    if (method === 'readDocument') return input.roleId === 'alpha' ? file : {
+      text: serializeMarkdown({ id: 'beta', name: 'BETA' }, 'Second'), hash: 'b'.repeat(64),
+    }
+    if (method === 'saveDocument') {
+      if (refuse) return { ok: false, code: 'conflict', current: { ...file }, proposed: input.text }
+      Object.assign(file, { text: input.text, hash: 'c'.repeat(64) })
+      return { ok: true, hash: file.hash }
+    }
+    return []
+  })
+  const buffers = new Map()
+  harness(call).mount(<EditorBuffers.Provider value={buffers}><RoleLibrary roles={roles} changed={vi.fn()} /></EditorBuffers.Provider>)
+  const button = (name: string) => screen.getByRole('button', { name })
+  const click = (name: string) => fireEvent.click(button(name))
+  const edit = async () => {
+    await screen.findByRole('heading', { name: 'ALPHA' })
+    click(en.ui.edit)
+    return screen.getByRole<HTMLTextAreaElement>('textbox', { name: en.ui.body })
+  }
+  const leave = () => click(kind === 'collapse' ? en.ui.collapseProfile : 'BETA')
+  const back = async () => {
+    if (kind === 'collapse') {
+      await waitFor(() => expect(profileView()).toBe('chatOnly'))
+      click(en.ui.card)
+    } else {
+      await screen.findByRole('heading', { name: 'BETA' })
+      click('ALPHA')
+    }
+    await screen.findByRole('heading', { name: 'ALPHA' })
+    expect(screen.queryByRole('textbox', { name: en.ui.body })).toBeNull()
+  }
+  click('ALPHA')
+  if (profileView() === 'chatOnly') click(en.ui.card)
+  await edit()
+  const summary = screen.getByRole('textbox', { name: en.ui.duty })
+  fireEvent.change(summary, { target: { value: 'changed' } })
+  fireEvent.change(summary, { target: { value: '' } })
+  leave()
+  expect(screen.queryByRole('dialog')).toBeNull()
+  await back()
+
+  const change = async () => fireEvent.change(await edit(), { target: { value: 'New draft' } })
+  await change()
+  leave()
+  click(en.ui.keepEditing)
+  expect(screen.getByRole<HTMLTextAreaElement>('textbox', { name: en.ui.body }).value).toBe('New draft')
+  leave()
+  click(kind === 'collapse' ? en.ui.discardCollapse : en.ui.discardSwitch)
+  await back()
+  expect(buffers.size).toBe(0)
+  expect(file.text).toContain('Original')
+  expect(call.mock.calls.some(([method]) => method === 'saveDocument')).toBe(false)
+
+  await change()
+  leave()
+  refuse = true
+  const save = kind === 'collapse' ? en.ui.saveCollapse : en.ui.saveSwitch
+  click(save)
+  await screen.findByText(en.ui.conflict, { exact: true })
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(screen.getByRole<HTMLTextAreaElement>('textbox', { name: en.ui.body }).value).toBe('New draft')
+  click(en.ui.merge)
+  refuse = false
+  leave()
+  click(save)
+  await back()
+  expect(file.text).toContain('New draft')
+  expect(buffers.size).toBe(0)
+  expect(await screen.findByText('New draft')).toBeTruthy()
 })
 
 it('chains split-view scrolling and gives the full profile a single scroll surface', async () => {

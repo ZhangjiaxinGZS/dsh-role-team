@@ -1,12 +1,12 @@
 import { PaneDivider, paneStyle, usePaneWidths } from '../PaneDivider.js'
 import { rememberRoleView, useNavigation, useRoleView } from '../navigation.js'
 import { duplicateRoleName, roleNameKey } from '../../shared/index.js'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Diagnostic } from '../../shared/index.js'
 import { Button, IconPlusOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { MoreMenu, Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
 import type { RoleChoice } from '../team-setup/TeamSetup.js'
-import { Documents } from './DocumentEditor.js'
+import { Documents, leaveProfile, type ProfileGuard } from './DocumentEditor.js'
 import { TrainingDetail } from './Training.js'
 export type LibraryRole = RoleChoice & { error?: Diagnostic | null; empty?: boolean }
 export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[]; changed: () => void }) {
@@ -21,6 +21,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
     ).filter((r) => !deleted.includes(r.id)),
     active = roles.find((r) => r.id === role) ?? roles[0],
     id = active?.id
+  const guard = useRef<ProfileGuard['current']>(null)
   const listSize = usePaneWidths('roles.list')
   const nameTaken = (name: string, except?: string) =>
     roles.some((r) => r.id !== except && roleNameKey(r.name) === roleNameKey(name))
@@ -47,7 +48,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
               <button
                 title={r.name}
                 aria-current={id === r.id ? 'page' : undefined}
-                onClick={() => setRole(r.id)}
+                onClick={() => { if (id !== r.id) leaveProfile(guard, { kind: 'switch', proceed: () => setRole(r.id) }) }}
               >
                 {r.name}
               </button>
@@ -61,6 +62,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
             key={id}
             id={id}
             active={active}
+            guard={guard}
             nameTaken={(name) => nameTaken(name, id)}
             changed={changed}
           />
@@ -110,11 +112,13 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
 function RoleDetail({
   id,
   active,
+  guard,
   nameTaken,
   changed,
 }: {
   id: string
   nameTaken: (name: string) => boolean
+  guard: ProfileGuard
   active?: LibraryRole
   changed: () => void
 }) {
@@ -192,6 +196,7 @@ function RoleDetail({
           <PaneDivider label={t('card')} kind="profile" pane="settings" resize={profileSize.resize} />
         )}
         <Documents
+          guard={guard}
           roleId={id}
           revision={active?.revision ?? null}
           changed={changed}

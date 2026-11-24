@@ -7,7 +7,7 @@ import {
   IconPlusOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { z } from 'zod'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useImperativeHandle, useMemo, useRef, useState, type RefObject } from 'react'
 import {
   duplicateRoleName,
   memoryMeta,
@@ -24,6 +24,14 @@ import { MoreMenu, Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
 // Allow intermediate empty or trailing-space names in the form, while the write contract stays strict.
 type Conflict = Extract<EditResult, { code: 'conflict' }>
 type Buffer = { text: string; base: FileContents | null; conflict?: Conflict }
+type Departure = { kind: 'collapse' | 'switch'; proceed: () => void }
+export type ProfileGuard = RefObject<((request: Departure) => void) | null>
+
+export function leaveProfile(guard: ProfileGuard, request: Departure) {
+  if (guard.current) guard.current(request)
+  else request.proceed()
+}
+
 export const EditorBuffers = createContext<Map<string, Buffer> | null>(null)
 const roleForm = roleMeta.extend({ name: z.string(), summary: z.string().optional() })
 const memoryForm = memoryMeta.extend({ title: z.string() })
@@ -72,7 +80,9 @@ export function Documents({
   fullscreen,
   toggleSize,
   collapse,
+  guard,
 }: {
+  guard?: ProfileGuard
   roleId: string
   nameTaken?: (name: string) => boolean
   fullscreen?: boolean
@@ -84,7 +94,9 @@ export function Documents({
   const { call, t } = useUi()
   const [version, refresh] = useState(0)
   const [entry, setEntry] = useState<{ id: string; file: FileContents; remove: boolean }>()
-  const [panel, setPanel] = useState<{ mode: 'read' | 'edit' } | { mode: 'history'; hash: string }>({ mode: 'read' })
+  const localGuard = useRef<ProfileGuard['current']>(null)
+  const profileGuard = guard ?? localGuard
+  const [panel, setPanel] = useState<{ mode: 'read' } | { mode: 'edit'; initial: FileContents | null } | { mode: 'history'; hash: string }>({ mode: 'read' })
   const buffers = useContext(EditorBuffers)
   const [adding, setAdding] = useState(false)
   const action = useAction()
@@ -113,7 +125,7 @@ export function Documents({
       return { file, error: error.detail.file + ' · ' + t('line') + ' ' + error.detail.line + ' · ' + error.message }
     }
   })
-  const edit = () => setPanel({ mode: 'edit' })
+  const edit = () => { if (role.data) setPanel({ mode: 'edit', initial: role.data.file }) }
   const read = () => setPanel({ mode: 'read' })
   return (
     <aside className="rt-docs">
@@ -143,7 +155,7 @@ export function Documents({
           )}
           {collapse && !fullscreen && (
             <Tooltip label={t('collapseProfile')} side="bottom">
-              <button className="rt-icon" onClick={collapse} aria-label={t('collapseProfile')}>
+              <button className="rt-icon" onClick={() => leaveProfile(profileGuard, { kind: 'collapse', proceed: () => { read(); collapse() } })} aria-label={t('collapseProfile')}>
                 <IconCloseOutlineRegular size={16} />
               </button>
             </Tooltip>
@@ -156,12 +168,13 @@ export function Documents({
           <ProfileFields {...role.data.profile} />
         </article>
       )}
-      {panel.mode === 'edit' && role.data && (
+      {panel.mode === 'edit' && (
         <DocumentEditor
           key={roleId}
           nameTaken={nameTaken}
           file={{ roleId }}
-          initial={role.data.file}
+          guard={profileGuard}
+          initial={role.data ? role.data.file : panel.initial}
           cancel={read}
           changed={() => {
             read()
@@ -401,7 +414,9 @@ export function DocumentEditor({
   changed,
   cancel,
   nameTaken,
+  guard,
 }: {
+  guard?: ProfileGuard
   nameTaken?: (name: string) => boolean
   cancel?: () => void
   file: FileRef
@@ -463,6 +478,13 @@ export function DocumentEditor({
   if (!diagnosis && parsed && 'name' in parsed.meta && nameTaken?.(parsed.meta.name)) diagnosis = t('duplicateRole')
   const doc = parsed
   const dirty = text !== (base?.text ?? template)
+  const [departure, setDeparture] = useState<Departure>()
+  useImperativeHandle(guard, () => (request: Departure) => {
+    if (a.busy) return
+    if (dirty || conflict) setDeparture(request)
+    else request.proceed()
+  })
+
   const readable = (value: string) => {
     try {
       const data = file.memoryId
@@ -477,8 +499,68 @@ export function DocumentEditor({
     write(value)
     setSaved(false)
   }
+  const original = base?.text ?? template
+  const originalFields = useMemo(() => {
+    if (file.memoryId) return
+    try {
+      const { meta, body } = parseMarkdown(original, roleForm, id, path)
+      return serializeMarkdown({ ...meta, summary: meta.summary || undefined }, body)
+    } catch { /* A malformed source stays editable as raw text. */ }
+  }, [file.memoryId, original, id, path])
+  function editFields(meta: RoleMeta | MemoryMeta, body: string) {
+    const next = serializeMarkdown('name' in meta ? { ...meta, summary: meta.summary || undefined } : meta, body)
+    // Restoring the fields also restores any original comments and formatting.
+    edit(next === originalFields ? original : next)
+  }
+  const save = (afterSave?: () => void) => a.run(async () => {
+    try {
+      const result = await call('saveDocument', {
+        ...file,
+        text,
+        expectedHash: base?.hash ?? null,
+      })
+      if (!result.ok) {
+        if (result.code === 'conflict') setConflict(result)
+        else if (result.error.message === duplicateRoleName) throw new Error(t('duplicateRole'))
+        else
+          throw new Error(
+            result.error.file +
+              ' · ' +
+              t('line') +
+              ' ' +
+              result.error.line +
+              ' · ' +
+              result.error.message,
+          )
+        return
+      }
+      buffers?.delete(path)
+      setBase(result.hash ? { text, hash: result.hash } : null)
+      setSaved(true)
+      changed()
+      afterSave?.()
+    } finally {
+      setDeparture(undefined)
+    }
+  })
   return (
     <div className="rt-editor">
+      {departure && (
+        <Modal title={t('savedDirty')} close={() => setDeparture(undefined)} locked={a.busy}>
+          <p>{t(departure.kind === 'collapse' ? 'unsavedCollapse' : 'unsavedSwitch')}</p>
+          <Notice>{diagnosis || (conflict && t('conflict'))}</Notice>
+          <footer>
+            <Button size="sm" variant="outline" data-modal-autofocus disabled={a.busy}
+              onClick={() => setDeparture(undefined)}>{t('keepEditing')}</Button>
+            <Button size="sm" variant="outline" disabled={a.busy} onClick={() => {
+              buffers?.delete(path)
+              departure.proceed()
+            }}>{t(departure.kind === 'collapse' ? 'discardCollapse' : 'discardSwitch')}</Button>
+            <Button size="sm" disabled={a.busy || !!diagnosis || !!conflict}
+              onClick={() => save(departure.proceed)}>{t(departure.kind === 'collapse' ? 'saveCollapse' : 'saveSwitch')}</Button>
+          </footer>
+        </Modal>
+      )}
       {!parsed ? (
         <label>
           {t('repairFile')}
@@ -497,12 +579,7 @@ export function DocumentEditor({
               <input
                 value={'name' in doc.meta ? doc.meta.name : doc.meta.title}
                 onChange={(e) =>
-                  edit(
-                    serializeMarkdown(
-                      { ...doc.meta, [file.memoryId ? 'title' : 'name']: e.target.value },
-                      doc.body,
-                    ),
-                  )
+                  editFields({ ...doc.meta, [file.memoryId ? 'title' : 'name']: e.target.value }, doc.body)
                 }
               />
             </label>
@@ -513,7 +590,7 @@ export function DocumentEditor({
                   maxLength={160}
                   value={doc.meta.summary ?? ''}
                   onChange={(e) =>
-                    edit(serializeMarkdown({ ...doc.meta, summary: e.target.value }, doc.body))
+                    editFields({ ...doc.meta, summary: e.target.value }, doc.body)
                   }
                 />
               </label>
@@ -522,7 +599,7 @@ export function DocumentEditor({
               {t(file.memoryId ? 'experienceBody' : 'body')}
               <textarea
                 value={doc.body}
-                onChange={(e) => edit(serializeMarkdown(doc.meta, e.target.value))}
+                onChange={(e) => editFields(doc.meta, e.target.value)}
               />
             </label>
           </>
@@ -570,34 +647,7 @@ export function DocumentEditor({
         <button
           className="rt-primary"
           disabled={a.busy || !dirty || !!diagnosis || !!conflict}
-          onClick={() =>
-            a.run(async () => {
-              const result = await call('saveDocument', {
-                ...file,
-                text,
-                expectedHash: base?.hash ?? null,
-              })
-              if (!result.ok) {
-                if (result.code === 'conflict') setConflict(result)
-                else if (result.error.message === duplicateRoleName) throw new Error(t('duplicateRole'))
-                else
-                  throw new Error(
-                    result.error.file +
-                      ' · ' +
-                      t('line') +
-                      ' ' +
-                      result.error.line +
-                      ' · ' +
-                      result.error.message,
-                  )
-                return
-              }
-              buffers?.delete(path)
-              setBase(result.hash ? { text, hash: result.hash } : null)
-              setSaved(true)
-              changed()
-            })
-          }
+          onClick={() => save()}
         >
           {t('save')}
         </button>

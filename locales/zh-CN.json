@@ -177,6 +177,13 @@
     "restoreWidth": "恢复默认",
     "seatWorking": "工作中",
     "seatApproval": "待审批",
-    "seatIdle": "空闲"
+    "seatIdle": "空闲",
+    "unsavedCollapse": "收起前保存角色设定的修改吗？",
+    "unsavedSwitch": "切换角色前保存当前设定的修改吗？",
+    "keepEditing": "继续编辑",
+    "discardCollapse": "不保存直接收起",
+    "discardSwitch": "不保存直接切换",
+    "saveCollapse": "保存并收起",
+    "saveSwitch": "保存并切换"
   }
 }
