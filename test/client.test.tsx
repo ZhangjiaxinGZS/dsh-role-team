@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { RoleLibrary } from '../src/client/roles/RoleLibrary.js'
 import { createContext, useContext, type ComponentProps, type ReactNode } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import en from '../locales/en-US.json' with { type: 'json' }
 import { Client, type Seat, type Ui } from '../src/client/ui.js'
 import { Workbench } from '../src/client/workbench/Workbench.js'
@@ -25,6 +25,7 @@ import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/c
 // The browser supplies the shared menu. Exercise the catalog and selection callbacks here.
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
   MarkdownText: ({ text }: { text: string }) => <div data-testid="native-markdown">{text}</div>,
+  IconSettingsOutlineRegular: () => null,
   IconEllipsisOutlineRegular: () => null,
   Button: ({
     children,
@@ -965,6 +966,7 @@ it('stores team list and adjacent member widths, scoped to team and seats across
   const sizes = () => ['.rt-team-list', '#seat-lead', '#seat-other'].map(widthPreference)
   let view = mount()
   fireEvent.click(await screen.findByRole('button', { name: 'width-a' }))
+  fireEvent.click(await screen.findByText(en.ui.columns))
   dragDivider(await pair(), 130, 400, 400)
   dragDivider(screen.getByRole('separator', { name: 'Resize · ' + en.ui.teamsList }), 75, 180, 900)
   expect(sizes()).toEqual(['255px', '530px', '300px'])
@@ -982,4 +984,54 @@ it('stores team list and adjacent member widths, scoped to team and seats across
   mount()
   await pair()
   expect(sizes()).toEqual(['', '', ''])
+})
+
+it('keeps the layout and column preference, locates members, and shows live session status', async () => {
+  installWidthStorage()
+  const run = { runId: 'status-team', title: 'Status team', status: 'active', leaderSeatId: 'lead', rootSessionId: 'lead-session' }
+  const seats = [seat('lead', null), seat('writer', 'lead')]
+  const h = harness(vi.fn(async (method: string) => {
+    if (method === 'listTeams') return [run]
+    if (method === 'getTeam') return { run, seats }
+    return []
+  }))
+  const id = 'writer-session' as SessionReference['sessionId']
+  const status = { running: true, completionUnread: false, pendingInteraction: undefined }
+  const states = new Map<typeof id, import('@deepseek-ai/dsh-client-ui-session/client').SessionStatus>([[id, status]])
+  const listeners = new Set<() => void>()
+  h.ui.sessionStatus = {
+    subscribe: fn => { listeners.add(fn); return () => { listeners.delete(fn) } },
+    getSnapshot: () => states,
+  }
+  const mount = () => h.mount(<Workbench roles={[]} />)
+  let view = mount()
+  fireEvent.click(await screen.findByText(en.ui.columns))
+  expect(await screen.findByRole('img', { name: en.ui.seatWorking })).toBeTruthy()
+  expect(screen.getByRole('img', { name: en.ui.seatIdle })).toBeTruthy()
+  act(() => {
+    states.set(id, { ...status, pendingInteraction: { sessionId: id, key: 'p1', kind: 'approval' } })
+    listeners.forEach(fn => fn())
+  })
+  expect(screen.getByTitle(en.ui.seatApproval)).toBeTruthy()
+  expect(screen.queryByText(en.ui.seatApproval)).toBeNull()
+  expect(document.querySelector('.rt-column .rt-lead-badge')?.textContent).toBe(en.ui.leader)
+  fireEvent.click(screen.getByTitle(en.ui.boardSettings))
+  const dialog = within(screen.getByRole('dialog'))
+  fireEvent.click(dialog.getByText(en.ui.wideWidth))
+  fireEvent.change(dialog.getByRole('slider'), { target: { value: '680' } })
+  expect(dialog.getByText('680 px')).toBeTruthy()
+  fireEvent.click(dialog.getByLabelText(en.ui.close))
+  fireEvent.click(screen.getByText(en.ui.focus))
+  fireEvent.click(screen.getByRole('button', { name: 'Members (2)' }))
+  fireEvent.click(screen.getByRole('menuitem', { name: 'writer' }))
+  expect(document.querySelector('.rt-column')?.id).toBe('seat-writer')
+  expect(document.querySelector('.rt-chip .rt-lead-badge')?.textContent).toBe(en.ui.leader)
+  view.unmount()
+  view = mount()
+  expect((await screen.findByText(en.ui.focus)).getAttribute('aria-pressed')).toBe('true')
+  fireEvent.click(screen.getByTitle(en.ui.boardSettings))
+  expect(screen.getByText('680 px')).toBeTruthy()
+  fireEvent.click(screen.getByText(en.ui.restoreWidth))
+  expect(screen.getByText('480 px')).toBeTruthy()
+  view.unmount()
 })

@@ -5,10 +5,14 @@ import {
   IconPanelLeftOutlineRegular,
   IconPlusOutlineRegular,
   Button,
+  Menu,
+  IconChevronDownOutlineRegular,
+  IconSettingsOutlineRegular,
   IconFullscreenOutlineRegular,
   IconRefreshOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import { Fragment, useState } from 'react'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import { Fragment, useRef, useState, useSyncExternalStore } from 'react'
 import {
   MoreMenu,
   Modal,
@@ -50,7 +54,7 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
     const method = r.status === 'active' ? 'archiveTeam' : 'deleteTeam'
     return (
       <div key={r.runId} className="rt-list-row">
-        <button aria-current={id === r.runId ? 'page' : undefined} onClick={() => setSelected(r.runId)}>
+        <button title={r.title} aria-current={id === r.runId ? 'page' : undefined} onClick={() => setSelected(r.runId)}>
           {r.title}
         </button>
         <MoreMenu
@@ -148,9 +152,16 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
 function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; toggle: React.ReactNode }) {
   const { call, t } = useUi(),
     team = useLoad(id, () => call('getTeam', { runId: id }), 2500)
-  const [single, setSingle] = useState(false),
+  const [layout, setLayout] = useNavigation('layout'),
     [focus, setFocus] = useState(''),
     [add, setAdd] = useState(false)
+  const single = layout === 'focus'
+  const [settings, showSettings] = useState(false)
+  const [picker, showPicker] = useState(false)
+  const board = useRef<HTMLDivElement>(null)
+  const chips = useRef<HTMLDivElement>(null)
+  const defaults = usePaneWidths('workbench')
+  const width = Math.min(960, Math.max(320, defaults.widths.column ?? 480))
   const columns = usePaneWidths('team.' + id + '.members')
   if (!team.data)
     return (
@@ -168,7 +179,19 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
   const data = team.data,
     active = data.run.status === 'active',
     seats = data.seats.filter((s) => s.status !== 'archived' || !active),
-    target = focus || data.run.leaderSeatId
+    target = seats.some(s => s.seatId === focus) ? focus : data.run.leaderSeatId
+  function pickSeat(seatId: string) {
+    setFocus(seatId)
+    showPicker(false)
+    const container = single ? chips.current : board.current
+    const item = Array.from(container?.children ?? []).find(el => el.getAttribute('data-seat') === seatId)
+    item?.scrollIntoView?.({ block: 'nearest', inline: single ? 'nearest' : 'start' })
+  }
+  function changeWidth(value: number | null) {
+    defaults.resize({ column: value }, true)
+    const overrides = Object.keys(columns.widths)
+    if (overrides.length) columns.resize(Object.fromEntries(overrides.map(key => [key, null])), true)
+  }
   return (
     <>
       <Notice>{team.error}</Notice>
@@ -177,35 +200,63 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
           {toggle}
           <strong title={data.run.title}>{data.run.title}</strong>
           <div className="rt-segment">
-            {(['columns', 'focus'] as const).map((k, i) => (
-              <button aria-pressed={single === !!i} key={k} onClick={() => setSingle(!!i)}>
+            {(['columns', 'focus'] as const).map(k => (
+              <button aria-pressed={layout === k} key={k} onClick={() => setLayout(k)}>
                 {t(k)}
               </button>
             ))}
           </div>
           {single && (
-            <div className="rt-chips">
+            <div className="rt-chips" ref={chips}>
               {seats.map((s) => (
                 <button
                   key={s.seatId}
                   className="rt-chip"
+                  data-seat={s.seatId}
+                  title={s.displayName}
                   aria-pressed={target === s.seatId}
                   onClick={() => setFocus(s.seatId)}
                 >
-                  {s.parentSeatId === null ? '♛ ' : ''}
-                  {s.displayName}
+                  <SeatLabel seat={s} active={active} />
                 </button>
               ))}
             </div>
           )}
         </div>
-        <button className="rt-add-member" disabled={!active} onClick={() => setAdd(true)}>
-          <IconPlusOutlineRegular size={14} /> {t('addMember')}
+        <Menu open={picker} align="end" portal autoFocus selectedId={target}
+          anchor={<button className="rt-picker" aria-haspopup="menu" aria-expanded={picker} onClick={() => showPicker(!picker)}>
+            {t('members')} ({seats.length}) <IconChevronDownOutlineRegular size={12} />
+          </button>}
+          items={picker ? seats.map(s => ({
+            id: s.seatId,
+            label: <span className="rt-menu-name" title={s.displayName}>{s.displayName}</span>,
+          })) : []}
+          onClose={() => showPicker(false)} onSelect={pickSeat} />
+        <button aria-label={t('addMember')} title={t('addMember')} className="rt-add-member" disabled={!active} onClick={() => setAdd(true)}>
+          <IconPlusOutlineRegular size={14} /><span>{t('addMember')}</span>
+        </button>
+        <button className="rt-icon" title={t('boardSettings')} aria-label={t('boardSettings')} onClick={() => showSettings(true)}>
+          <IconSettingsOutlineRegular size={16} />
         </button>
       </header>
+      {settings && <Modal title={t('boardSettings')} close={() => showSettings(false)}>
+        <div className="rt-width-settings">
+          <label htmlFor="rt-column-width">{t('columnWidth')} <output htmlFor="rt-column-width">{width} px</output></label>
+          <input id="rt-column-width" type="range" min={320} max={960} step={10} value={width}
+            onChange={e => changeWidth(e.currentTarget.valueAsNumber)} />
+          <div className="rt-row">
+            {([[360, 'compactWidth'], [480, 'comfortableWidth'], [640, 'wideWidth']] as const).map(([px, key]) =>
+              <button key={key} aria-pressed={width === px} onClick={() => changeWidth(px)}>{t(key)}</button>)}
+            <button onClick={() => changeWidth(null)}>{t('restoreWidth')}</button>
+          </div>
+        </div>
+      </Modal>}
       <div className="rt-floor">
-        <div className={'rt-columns' + (single ? ' rt-single' : '')}
-          style={{ '--rt-count': Math.max(1, seats.length) } as React.CSSProperties}>
+        <div ref={board} className={'rt-columns' + (single ? ' rt-single' : '')}
+          style={{
+            '--rt-column-width': defaults.widths.column ? width + 'px' : undefined,
+            '--rt-count': Math.max(1, seats.length),
+          } as React.CSSProperties}>
           {seats
             .filter((s) => !single || s.seatId === target)
             .map((s, index) => (
@@ -222,7 +273,7 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
                   single={single}
                   toggleFocus={() => {
                     setFocus(s.seatId)
-                    setSingle(!single)
+                    setLayout('focus')
                   }}
                 />
               </Fragment>
@@ -242,6 +293,20 @@ function TeamBoard({ id, roles, toggle }: { id: string; roles: RoleChoice[]; tog
       )}
     </>
   )
+}
+const emptySubscribe = () => () => {}
+function SeatLabel({ seat, active }: { seat: Seat; active: boolean }) {
+  const { t, sessionStatus } = useUi()
+  const status = useSyncExternalStore(sessionStatus?.subscribe ?? emptySubscribe, () => {
+    const value = active && sessionStatus?.getSnapshot().get(seat.currentSessionId as SessionId)
+    if (value && value.pendingInteraction?.kind === 'approval') return 'seatApproval'
+    return value && value.running ? 'seatWorking' : 'seatIdle'
+  })
+  return <>
+    <span className="rt-seat-dot" data-status={status} role="img" aria-label={t(status)} title={t(status)} />
+    <span className="rt-seat-name" title={seat.displayName}>{seat.displayName}</span>
+    {seat.parentSeatId === null && <span className="rt-lead-badge">{t('leader')}</span>}
+  </>
 }
 function MemberColumn({
   seat: s,
@@ -264,11 +329,11 @@ function MemberColumn({
   const canReset = !readOnly && s.status === 'active' && !s.joining && !!parent &&
     !team.seats.some((child) => child.parentSeatId === s.seatId && child.status !== 'archived')
   return (
-    <article style={paneStyle(width)} className="rt-column" id={'seat-' + s.seatId}>
+    <article style={paneStyle(width)} className="rt-column" data-seat={s.seatId} id={'seat-' + s.seatId}>
       {!single && (
         <header>
           <div className="rt-grow">
-            <h3>{s.displayName} {!parent && <span aria-label={t('leader')}>♛</span>}</h3>
+            <h3><SeatLabel seat={s} active={!readOnly} /></h3>
           </div>
           <button className="rt-icon" title={t('focus')} aria-label={t('focus')} onClick={toggleFocus}>
             <IconFullscreenOutlineRegular size={16} />

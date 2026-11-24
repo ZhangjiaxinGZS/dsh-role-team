@@ -167,6 +167,15 @@
     "deleteTeam": "Delete permanently",
     "deleteTeamHint": "Permanently remove this team, its seats and their history from the workspace? Role settings, experience and native session logs are kept.",
     "selectTeam": "Select a team",
-    "archiveTeamHint": "Archive this team and stop its active sessions?"
+    "archiveTeamHint": "Archive this team and stop its active sessions?",
+    "boardSettings": "Workspace settings",
+    "columnWidth": "Default column width",
+    "compactWidth": "Compact",
+    "comfortableWidth": "Comfortable",
+    "wideWidth": "Wide",
+    "restoreWidth": "Restore default",
+    "seatWorking": "Working",
+    "seatApproval": "Awaiting approval",
+    "seatIdle": "Idle"
   }
 }

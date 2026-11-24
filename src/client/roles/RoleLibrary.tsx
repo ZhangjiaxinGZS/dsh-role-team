@@ -45,6 +45,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
           {roles.map((r) => (
             <div key={r.id} className="rt-list-row">
               <button
+                title={r.name}
                 aria-current={id === r.id ? 'page' : undefined}
                 onClick={() => setRole(r.id)}
               >

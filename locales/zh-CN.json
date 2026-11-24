@@ -167,6 +167,15 @@
     "deleteTeam": "彻底删除",
     "deleteTeamHint": "将从工作台永久移除此团队、席位及换代记录。角色设定、长期经验和 DSH 原生会话日志会保留。确定继续吗？",
     "selectTeam": "请选择团队",
-    "archiveTeamHint": "归档后将停止团队内活跃的会话。"
+    "archiveTeamHint": "归档后将停止团队内活跃的会话。",
+    "boardSettings": "工作台设置",
+    "columnWidth": "默认成员列宽",
+    "compactWidth": "紧凑",
+    "comfortableWidth": "舒适",
+    "wideWidth": "宽松",
+    "restoreWidth": "恢复默认",
+    "seatWorking": "工作中",
+    "seatApproval": "待审批",
+    "seatIdle": "空闲"
   }
 }

@@ -70,6 +70,7 @@ function mount(ctx: Context) {
     ) as import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['agentPresets']
   const shared: Ui = {
     t,
+    get sessionStatus() { return ctx.get('uiSession')?.sessionStatus },
     presets: {
       async list() {
         const { presets } = unwrap(await presetRemote().list())

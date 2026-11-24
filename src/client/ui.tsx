@@ -44,6 +44,7 @@ export interface Ui {
   ): ReturnType<RoleTeamRpc[K]>
   retain(target: SessionTarget): SessionReference
   SessionProvider: SessionProviderComponent
+  sessionStatus?: import('@deepseek-ai/dsh-client-ui-session/client').UiSession['sessionStatus']
   preview?: WorkspacePreview
   chat(): ReactNode
   presets?: {
