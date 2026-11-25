@@ -1,0 +1,29 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Check tag and install dependencies
+        run: |
+          test "$GITHUB_REF_NAME" = "v$(node -p "require('./package.json').version")"
+          npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm --ignore-scripts test
+      - name: Pack and publish verified assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          archive=$(npm pack --ignore-scripts --silent)
+          sha256sum "$archive" > SHA256SUMS.txt
+          gh release create "$GITHUB_REF_NAME" "$archive" SHA256SUMS.txt --verify-tag --generate-notes --title "$GITHUB_REF_NAME"

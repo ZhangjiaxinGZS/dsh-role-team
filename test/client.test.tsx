@@ -1288,7 +1288,7 @@ it('offers team-only atomic mentions, disambiguates names and renders the serial
   const { memberSource, memberRule } = await import('../src/client/workbench/TeamMentions.js')
   const name = 'Dev [QA]'
   const members = ['lead', 'dev/qa'].map((address, i) => ({
-    seatId: 'seat-' + i, address, name, leader: !i, duty: i ? 'Review builds' : 'Plan',
+    seatId: 'seat-' + i, address, name, leader: !i, duty: i ? 'Review builds and prepare weekly engineering reports。Release verification' : 'Plan。Coordinate',
   }))
   const call = vi.fn().mockResolvedValue({ runId: 'team-abc', members })
   const source = memberSource(call as Ui['call'], key => en.ui[key])
@@ -1299,7 +1299,9 @@ it('offers team-only atomic mentions, disambiguates names and renders the serial
   expect(call).not.toHaveBeenCalled()
   const rows = await source.candidates(session, req)
   expect(rows.map(row => row.section)).toEqual(Array(3).fill(en.ui.mentionGroup))
-  expect(rows[0].description).toContain(en.ui.leader)
+  expect(rows[0].description).toBe(en.ui.leader + ' · Plan')
+  expect(rows[1].description).toBe('Review builds and prepa…')
+  expect(await source.candidates(session, { ...req, query: 'verification' })).toEqual([rows[1]])
   expect(rows[2].name).toBe(en.ui.mentionEveryone)
   expect(await source.candidates(session, { ...req, query: 'build' })).toEqual([rows[1]])
   const pick = await source.onPick({ candidate: rows[1], session, position: 'inline', via: 'enter', action: 'pick', span: { start: 0, end: 1, draftRev: 1 } })
@@ -1415,12 +1417,18 @@ it('renders settlement outcomes, removes only the notice wrapper and toggles ove
   expect(message).toMatchObject({ senderName: 'seo', senderId: 'rt-child-1', parts: [{text: '**结果**\n\n- 第一项'}] })
   expect(notice('finished. It cannot receive follow-up messages.', undefined, '    code()').parts).toEqual([{text: '    code()'}])
   const sized = vi.spyOn(HTMLElement.prototype,'getBoundingClientRect').mockReturnValue({ height: 370 } as DOMRect)
+  const style = document.createElement('style')
+  style.textContent = readFileSync('src/client/ui.css', 'utf8')
+  document.head.append(style)
   try {
     const card = (m: typeof message) => <TeamMessageCard message={m} name="研究员" time={0} t={t} />
     const view = render(card(message))
+    const preview = document.querySelector('.rt-report-window')!
+    expect(getComputedStyle(preview).overflow).toBe('hidden')
+    expect(getComputedStyle(preview).maxHeight).toBe('260px')
     expect(screen.getByRole('button', { name: /From 研究员 · Task completed/ }).getAttribute('aria-expanded')).toBe('true')
     fireEvent.click(screen.getByRole('button', { name: en.ui.reportExpand }))
-    expect(document.querySelector('.rt-report-window')?.getAttribute('data-full')).toBe('true')
+    expect(getComputedStyle(preview).maxHeight).toBe('none')
     fireEvent.click(screen.getByRole('button', { name: en.ui.reportCollapse }))
     expect(document.querySelector('.rt-report-window')?.hasAttribute('data-full')).toBe(false)
     sized.mockReturnValue({ height: 32 } as DOMRect)
@@ -1434,7 +1442,7 @@ it('renders settlement outcomes, removes only the notice wrapper and toggles ove
       expect(screen.getByText('From 研究员 · ' + label)).toBeTruthy()
       expect(screen.queryByRole('button', { name: en.ui.reportExpand })).toBeNull()
     }
-  } finally { sized.mockRestore() }
+  } finally { sized.mockRestore(); style.remove() }
 })
 
 it('only counts real automatic settlement receipts for the addressed child', async () => {

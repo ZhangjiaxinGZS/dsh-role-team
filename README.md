@@ -1,29 +1,51 @@
 # dsh-role-team
 
-An external DeepSeek Harness (`0.2.2-rc.5+`) plugin for conversational AI role cultivation, shared long-term memory, strict per-team session isolation, and AionUi-style multi-column team collaboration.
+[中文](#中文) · [English](#english) · [GitHub Releases](https://github.com/ZhangjiaxinGZS/dsh-role-team/releases)
 
-## Install and start in three steps
+## 中文
 
-Tested with DeepSeek Harness 0.2.2-rc.5 on macOS. Web and Electron Desktop use the same package and maintain separate plugin profiles.
+像培养真人专家一样培养你的 AI 团队。在 DeepSeek Harness 里与角色一对一交流，把反复用到的判断标准和经验存成 Markdown，再让这些角色在团队里一起工作。
 
-1. **Build the package.** From this repository with Node.js 24.9 or newer, run the following commands. Keep the resulting tarball at a stable absolute path.
+- **角色库**保存名称、职责、详细设定和长期经验。可预览并恢复最近十个设定版本。角色更新后，团队成员在下一轮采用新设定。
+- **团队工作台**支持单栏和多栏对话，用 `@成员` 指派工作，通过共享任务板、定时任务和成员回报跟进进度。
+- **会话与权限**由宿主管理。团队各有独立会话，模型与工具沿用宿主配置。首次培养会话默认完全权限，可以在输入栏切换。
 
-   ```sh
-   npm ci
-   npm pack
-   ```
+### 安装与上手
 
-2. **Install into the profile you use.** For Web, stop its Host, run the command below, then start it with `dsh web`. For Desktop, open the app once, fully quit it, use its bundled CLI for the second command, then reopen the app. The examples show the macOS application path. If Desktop registered its bundled `dsh` command in your terminal, you can use that command directly.
+需要 DeepSeek Harness 0.2.2-rc.5（或兼容的 0.2.x）及 Node.js 24.9+。从 [v0.1.0 Release](https://github.com/ZhangjiaxinGZS/dsh-role-team/releases/tag/v0.1.0) 下载压缩包和校验文件，放在固定目录，在该目录执行下方命令。Desktop 与 Web 分别安装，选择你使用的端即可。
 
-   ```sh
-   dsh plugin --profile web add "/absolute/path/dsh-role-team-0.1.0.tgz"
-   # macOS Desktop
-   "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop add "/absolute/path/dsh-role-team-0.1.0.tgz"
-   ```
+```sh
+shasum -a 256 -c SHA256SUMS.txt
+dsh plugin --profile web add "$PWD/dsh-role-team-0.1.0.tgz"
+# macOS Desktop
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop add "$PWD/dsh-role-team-0.1.0.tgz"
+```
 
-3. **Create roles and a team.** Open **Role teams → Roles & training**. Choose **New role**, enter a unique role name, and start chatting beside the role settings panel. Selecting a role opens its current coaching chat or starts its first one automatically. A role’s first coaching chat starts with Full access. Choose a permission preset in the composer to change it. Confirm **New conversation** in the chat toolbar to replace the previous chat and carry its selected preset into the new one. The Host archives its native session. The role starts fresh with its saved instructions and long-term experience. Tell it what to change or ask it to remember a lesson. For manual entry, choose **Add experience**, type the lesson and click **Remember**. Open **Role settings** to read the formatted instructions and experience. Select **Edit** or double-click the instructions to edit them. Choose **History** to preview and restore one of the ten most recent versions in the same panel. Each role remembers which panes you leave open. To assemble a team, return to **Team workspace → New team**. Select the lead, members, and an existing workspace directory separate from the role library. For generated replies and conversational coaching, configure your DeepSeek key in the Host’s model settings.
+1. 重启宿主，打开「角色团队 → 角色库与培养」，新建角色并填写职责。
+2. 在培养对话中让角色记住一条经验。在「角色设定」中查看保存的内容。
+3. 打开「团队工作台」，新建团队，选择队长、成员和工作目录。向队长发送任务，或用 `@` 指定成员。
 
-Read the [Chinese installation guide and Web/Desktop verification report](docs/VERIFICATION.md) for the tested workflows, screenshots and model coverage.
+本次发布通过 GitHub 分发。以后若同版本发布至 npm，Web 可使用 `dsh plugin --profile web add dsh-role-team@0.1.0` 按包名安装。也可从源码运行 `npm ci` 和 `npm pack` 自行构建。
+
+## English
+
+Train an AI team the way you would train a group of specialists. Coach each role in conversation, save its working standards and long-term lessons as Markdown, then bring the roles together on a shared assignment.
+
+- **Role library.** Review and restore the last ten profile revisions. Team members pick up saved changes on their next turn.
+- **Team workspace.** Follow conversations side by side or focus on one member. Assign work with @mentions and track it through the shared task board, schedules and member reports.
+- **Sessions and permissions.** Each team has its own conversations. Models and tools come from the host. A role’s first coaching chat starts with Full access, adjustable in the composer.
+
+### Install and start
+
+Use DeepSeek Harness 0.2.2-rc.5 or a compatible 0.2.x host and Node.js 24.9+. Download the tarball and checksum from the [v0.1.0 release](https://github.com/ZhangjiaxinGZS/dsh-role-team/releases/tag/v0.1.0). Keep both in a stable directory. Run the checksum and profile-specific install commands above from that directory, then restart the host. For a source build, run `npm ci` and `npm pack`. Registry installation with `dsh plugin --profile web add dsh-role-team@0.1.0` requires a future npm publication.
+
+1. Open **Role teams → Roles & training** and create a role with a short description.
+2. Ask the role to remember a lesson. Open **Role settings** to review what it saved.
+3. In **Team workspace**, create a team, select its lead and members, and choose a workspace directory separate from the role library. Give the lead a task or mention a particular member.
+
+## License / 许可证
+
+[MIT](LICENSE) · Copyright © 2026 ZhangjiaxinGZS
 
 ## Host runtime
 
@@ -48,14 +70,3 @@ The typed `roleTeam` methods take a single `request` object for each team or tra
 - Each seat adopts the latest published role automatically at the next turn. Restoring a historical role setting creates a new revision and preserves current long-term experience.
 - Call `resetSeat` with the seat’s current generation. The workbench sends an empty handoff for a new reset. The response supplies the new native session ID. A failed transfer leaves a durable reset intent. Retry the original generation and handoff to finish. Use `listGenerations` to find archived session IDs for read-only history.
 - Managed sessions use the host default agent preset. The plugin exposes native team messaging and task tools during collaboration, and proposal tools during training. Coaching and team sessions can use the host’s configured MCP servers, browser, network, shell and workspace tools under the selected native permission mode. Native session lookup, inline session references and direct file-tool access to private role/session storage are blocked. Shell commands and external MCP servers run with the access granted by their own host or OS. Choose an agent mode in a blank coaching chat or when creating a team. DSH locks the mode after the first turn. Coaching tools request a Chinese summary of each saved change. Open **Trajectory** in a conversation to inspect tool arguments and results. The panel remembers its last page, role, team and role view on this client. Team composers follow each seat’s session, and children inherit the lead’s permission preset. Choose an existing project directory separate from the role library. The spawn depth limit is eight.
-
-## Product roadmap
-
-- **Plain-Text Role & Memory Store** (`~/.dsh-role-team/roles/`): New roles receive a random ID. Active role names are unique after trimming whitespace and ignoring case. Each role is an independent folder (`role.md` + `memories/*.md` + `snapshots/`) editable both in the plugin UI and directly in any text editor.
-- **Conversational Cultivation & 1-on-1 Coaching**: Shape roles through natural dialogue, run practice exercises or post-task debriefs, and explicitly decide what becomes long-term experience and keep one-off instructions in the current conversation.
-- **Strict Per-Team Isolation + Shared Long-Term Memory**: Every team run gets a fresh `root` session and fresh-spawned member sessions. Roles carry their saved settings and long-term experience across teams—never project context or secrets from another team.
-- **Automatic role updates**: New teams use the latest published settings and experience. Active teams adopt each update on their next turn.
-- **Mid-Run Context Reset (Logical Seat Generation)**: Clear noisy task context for any team member on the fly while preserving the role profile and long-term experience.
-- **Multi-Column Workbench (Web & Desktop)**: AionUi-style side-by-side member panes with direct 1-on-1 messaging (`queue` / `steer`) to any member.
-
-See [docs/DESIGN.md](./docs/DESIGN.md) for the full architecture and verification plan.

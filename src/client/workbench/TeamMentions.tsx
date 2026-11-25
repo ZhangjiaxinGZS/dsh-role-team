@@ -34,6 +34,12 @@ function MemberChip({ node, raw, sessionId }: UserTextNodeProps<typeof source>) 
     : <>{raw}</>
 }
 
+function dutyPreview(description: string) {
+  const first = description.trim().split(/[。！？!?；;\r\n]|\.(?=\s|$)/u, 1)[0].trim()
+  const characters = Array.from(first)
+  return characters.length > 24 ? characters.slice(0, 23).join('').trimEnd() + '…' : first
+}
+
 export function memberSource(call: Ui['call'], t: Ui['t']): InputTriggerSource {
   return {
     trigger: '@', name: source, order: -10, showGroupTitle: false,
@@ -56,7 +62,7 @@ export function memberSource(call: Ui['call'], t: Ui['t']): InputTriggerSource {
       rows.push({ label: everyone, seatId: 'all', address: 'all', description: '' })
       const filter = query.trim().toLowerCase()
       return rows.filter(r => [r.label, r.address, r.description].some(s => s.toLowerCase().includes(filter)))
-        .map(r => ({ name: r.label, section: t('mentionGroup'), description: r.description, icon: 'session',
+        .map(r => ({ name: r.label, section: t('mentionGroup'), description: dutyPreview(r.description), icon: 'session',
           value: mention(r.label, team.runId, r.seatId) }))
     },
     onPick({ candidate }) {

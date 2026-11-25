@@ -54,7 +54,8 @@
     "locales",
     "icon.svg",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsdown && tsc -p tsconfig.types.json",
@@ -136,5 +137,20 @@
     "tsdown": "0.16.3",
     "typescript": "5.9.3",
     "vitest": "4.0.18"
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZhangjiaxinGZS/dsh-role-team.git"
+  },
+  "homepage": "https://github.com/ZhangjiaxinGZS/dsh-role-team#readme",
+  "bugs": {
+    "url": "https://github.com/ZhangjiaxinGZS/dsh-role-team/issues"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "multi-agent",
+    "ai-team"
+  ]
 }

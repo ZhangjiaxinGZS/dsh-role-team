@@ -777,7 +777,7 @@ body:has(.rt-divider[data-dragging]) * {
 .rt-timer-actions, .rt-timer-days { display: flex; flex-wrap: wrap; gap: 6px; }
 .rt-timer-days label { display: inline-flex; align-items: center; }
 
-.rt-report-window { max-height: 260px; overflow-y: auto; overscroll-behavior: auto; }
+.rt-report-window { max-height: 260px; overflow: hidden; }
 .rt-report-window[data-full] { max-height: none; overflow: visible; }
 .rt-team-trigger-body { display: flow-root; }
 .rt-report footer { position: relative; padding: 3px 14px 8px; }
