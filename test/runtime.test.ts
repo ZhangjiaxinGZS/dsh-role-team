@@ -1038,6 +1038,12 @@ it('routes team mentions by stable seat through the current native tree and isol
   expect(sent.isError).not.toBe(true)
   await vi.waitFor(() => expect(JSON.stringify(request(run.rootSessionId).messages)).toContain('Temporary brief reviewed'))
   expect(JSON.stringify(request(leaf.currentSessionId).messages.filter(m => m.role === 'system'))).toContain('dev/qa')
+  for (const id of [run.rootSessionId, leaf.currentSessionId]) {
+    const system = JSON.stringify(request(id).messages.filter(m => m.role === 'system'))
+    expect(system).toContain('todo_write')
+    expect(system).toContain('release')
+    expect(system).toMatch(/latest member reports|最新成员汇报/)
+  }
   await service.archiveTeam({ runId: run.runId })
   expect(await service.teamMentionRoster({ sessionId: leaf.currentSessionId })).toBeNull()
 })

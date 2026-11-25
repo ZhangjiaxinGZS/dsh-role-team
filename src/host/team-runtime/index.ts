@@ -563,6 +563,9 @@ export class TeamRuntime {
         run.locale === 'en'
           ? 'Members report scheduling requests to lead. Only the leader manages team schedules. Before creating one, present the time, time zone, frequency and exact instructions and wait for explicit user confirmation. A scheduled delivery is a request to execute the confirmed work and delegate as needed. It is not authorization to schedule it again.'
           : '成员遇到定时或延时需求，只向队长汇报。队长须先向用户列明时间、时区、频率和具体执行内容，获得明确确认后才可创建团队定时任务。收到定时投递时执行已确认的工作，按需派给成员，不能据此再次创建定时任务。',
+        run.locale === 'en'
+          ? 'Before ending assigned work, update both the shared board and your personal todo_write list. Read the latest revision and use team_task_update complete for finished work or release when blocked. Mark the corresponding todos completed or pending and keep unrelated todos. Report the result or blocker and next step to the leader. Stopped work must never remain in_progress. As leader, read the latest member reports and completion notices first, then reconcile stale board entries or reassign the next step before waiting.'
+          : '成员完成任务或因卡点暂停时，结束回合前同步更新共享任务板和个人 todo_write。读取最新修订号，用 team_task_update 的 complete 完成任务，遇阻停工用 release 释放任务。个人清单对应项标为 completed 或 pending，保留其余条目。向队长汇报结果或卡点及下一步，已停工的条目不能留在 in_progress。队长先核对最新成员汇报与结束通知，再核实滞后的任务板记录，按需重新分派，避免空等。',
         JSON.stringify({ ...this.mentionRoster(run.runId), selfSeatId: seat.seatId }),
       ].join('\n'),
     )
