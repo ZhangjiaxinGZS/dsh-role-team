@@ -12,8 +12,8 @@ import {
   IconClockOutlineRegular,
   IconRefreshOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { Fragment, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useActivity, useReadReceipt } from './activity.js'
+import { Fragment, useLayoutEffect, useRef, useState } from 'react'
 import {
   MoreMenu,
   Modal,
@@ -30,7 +30,7 @@ import { SessionPane, sessionTarget } from './SessionPane.js'
 
 export function Workbench({ roles }: { roles: RoleChoice[] }) {
   const { call, t } = useUi(),
-    runs = useLoad('runs', () => call('listTeams', { includeMemberCounts: true }))
+    runs = useLoad('runs', () => call('listTeams', { includeMemberCounts: true }), 5000)
   const [selected, setSelected] = useNavigation('team'),
     [setup, setSetup] = useState(false)
   const [collapsed, setCollapsed] = useState(false),
@@ -58,7 +58,7 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
     return (
       <div key={r.runId} className="rt-list-row">
         <button title={r.title} aria-current={id === r.runId ? 'page' : undefined} onClick={() => setSelected(r.runId)}>
-          {r.title}
+          <TeamActivity title={r.title} ids={r.memberSessionIds ?? []} leader={r.rootSessionId} />
         </button>
         {r.memberCount !== undefined && <small title={t('members')} className="rt-member-count">{r.memberCount}</small>}
         <MoreMenu
@@ -228,6 +228,8 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
   const defaults = usePaneWidths('workbench')
   const width = Math.min(960, Math.max(320, defaults.widths.column ?? 480))
   const columns = usePaneWidths('team.' + id + '.members')
+  const viewed = team.data?.seats.find(s => s.seatId === (focus || team.data?.run.leaderSeatId))
+  useReadReceipt(team.data?.run.status === 'active' ? viewed?.currentSessionId : undefined)
   if (!team.data)
     return (
       <div className="rt-pane-status">
@@ -452,18 +454,24 @@ function MemberBar({ seats, active, target, pickSeat, resetSeat, onReset }: {
     </nav>
   )
 }
-const emptySubscribe = () => () => {}
+function TeamActivity({ title, ids, leader }: { title: string; ids: string[]; leader: string }) {
+  const { t } = useUi()
+  const status = useActivity(ids, leader, true)
+  return <span className="rt-team-activity" data-unread={status === 'seatUnread' || undefined}>
+    {status !== 'seatIdle' && <span role="img" aria-label={t(status)} title={t(status)} className="rt-seat-dot" data-status={status} />}
+    <span>{title}</span>
+  </span>
+}
+
 function SeatLabel({ seat, active }: { seat: Seat; active: boolean }) {
-  const { t, sessionStatus } = useUi()
-  const status = useSyncExternalStore(sessionStatus?.subscribe ?? emptySubscribe, () => {
-    const value = active && sessionStatus?.getSnapshot().get(seat.currentSessionId as SessionId)
-    if (value && value.pendingInteraction?.kind === 'approval') return 'seatApproval'
-    return value && value.running ? 'seatWorking' : 'seatIdle'
-  })
+  const { t } = useUi()
+  const status = useActivity(active ? [seat.currentSessionId] : [], '', false)
+  const leader = seat.parentSeatId === null
   return <>
-    <span className="rt-seat-dot" data-status={status} role="img" aria-label={t(status)} title={t(status)} />
-    <span className="rt-seat-name" title={seat.displayName}>{seat.displayName}</span>
-    {seat.parentSeatId === null && <span className="rt-lead-badge">{t('leader')}</span>}
+    <span className="rt-seat-dot" data-status={active ? status === 'seatUnread' ? 'seatIdle' : status : 'archived'} role="img" aria-label={t(status)} title={t(status)} />
+    <span className="rt-seat-name" data-unread={status === 'seatUnread' || undefined} title={seat.displayName}>{seat.displayName}</span>
+    {leader && <span className="rt-lead-badge">{t('leader')}</span>}
+    {leader && status === 'seatUnread' && <span className="rt-seat-dot" data-status="seatUnread" aria-hidden />}
   </>
 }
 function MemberColumn({

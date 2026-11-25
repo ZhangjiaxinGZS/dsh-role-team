@@ -39,7 +39,7 @@ export const runtimeMethods = {
   ],
   listTeams: [
     z.strictObject({ includeMemberCounts: z.boolean().optional() }),
-    z.array(indexRecords.team_runs.extend({ memberCount: z.int().nonnegative().optional() })),
+    z.array(indexRecords.team_runs.extend({ memberCount: z.int().nonnegative().optional(), memberSessionIds: z.array(id).optional() })),
   ],
   teamSchedules: [run, z.array(scheduleRow)],
   createTeamSchedule: [scheduleDraft.extend({ runId: id }), scheduleRow],

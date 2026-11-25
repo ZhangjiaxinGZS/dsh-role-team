@@ -191,6 +191,7 @@
     "restoreWidth": "Restore default",
     "seatWorking": "Working",
     "seatApproval": "Awaiting approval",
+    "seatUnread": "New reply",
     "seatIdle": "Idle",
     "unsavedCollapse": "Save your changes before closing the profile?",
     "unsavedSwitch": "Save your changes before switching roles?",

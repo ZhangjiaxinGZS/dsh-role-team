@@ -25,6 +25,7 @@ import zh from '../../locales/zh-CN.json' with { type: 'json' }
 import css from './ui.css'
 import { TYPERT_REMOTE } from '../shared/remote.js'
 import { Client, unwrap, type Labels, type Ui } from './ui.js'
+import { observeCompletions } from './workbench/activity.js'
 import { registerTeamMentions } from './workbench/TeamMentions.js'
 import { registerTeamTrigger } from './workbench/TeamTrigger.js'
 import { registerTeamReportTail } from './workbench/TeamReportTail.js'
@@ -101,6 +102,7 @@ function mount(ctx: Context) {
         : undefined,
   }
   ctx.inject(['inputTriggers', 'uiConversation'], scope => registerTeamMentions(scope, shared.call, t))
+  ctx.inject(['uiSession'], scope => scope.effect(() => observeCompletions(scope.uiSession.sessionStatus)))
   registerTeamTrigger(ctx, shared.call, t)
   registerTeamReportTail(ctx, shared)
   function Main({

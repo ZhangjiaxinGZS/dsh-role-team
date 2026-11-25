@@ -1404,3 +1404,42 @@ it('only counts real automatic settlement receipts for the addressed child', asy
   ]
   expect(receivedReports({entries} as unknown as Parameters<typeof receivedReports>[0], 'child')).toEqual([{time:3,text:'报告'}])
 })
+
+it('prioritizes approvals across teams and acknowledges only the member being viewed', async () => {
+  vi.spyOn(document, 'hasFocus').mockReturnValue(true)
+  const ids = ['alpha', 'beta']
+  const teams = ids.map(id => {
+    const [lead, worker] = [seat(id, null), seat(id+'-worker', id)]
+    return { run: { runId: id, title: id+' crew', status: 'active', leaderSeatId: id,
+      rootSessionId: lead.currentSessionId, memberSessionIds: [lead.currentSessionId, worker.currentSessionId] }, seats: [lead, worker] }
+  })
+  const h = harness(vi.fn(async (method: string, input: {runId: string}) =>
+    method === 'getTeam' ? teams.find(team => team.run.runId === input.runId) : method === 'listTeams' ? teams.map(team => team.run) : []))
+  const snapshots = new Map(), listeners = new Set<() => void>()
+  h.ui.sessionStatus = { getSnapshot: () => snapshots, subscribe: f => { listeners.add(f); return () => { listeners.delete(f) } } }
+  const { observeCompletions } = await import('../src/client/workbench/activity.js')
+  const stop = observeCompletions(h.ui.sessionStatus)
+  const update = (id: string, state: object) => act(() => {
+    snapshots.set(id+'-session', state); listeners.forEach(f => f())
+  })
+  h.mount(<Workbench roles={[]} />)
+  await screen.findByRole('navigation', { name: en.ui.members })
+  const row = () => within(screen.getByRole('complementary')).getByTitle('beta crew').closest('.rt-list-row')!
+  const dot = () => row().querySelector('[data-status]')?.getAttribute('data-status')
+  update('beta-worker', { completionUnread: true })
+  expect(dot()).toBeUndefined()
+  update('beta', { completionUnread: true })
+  expect(dot()).toBe('seatUnread')
+  update('beta-worker', { running: true })
+  expect(dot()).toBe('seatWorking')
+  update('beta-worker', { running: true, pendingInteraction: {kind:'approval'} })
+  expect(dot()).toBe('seatApproval')
+  update('beta-worker', { completionUnread: true })
+  fireEvent.click(screen.getByTitle('beta crew'))
+  await waitFor(() => expect(dot()).toBeUndefined())
+  const worker = document.querySelector<HTMLButtonElement>('.rt-chip[data-seat="beta-worker"]')!
+  expect(worker.querySelector('.rt-seat-name[data-unread]')).toBeTruthy()
+  fireEvent.click(worker)
+  await waitFor(() => expect(worker.querySelector('[data-unread]')).toBeNull())
+  stop()
+})
