@@ -3,11 +3,12 @@ import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { ContextMessageNode } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { IconChevronDownOutlineRegular, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ComponentType } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ComponentType, type ReactNode } from 'react'
 import type { Ui } from '../ui.js'
 
 type Input = Pick<ContextMessageNode, 'source' | 'content'>
-type Props = PropsRuntime<'conversation.chat.node', 'turn-trigger'> & PropsLocale<'chat'>
+type NodeKind = 'turn-trigger' | 'context' | 'turn-process'
+type Props<K extends NodeKind> = PropsRuntime<'conversation.chat.node', K> & PropsLocale<'chat'>
 type Sender = { name: string | null } | null
 type Text = Ui['t']
 
@@ -114,14 +115,13 @@ export function registerTeamTrigger(ctx: Context, call: Ui['call'], t: Text) {
   const slot = 'conversation.chat.node'
   // Several historical cards can share a sender. Share the lookup while it is in flight.
   const pending = new Map<string, Promise<Sender>>()
-  function Routed(props: Props) {
-    const { node, sessionId } = props
-    const message = teamMessage(node.data)
-    const { senderId, senderName } = message ?? {}
-    const key = message && /^rt-(root|child)-/.test(sessionId) ? JSON.stringify([sessionId, senderId, senderName]) : null
+  function Report({ message, sessionId, time, fallback, moved }: {
+    message: Message; sessionId: string; time: number; fallback: ReactNode; moved?: boolean
+  }) {
+    const { senderId, senderName } = message
+    const key = JSON.stringify([sessionId, senderId, senderName])
     const [resolved, resolve] = useState<{ key: string; sender: Sender }>()
     useEffect(() => {
-      if (!key) return
       let live = true
       let lookup = pending.get(key)
       if (!lookup) {
@@ -131,14 +131,50 @@ export function registerTeamTrigger(ctx: Context, call: Ui['call'], t: Text) {
       lookup.then(sender => { if (live) resolve({ key, sender }) }, () => { if (live) resolve({ key, sender: null }) })
       return () => { live = false }
     }, [key, sessionId, senderId, senderName])
-    if (message && resolved?.key === key && resolved?.sender) {
-      const alias = senderName && !/^(?:role-|rt-(?:root|child)-|lead$)/.test(senderName) ? senderName : undefined
-      return <TeamMessageCard message={message} name={resolved.sender.name ?? alias ?? t('messageMember')} time={node.data.time} t={t} />
-    }
-    // Delegate to the installed chat renderer with its own locale and original props.
-    const native = ctx.slots.entries(slot).find(e => e.options.key === 'turn-trigger' && e.locale === 'chat' && e.component !== Routed)
-    const Native = native?.component as ComponentType<Props> | undefined
-    return Native ? <Native {...props} /> : null
+    if (resolved?.key !== key || !resolved.sender) return fallback
+    const emptyReceipt = message.omitted && (!message.status || message.status === 'completed')
+      && !message.parts.some(part => 'block' in part || part.text.trim())
+    if (moved || emptyReceipt) return null
+    const alias = senderName && !/^(?:role-|rt-(?:root|child)-|lead$)/.test(senderName) ? senderName : undefined
+    return <TeamMessageCard message={message} name={resolved.sender.name ?? alias ?? t('messageMember')} time={time} t={t} />
   }
-  ctx.slots.inject(slot, () => ctx.slots.register({ name: slot, key: 'turn-trigger', priority: -1, locale: 'chat' }, Routed))
+
+  // Only move context rows inside the native fold range. Partially loaded turns
+  // without a visible process controller keep their reports at the original seat.
+  function inProcess(seq: number, { node, turnProcess }: Pick<Props<NodeKind>, 'node' | 'turnProcess'>) {
+    const loc = node.location
+    if (!turnProcess || (loc.kind !== 'turn' && loc.kind !== 'step') || !(loc.turn.start || loc.turn.end)) return false
+    const { processStartSeq, answerAnchorSeq } = turnProcess.spec
+    return seq >= processStartSeq && (loc.turn.status !== 'closed' || answerAnchorSeq === null || seq < answerAnchorSeq)
+  }
+
+  function ProcessReports(props: Props<'turn-process'>) {
+    const { node, useChat, sessionId } = props
+    const source = useChat(s => s.nodes.turnDataSource(node.data.turn, 'context'))
+    const rows = useSyncExternalStore(source.subscribe, source.getSnapshot)
+    return <>{rows.map(row => {
+      if (!inProcess(row.seq, props)) return null
+      const message = teamMessage(row)
+      return message && <Report key={row.seq} message={message} sessionId={sessionId} time={row.time} fallback={null} />
+    })}</>
+  }
+
+  function register<K extends NodeKind>(key: K, render: (props: Props<K>, native: ReactNode) => ReactNode) {
+    function Routed(props: Props<K>) {
+      const entry = ctx.slots.entries(slot).find(e => e.options.key === key && e.locale === 'chat' && e.component !== Routed)
+      const Native = entry?.component as ComponentType<Props<K>> | undefined
+      const native = Native ? <Native {...props} /> : null
+      return /^rt-(root|child)-/.test(props.sessionId) ? render(props, native) : native
+    }
+    ctx.slots.inject(slot, () => ctx.slots.register({ name: slot, key, priority: -1, locale: 'chat' }, Routed))
+  }
+  register('turn-process', (props, native) => <>{native}<ProcessReports {...props} /></>)
+  for (const key of ['turn-trigger', 'context'] as const) {
+    register(key, (props, native) => {
+      const { data } = props.node
+      const message = teamMessage(data)
+      return message ? <Report message={message} sessionId={props.sessionId} time={data.time} fallback={native}
+        moved={props.node.kind === 'context' && inProcess(data.seq, props)} /> : native
+    })
+  }
 }

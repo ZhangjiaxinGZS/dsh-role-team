@@ -1147,7 +1147,7 @@ it('renders team turn triggers expanded with Markdown, sender and timestamp, and
   let Route!: React.ComponentType<{ sessionId: string; node: { data: Record<string, unknown> } }>
   const ctx = { slots: {
     inject: (_: string, cb: () => void) => cb(),
-    register: (opts: object, component: typeof Route) => { expect(opts).toMatchObject({ key: 'turn-trigger', priority: -1 }); Route = component },
+    register: (opts: {key: string}, component: typeof Route) => { if (opts.key === 'turn-trigger') Route = component },
     entries: () => [{ options: { key: 'turn-trigger' }, locale:'chat', component: () => <button aria-expanded="false">native trigger</button> }],
   } }
   const lookup = vi.fn().mockResolvedValue({ name: '程序员' })
@@ -1169,6 +1169,69 @@ it('renders team turn triggers expanded with Markdown, sender and timestamp, and
     expect(screen.getByText('native trigger')).toBeTruthy()
   }
   expect(lookup).toHaveBeenCalledTimes(1)
+})
+
+it('shows mid-turn team reports beside the native disclosure and keeps ordinary process rows native', async () => {
+  const { registerTeamTrigger } = await import('../src/client/workbench/TeamTrigger.js')
+  const notice = (seq: number, kind: string, body: string) => ({
+    seq, time: seq, source: { kind, senderSessionId: 'member' }, content: [{ type: 'text', text: body }],
+  })
+  const sent = notice(3, 'agent-message', 'Agent editor sent a message: **Reviewed**')
+  const prefix = 'Background subagent editor finished and will do no further work unless you send it more.'
+  const receipt = notice(4, 'subagent-settled', prefix + ' It sent you a message just before finishing, so its closing message is omitted.')
+  const auto = notice(5, 'subagent-settled', prefix + ' Its closing message: Automatic answer')
+  const schedule = notice(6, 'schedule', 'Unrelated')
+  const outside = notice(9, 'team-message', 'Outside the fold')
+  // Simulate new contexts arriving after the controller was mounted.
+  let rows = [sent, receipt, schedule, outside]
+  const listeners = new Set<() => void>()
+  const source = { getSnapshot: () => rows, subscribe: (f: () => void) => { listeners.add(f); return () => { listeners.delete(f) } } }
+  const snapshot = { nodes: { turnDataSource: (turn: number, kind: string) => {
+    expect([turn, kind]).toEqual([1, 'context'])
+    return source
+  } } }
+  const turnProcess = { spec: { processStartSeq: 2, answerAnchorSeq: 8 }, open: false }
+  const props = {
+    sessionId: 'rt-child-reader', turnProcess,
+    useChat: (select: (snap: typeof snapshot) => unknown) => select(snapshot),
+  }
+  const location = { kind: 'step', turn: { status: 'closed', end: {} } }
+  type TestProps = typeof props & { node: { kind: string; location: typeof location; data: unknown } }
+  const routes = new Map<string, React.ComponentType<TestProps>>()
+  const native = ['turn-process', 'context', 'turn-trigger'].map(key => ({
+    options: {key}, locale: 'chat', component: (p: TestProps) =>
+      <span data-testid={'native-' + key}>{key === 'turn-process' ? String(p.turnProcess.open) : 'native'}</span>,
+  }))
+  const ctx = { slots: {
+    inject: (_: string, cb: () => void) => cb(),
+    register: (opts: { key: string }, component: React.ComponentType<TestProps>) => routes.set(opts.key, component),
+    entries: () => native,
+  } }
+  const lookup = vi.fn(async (_method: string, {sessionId}: {sessionId: string}) => sessionId === 'rt-child-reader' ? {name:'Editor'} : null)
+  registerTeamTrigger(ctx as unknown as Context, lookup as Ui['call'], k => en.ui[k])
+  const Process = routes.get('turn-process')!, ContextRow = routes.get('context')!
+  function flow(sessionId: string, open: boolean) {
+    const common = { ...props, sessionId, turnProcess: {...turnProcess, open} }
+    return <><Process {...common} node={{kind:'turn-process', location, data:{turn:1}}} />
+      {rows.map(data => <ContextRow key={data.seq} {...common} node={{kind:'context', location, data}} />)}</>
+  }
+  const view = render(flow(props.sessionId, false))
+  expect(await screen.findByText('**Reviewed**')).toBeTruthy()
+  await waitFor(() => expect(screen.getAllByTestId('native-context')).toHaveLength(1))
+  expect(screen.getByText('Outside the fold')).toBeTruthy()
+  expect(screen.getAllByRole('button', {name:/From Editor/})).toHaveLength(2)
+  act(() => { rows = [sent, receipt, auto, schedule, outside]; listeners.forEach(f => f()) })
+  expect(await screen.findByText('Automatic answer')).toBeTruthy()
+  view.rerender(flow(props.sessionId, true))
+  await waitFor(() => expect(screen.getAllByTestId('native-context')).toHaveLength(1))
+  expect(screen.getAllByRole('button', {name:/From Editor/})).toHaveLength(3)
+  expect(screen.getByTestId('native-turn-process').textContent).toBe('true')
+  expect(screen.queryByText(en.ui.reportAlreadySent)).toBeNull()
+  for (const sessionId of ['ordinary', 'rt-root-unregistered']) {
+    view.rerender(flow(sessionId, false))
+    await waitFor(() => expect(screen.getAllByTestId('native-context')).toHaveLength(rows.length))
+    expect(screen.queryByRole('button', {name:/From Editor/})).toBeNull()
+  }
 })
 
 it('offers team-only atomic mentions, disambiguates names and renders the serialized identity', async () => {

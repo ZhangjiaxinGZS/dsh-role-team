@@ -789,6 +789,7 @@ body:has(.rt-divider[data-dragging]) * {
   background: var(--dsw-alias-turn-trigger-bg);
   color: var(--dsw-alias-label-primary);
 }
+[data-chat-flow-kind="turn-process"] .rt-team-trigger { margin-block-start: 8px; }
 .rt-team-trigger > button {
   display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px;
   border: 0; background: transparent; color: inherit; text-align: start; font: inherit; cursor: pointer;
