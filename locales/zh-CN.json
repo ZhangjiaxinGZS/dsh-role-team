@@ -235,6 +235,8 @@
     "completed": "已完成",
     "noTeamTasks": "暂无团队任务",
     "unassigned": "未分配",
-    "blockedBy": "等待完成"
+    "blockedBy": "等待完成",
+    "subagents": "子智能体",
+    "externalChild": "此外部执行没有可打开的 DSH 会话。"
   }
 }

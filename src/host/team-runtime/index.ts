@@ -428,6 +428,33 @@ export class TeamRuntime {
   resetSeat(input: Input<'resetSeat'>) {
     return this.ordered(this.seat(input.seatId).runId, () => replaceSeat(this, input))
   }
+  private async attachTemporaryChild(agent: Agent) {
+    // Ordinary forks may also have a parent header. Only native subagent
+    // ancestry can confer a seat's isolation policy, never its role tools.
+    let header = agent.session.header
+    const seen = new Set<SessionId>()
+    while (header.origin === 'subagent' && header.parentSession) {
+      const parent = header.parentSession
+      if (seen.has(parent)) throw new Error('Invalid subagent ancestry')
+      seen.add(parent)
+      if (parent.startsWith('rt-')) {
+        const owner = this.index.seats.list().find(s => s.currentSessionId === parent)
+        if (!owner) throw new Error('Managed session has no current binding')
+        const active = () => {
+          const current = this.index.seats.get(owner.seatId)
+          return current?.status === 'active' && current.currentSessionId === parent &&
+            this.index.runs.get(owner.runId)?.status === 'active'
+        }
+        if (!active()) throw new Error('Member generation is unavailable')
+        isolate(agent, this.roles.root, active, this.active(owner.runId).locale, 'member')
+        return
+      }
+      if (header.delegationDepth === 1) return
+      header = this.native.ctx.agents.get(parent)?.session.header ??
+        await this.native.ctx.sessionQuery.inspectSession(parent, session => session.header)
+    }
+    if (header.parentSession?.startsWith('rt-')) throw new Error('Managed session has no current binding')
+  }
   async attach(agent: Agent) {
     const { index } = this
     const training = index.training.list().find((t) => t.sessionId === agent.id)
@@ -447,9 +474,9 @@ export class TeamRuntime {
       .list()
       .find((s) => s.currentSessionId === agent.id || s.reset?.sessionId === agent.id)
     if (!seat) {
-      if (agent.id.startsWith('rt-') || agent.session.header.parentSession?.startsWith('rt-'))
+      if (agent.id.startsWith('rt-'))
         throw new Error('Managed session has no current binding')
-      return
+      return this.attachTemporaryChild(agent)
     }
     const current = () => this.seat(seat.seatId)
     const active = () => {

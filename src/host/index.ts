@@ -40,7 +40,9 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     this.pathSetting = config.roleStoreDir
     ctx.on('agent/created', async ({ agent }) => {
       const reserved = (id?: string) => id !== undefined && /^rt-(?:root|child|training)-/.test(id)
-      if (!reserved(agent.id) && !reserved(agent.session.header.parentSession)) return
+      const header = agent.session.header
+      const nested = header.origin === 'subagent' && (header.delegationDepth ?? 2) > 1
+      if (!reserved(agent.id) && !reserved(header.parentSession) && !nested) return
       await this.runtime.attach(agent)
     })
   }
@@ -145,7 +147,9 @@ export default class RoleTeamService extends TypertRemoteService implements Role
   @Remote async getTeam(request: Input<'getTeam'>) {
     const team = this.runtime.getTeam(request.runId)
     await this.runtime.native.retryLegacySessions(team.seats.map((seat) => seat.currentSessionId))
-    return team
+    const seats = new Set(team.seats.map(seat => seat.seatId))
+    const formalSessionIds = this.index.generations.list().filter(g => seats.has(g.seatId)).map(g => g.sessionId)
+    return { ...team, formalSessionIds }
   }
 
   @Remote async renameTeam(request: Input<'renameTeam'>) {

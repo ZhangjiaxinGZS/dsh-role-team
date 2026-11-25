@@ -514,6 +514,7 @@ function MemberColumn({
           onSelection={refresh}
           readOnly={readOnly}
           seat={s}
+          formalSessionIds={team.formalSessionIds ?? team.seats.map(seat => seat.currentSessionId)}
         />
       )}
     </article>

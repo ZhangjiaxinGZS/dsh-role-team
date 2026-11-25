@@ -235,6 +235,8 @@
     "completed": "Completed",
     "noTeamTasks": "No team tasks yet",
     "unassigned": "Unassigned",
-    "blockedBy": "Blocked by"
+    "blockedBy": "Blocked by",
+    "subagents": "Subagents",
+    "externalChild": "This external execution has no DSH conversation."
   }
 }

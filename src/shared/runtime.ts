@@ -45,7 +45,7 @@ export const runtimeMethods = {
   createTeamSchedule: [scheduleDraft.extend({ runId: id }), scheduleRow],
   changeTeamSchedule: [scheduleChange.extend({ runId: id }), z.boolean()],
   teamScheduleHistory: [run.extend({ id, before: id.optional() }), scheduleHistory],
-  getTeam: [run, team],
+  getTeam: [run, team.extend({ formalSessionIds: z.array(id).optional() })],
   teamMentionRoster: [
     z.strictObject({ sessionId: id }),
     z.strictObject({

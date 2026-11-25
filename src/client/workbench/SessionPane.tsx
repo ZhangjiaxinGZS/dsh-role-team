@@ -20,7 +20,12 @@ import type {} from '@deepseek-ai/dsh-agent/types'
 import type {} from '@deepseek-ai/dsh-tool-executor-ptc/types'
 import { useUi, Notice, useLoad, useAction, type Seat, type SessionTarget } from '../ui.js'
 
+import type {} from '@deepseek-ai/dsh-subagent/client'
+import { SubagentPanel } from './SubagentPanel.js'
+import { useActivity } from './activity.js'
+
 export type Pane = {
+  formalSessionIds?: readonly string[]
   target: SessionTarget
   toolbarActions?: ReactNode
   chatHint?: string
@@ -35,9 +40,9 @@ export type Pane = {
 export function targetId(target: SessionTarget) {
   return typeof target === 'string' ? target : target.childSessionId
 }
-export const sessionTarget = (id: string, parent?: string | null): SessionTarget =>
+export const sessionTarget = (id: string, parent?: string | null, mode: Exclude<SessionTarget, string>['mode'] = 'continuable'): SessionTarget =>
   parent
-    ? { parentSessionId: parent as SessionId, childSessionId: id as SessionId, mode: 'continuable' }
+    ? { parentSessionId: parent as SessionId, childSessionId: id as SessionId, mode }
     : (id as SessionId)
 export function SessionPane(props: Pane) {
   return <BoundPane key={targetId(props.target)} {...props} />
@@ -48,14 +53,15 @@ export function useRetainedSession(target: SessionTarget) {
     [error, setError] = useState(''),
     [attempt, retry] = useState(0)
   const id = targetId(target),
-    parent = typeof target === 'string' ? null : target.parentSessionId
+    parent = typeof target === 'string' ? null : target.parentSessionId,
+    mode = typeof target === 'string' ? undefined : target.mode
   useEffect(() => {
     let live = true,
       ref: SessionReference | undefined
     setReference(undefined)
     setError('')
     try {
-      ref = retain(sessionTarget(id, parent))
+      ref = retain(sessionTarget(id, parent, mode))
       const acquired = ref
       void acquired.ready.then(
         () => {
@@ -72,7 +78,7 @@ export function useRetainedSession(target: SessionTarget) {
       live = false
       ref?.release()
     }
-  }, [id, parent, retain, attempt])
+  }, [id, parent, mode, retain, attempt])
   return { reference, error, retry: () => retry((v) => v + 1) }
 }
 function BoundPane({
@@ -85,15 +91,17 @@ function BoundPane({
   chatHint,
   onToolResult,
   focusOnOpen,
+  formalSessionIds,
   defaultPreview = true,
 }: Pane) {
   const { SessionProvider, chat, t, preview } = useUi()
   const { reference, error, retry } = useRetainedSession(target)
   const id = targetId(target)
-  const parent = typeof target === 'string' ? null : target.parentSessionId
+  const parent = typeof target === 'string' ? null : target.parentSessionId,
+    mode = typeof target === 'string' ? undefined : target.mode
   useEffect(() => {
-    if (reference && defaultPreview) return preview?.setDefault(sessionTarget(id, parent))
-  }, [preview, reference, defaultPreview, id, parent])
+    if (reference && defaultPreview) return preview?.setDefault(sessionTarget(id, parent, mode))
+  }, [preview, reference, defaultPreview, id, parent, mode])
   useEffect(() => () => preview?.leave(id), [preview, id])
   const preparePreview = (event: React.SyntheticEvent<HTMLElement>) => {
     const element = event.target
@@ -173,6 +181,7 @@ function BoundPane({
         <PaneContext.Provider
           value={{
             reference,
+            formalSessionIds,
             seat: readOnly ? undefined : seat,
             leaderSessionId,
             onSelection,
@@ -188,6 +197,7 @@ function BoundPane({
   )
 }
 const PaneContext = createContext<{
+  formalSessionIds?: readonly string[]
   toolbarActions?: ReactNode
   chatHint?: string
   readOnly: boolean
@@ -205,18 +215,26 @@ export function SessionChat(
       'actions' | 'selectView' | 'useStore' | 'useConversationViews'
     >,
 ) {
+  const { t } = useUi()
   const factoryInput = {
     variant: 'embedded',
     hero: false,
     phase: 'active',
     onWorkspaceSelected: async () => {},
   } as const
-  const { reference, seat, readOnly, toolbarActions, chatHint } = useContext(PaneContext)!
+  const { reference, seat, readOnly, toolbarActions, chatHint, formalSessionIds } = useContext(PaneContext)!
   const tabs = props
     .useConversationViews((views) => views)
     .filter((view) => view.id === 'chat' || view.id === 'trajectory')
+  const catalog = props.useProjection('subagentCatalog')
+  const children = formalSessionIds && Array.isArray(catalog) ? catalog.filter(child => !formalSessionIds.includes(child.id)) : []
+  const childStatus = useActivity(children.map(child => child.id), '', true)
+  const [showChildren, setShowChildren] = useState(false)
+  const viewingChildren = showChildren && children.length > 0
+  useEffect(() => { if (!children.length) setShowChildren(false) }, [children.length])
   const selected = props.useStore((state) => state.view) ?? 'chat'
   function selectView(view: string) {
+    setShowChildren(false)
     props.selectView(view)
     if (view !== 'trajectory' || selected === view) return
     // Focus the last dispatched call in this pane. The native ledger can otherwise open
@@ -238,25 +256,29 @@ export function SessionChat(
       <div className="rt-transcript">
         <div className="rt-session-bar">
           <SessionPreset {...props} readOnly={readOnly} />
-          {tabs.length > 1 && (
+          {(tabs.length > 1 || children.length > 0) && (
             <div className="rt-view-navigation rt-segment" role="tablist">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   role="tab"
-                  aria-selected={tab.id === selected}
+                  aria-selected={!viewingChildren && tab.id === selected}
                   onClick={() => selectView(tab.id)}
                 >
                   {tab.label}
                 </button>
               ))}
+              {children.length > 0 && <button type="button" role="tab" aria-selected={viewingChildren} onClick={() => setShowChildren(true)}>
+                {(childStatus === 'seatWorking' || childStatus === 'seatApproval') && <span className="rt-seat-dot" data-status={childStatus} aria-label={t(childStatus)} role="img" />}
+                {t('subagents')} ({children.length})
+              </button>}
             </div>
           )}
           {toolbarActions}
         </div>
         {chatHint && selected === 'chat' && <p className="rt-intro">{chatHint}</p>}
-        {props.renderFactorySlot('conversation.content', factoryInput)}
+        {viewingChildren ? <SubagentPanel parent={reference.sessionId}>{children}</SubagentPanel> : props.renderFactorySlot('conversation.content', factoryInput)}
       </div>
     </div>
   )

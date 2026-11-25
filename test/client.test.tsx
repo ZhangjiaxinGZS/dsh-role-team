@@ -124,6 +124,7 @@ function harness(call: ReturnType<typeof vi.fn>) {
   const releases = new Map<string, ReturnType<typeof vi.fn>>(),
     stops = new Map<string, ReturnType<typeof vi.fn>>(),
     approvals = new Set<string>()
+  const childCatalogs = new Map<string, object[]>()
   const openView = vi.fn()
   function NativePermission({ locked }: { locked: boolean }) {
     const id = useContext(Scope)
@@ -136,7 +137,7 @@ function harness(call: ReturnType<typeof vi.fn>) {
         {...({
           sessionId: id,
           useSession: () => true,
-          useProjection: () => undefined,
+          useProjection: (key: string) => key === 'subagentCatalog' ? childCatalogs.get(id) : undefined,
           useSessionStatus: () => approvals.has(id),
           useConversationViews: () => [
             { id: 'chat', label: 'Chat' },
@@ -216,6 +217,7 @@ function harness(call: ReturnType<typeof vi.fn>) {
     mount: (node: ReactNode) => render(<Client.Provider value={ui}>{node}</Client.Provider>),
     releases,
     stops,
+    childCatalogs,
     approvals,
     openView,
   }
@@ -1469,4 +1471,25 @@ it('shows native projected tasks with blockers and opens their owner in single c
   fireEvent.click(within(board).getByRole('button',{name:seats[1].displayName}))
   await waitFor(() => expect(document.querySelector('.rt-chip[aria-pressed=true]')?.getAttribute('data-seat')).toBe('worker'))
   expect(screen.getByRole('button',{name:en.ui.focus}).getAttribute('aria-pressed')).toBe('true')
+})
+
+it('lists only direct temporary children, opens an addressed one-shot transcript and releases it', async () => {
+  const h = harness(vi.fn(async () => []))
+  const formal = ['member','old-member']
+  h.childCatalogs.set('parent', [
+    { id:'member', mode:'continuable', label:'Formal member' },
+    { id:'old-member', mode:'continuable', label:'Old generation' },
+    { id:'tmp', mode:'one-shot', label:'Research' },
+  ])
+  const acquire = vi.spyOn(h.ui, 'retain')
+  h.mount(<SessionPane target={sessionTarget('parent')} formalSessionIds={formal} />)
+  const tab = await screen.findByRole('tab', { name: en.ui.subagents+' (1)' })
+  fireEvent.click(tab)
+  expect(await screen.findByText('stream:tmp')).toBeTruthy()
+  expect(acquire).toHaveBeenCalledWith({parentSessionId:'parent',childSessionId:'tmp',mode:'one-shot'})
+  expect(screen.queryByText('Old generation')).toBeNull()
+  expect(screen.getAllByRole('tab', {name:/Subagents/})).toHaveLength(1)
+  fireEvent.click(screen.getAllByRole('tab',{name:'Chat'})[0])
+  expect(h.releases.get('tmp')).toHaveBeenCalledOnce()
+  expect(screen.queryByText('stream:tmp')).toBeNull()
 })

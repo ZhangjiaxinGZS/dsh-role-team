@@ -1231,3 +1231,38 @@ it('limits native PTC schedule access to the calling team and its confirmed lead
   expect((await tool(a.rootSessionId, 'schedule_list', {})).isError).toBe(true)
   expect((await service.teamSchedules({ runId: b.runId }))[0].id).toBe(foreign.id)
 })
+
+it('allows a native temporary child under an active seat while retaining team isolation', async () => {
+  const { run } = await newTeam('Temporary children')
+  const member = await service.addMember({ runId: run.runId, roleId })
+  const root = ctx.agents.get(run.rootSessionId as SessionId)!
+  await ctx.subagents.waitForTreeWork(root)
+  const hold = Promise.withResolvers<void>(), started = Promise.withResolvers<void>()
+  model.pause = async req => {
+    if (req.sessionId === member.currentSessionId) {
+      started.resolve()
+      await hold.promise
+    }
+  }
+  const id = crypto.randomUUID() as SessionId
+  try {
+    await service.promptSeat({ seatId: member.seatId, generation: 1, delivery: 'queue',
+      requestId: crypto.randomUUID(), text: 'Oversee research' })
+    await started.promise
+    const parent = ctx.agents.get(member.currentSessionId as SessionId)!
+    const child = await ctx.subagents.startActivation({ parent, childId: id, name: 'researcher', label: 'Research',
+      provider: 'spawn', delivery: 'parent', maxDepth: 8, prompt: [{ type: 'text', text: 'Report the result' }],
+      signal: new AbortController().signal })
+    await child.result
+    expect(await ctx.subagents.listDescendants(root.id)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id, parentId: parent.id, kind: 'child' }),
+    ]))
+    const team = await service.getTeam({runId:run.runId})
+    expect(team.formalSessionIds).toContain(member.currentSessionId)
+    expect(team.formalSessionIds).not.toContain(id)
+    expect(request(id).tools?.some(t => t.name === 'session_search' || t.name === 'team_schedule_create')).toBe(false)
+  } finally {
+    hold.resolve()
+    await ctx.subagents.waitForTreeWork(root)
+  }
+})
