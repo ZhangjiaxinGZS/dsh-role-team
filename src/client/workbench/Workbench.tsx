@@ -1,3 +1,4 @@
+import { TaskBoard, TeamPreview } from './TaskBoard.js'
 import { SchedulePanel } from './SchedulePanel.js'
 import { PaneDivider, paneStyle, usePaneWidths } from '../PaneDivider.js'
 import { useNavigation } from '../navigation.js'
@@ -6,6 +7,7 @@ import {
   IconPanelLeftOutlineRegular,
   IconPlusOutlineRegular,
   Tooltip,
+  HoverCard,
   Menu,
   IconChevronDownOutlineRegular,
   IconSettingsOutlineRegular,
@@ -57,9 +59,10 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
     const method = r.status === 'active' ? 'archiveTeam' : 'deleteTeam'
     return (
       <div key={r.runId} className="rt-list-row">
-        <button title={r.title} aria-current={id === r.runId ? 'page' : undefined} onClick={() => setSelected(r.runId)}>
+        <HoverCard openDelayMs={350} anchor={<button className="rt-team-select" title={r.title}
+          aria-current={id === r.runId ? 'page' : undefined} onClick={() => setSelected(r.runId)}>
           <TeamActivity title={r.title} ids={r.memberSessionIds ?? []} leader={r.rootSessionId} />
-        </button>
+        </button>} content={<TeamPreview run={r} />} />
         {r.memberCount !== undefined && <small title={t('members')} className="rt-member-count">{r.memberCount}</small>}
         <MoreMenu
           name={r.title}
@@ -229,7 +232,7 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
   const width = Math.min(960, Math.max(320, defaults.widths.column ?? 480))
   const columns = usePaneWidths('team.' + id + '.members')
   const viewed = team.data?.seats.find(s => s.seatId === (focus || team.data?.run.leaderSeatId))
-  useReadReceipt(team.data?.run.status === 'active' ? viewed?.currentSessionId : undefined)
+  useReadReceipt(layout !== 'taskBoard' && team.data?.run.status === 'active' ? viewed?.currentSessionId : undefined)
   if (!team.data)
     return (
       <div className="rt-pane-status">
@@ -274,7 +277,7 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
           {toggle}
           <strong title={data.run.title}>{data.run.title}</strong>
           <div className="rt-segment">
-            {(['columns', 'focus'] as const).map(k => (
+            {(['columns', 'focus', 'taskBoard'] as const).map(k => (
               <button aria-pressed={layout === k} key={k} onClick={() => setLayout(k)}>
                 {t(k)}
               </button>
@@ -291,8 +294,8 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
           <IconSettingsOutlineRegular size={16} />
         </button>
       </header>
-      <MemberBar seats={seats} active={active} target={target} pickSeat={pickSeat}
-        resetSeat={canReset ? selected : undefined} onReset={setReset} />
+      {layout !== 'taskBoard' && <MemberBar seats={seats} active={active} target={target} pickSeat={pickSeat}
+        resetSeat={canReset ? selected : undefined} onReset={setReset} />}
       {reset && <SeatResetModal seat={reset} close={() => setReset(undefined)} done={() => {
         setReset(undefined)
         team.refresh()
@@ -310,7 +313,9 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
           </div>
         </div>
       </Modal>}
-      <div className="rt-floor">
+      {layout === 'taskBoard' ? <TaskBoard run={data.run} seats={seats} onOwner={id => {
+        setFocus(id); setLayout('focus')
+      }} /> : <div className="rt-floor">
         <div ref={board} className={'rt-columns' + (single ? ' rt-single' : '')}
           onPointerDownCapture={releaseLock} onWheelCapture={releaseLock} onTouchMoveCapture={releaseLock} onKeyDownCapture={releaseLock}
           onScroll={e => {
@@ -361,6 +366,7 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
             ))}
         </div>
       </div>
+      }
       {add && (
         <TeamSetup
           team={data}

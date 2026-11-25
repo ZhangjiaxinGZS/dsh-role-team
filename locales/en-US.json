@@ -45,7 +45,7 @@
     "resetHint": "Clear the current conversation for {name}? A new session will open with the same role profile and long-term experience.",
     "protectLead": "The lead owns the team root and cannot be replaced.",
     "protectParent": "This seat has active reports and cannot be replaced independently.",
-    "pending": "Update available",
+    "pending": "Pending",
     "next": "Apply next turn",
     "keep": "Keep current version",
     "scheduled": "Scheduled for next turn",
@@ -229,6 +229,12 @@
     "emptyHistory": "No deliveries yet",
     "earlier": "Older deliveries",
     "archiveTimers": "Archiving stops {n} active scheduled tasks.",
-    "scheduledFor": "Next delivery"
+    "scheduledFor": "Next delivery",
+    "taskBoard": "Task board",
+    "in_progress": "In progress",
+    "completed": "Completed",
+    "noTeamTasks": "No team tasks yet",
+    "unassigned": "Unassigned",
+    "blockedBy": "Blocked by"
   }
 }

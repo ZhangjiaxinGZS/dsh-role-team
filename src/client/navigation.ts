@@ -3,7 +3,7 @@ import { useState } from 'react'
 type Navigation = {
   page: 'teams' | 'library'
   role: string
-  layout: 'columns' | 'focus'
+  layout: 'columns' | 'focus' | 'taskBoard'
   team: string | null
 }
 
@@ -31,7 +31,7 @@ function remember(key: string, value: string) {
 export function useNavigation<K extends keyof Navigation>(key: K) {
   const [value, update] = useState<Navigation[K]>(() => {
     const saved = read(key)
-    if (key === 'layout' && saved !== 'columns' && saved !== 'focus') return defaults[key]
+    if (key === 'layout' && saved !== 'columns' && saved !== 'focus' && saved !== 'taskBoard') return defaults[key]
     if (saved !== undefined && (key !== 'page' || saved === 'teams' || saved === 'library')) {
       return saved as Navigation[K]
     }

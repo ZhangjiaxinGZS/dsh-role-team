@@ -24,6 +24,7 @@ import { serializeMarkdown } from '../src/shared/markdown.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 // The browser supplies the shared menu. Exercise the catalog and selection callbacks here.
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
+  HoverCard: ({ anchor }: { anchor: ReactNode }) => <span>{anchor}</span>,
   MarkdownText: ({ text }: { text: string }) => <div data-testid="native-markdown">{text}</div>,
   IconSettingsOutlineRegular: () => null,
   IconEllipsisOutlineRegular: () => null,
@@ -1442,4 +1443,30 @@ it('prioritizes approvals across teams and acknowledges only the member being vi
   fireEvent.click(worker)
   await waitFor(() => expect(worker.querySelector('[data-unread]')).toBeNull())
   stop()
+})
+
+it('shows native projected tasks with blockers and opens their owner in single chat', async () => {
+  const run = { runId: 'tasks', title: 'Project', status: 'active', leaderSeatId: 'lead', rootSessionId: 'lead-session' }
+  const seats = [seat('lead', null), seat('worker', 'lead')]
+  const h = harness(vi.fn(async (method: string) => method === 'getTeam' ? {run,seats} : method === 'listTeams' ? [run] : []))
+  const retain = h.ui.retain
+  const tasks = [
+    { id:'first', status:'in_progress', ownerId:'worker-session', subject:'Collect evidence', description:'Look at logs', blockedBy:[] },
+    { id:'next', status:'pending', ownerName:'lead', subject:'Review', description:'Verify the result', blockedBy:['first'] },
+    { id:'done', status:'completed', subject:'Setup', blockedBy:[] },
+  ]
+  const projection = { tasks }
+  h.ui.retain = target => {
+    const ref = retain(target)
+    ref.binding.session.projections.faceOf = () => ({ getSnapshot: () => projection, subscribe: () => () => {} })
+    return ref
+  }
+  h.mount(<Workbench roles={[]} />)
+  fireEvent.click(await screen.findByRole('button', { name:en.ui.taskBoard }))
+  const board = await screen.findByRole('region', {name:en.ui.taskBoard})
+  await within(board).findByText('Look at logs')
+  expect(within(board).getByText(en.ui.blockedBy+' · Collect evidence')).toBeTruthy()
+  fireEvent.click(within(board).getByRole('button',{name:seats[1].displayName}))
+  await waitFor(() => expect(document.querySelector('.rt-chip[aria-pressed=true]')?.getAttribute('data-seat')).toBe('worker'))
+  expect(screen.getByRole('button',{name:en.ui.focus}).getAttribute('aria-pressed')).toBe('true')
 })

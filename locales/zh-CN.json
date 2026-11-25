@@ -45,7 +45,7 @@
     "resetHint": "确认清空「{name}」当前的对话上下文吗？清空后将开启新会话，角色设定与长期经验会保留。",
     "protectLead": "队长保留团队根会话，无法换代。",
     "protectParent": "该席位有活跃下属，无法单独换代。",
-    "pending": "待更新",
+    "pending": "待处理",
     "next": "下一轮生效",
     "keep": "保持当前版本",
     "scheduled": "已安排下一轮生效",
@@ -229,6 +229,12 @@
     "emptyHistory": "暂无投递记录",
     "earlier": "更早的记录",
     "archiveTimers": "归档将停止 {n} 个活动定时任务。",
-    "scheduledFor": "下次投递"
+    "scheduledFor": "下次投递",
+    "taskBoard": "任务板",
+    "in_progress": "进行中",
+    "completed": "已完成",
+    "noTeamTasks": "暂无团队任务",
+    "unassigned": "未分配",
+    "blockedBy": "等待完成"
   }
 }

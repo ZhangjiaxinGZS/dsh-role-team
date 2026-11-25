@@ -42,7 +42,7 @@ export const sessionTarget = (id: string, parent?: string | null): SessionTarget
 export function SessionPane(props: Pane) {
   return <BoundPane key={targetId(props.target)} {...props} />
 }
-function useRetainedSession(target: SessionTarget) {
+export function useRetainedSession(target: SessionTarget) {
   const { retain } = useUi()
   const [reference, setReference] = useState<SessionReference>(),
     [error, setError] = useState(''),
