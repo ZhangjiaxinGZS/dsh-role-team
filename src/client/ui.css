@@ -831,6 +831,20 @@ body:has(.rt-divider[data-dragging]) * {
 .rt-team-list .rt-list-row > :first-child { flex: 1; min-width: 0; }
 .rt-team-list .rt-team-select { display: block; width: 100%; text-align: start; }
 .rt-team-list .rt-list-row:has(.rt-team-select[aria-current]) { background: var(--dsw-alias-interactive-bg-hover); }
+/* HoverCard portals sit outside .rt-app. Apply the panel surface to the
+   painted card itself, including its padding around this preview. */
+div:has(> section.rt-task-preview) {
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  box-shadow: var(--dsw-elevation-panel);
+}
+.rt-task-preview article > strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
 .rt-task-preview { max-width: min(340px, 60vw); color: var(--dsw-alias-label-primary); }
 .rt-task-preview > small { display: block; margin: 4px 0; }
 .rt-task-preview article { overflow-wrap: anywhere; padding: 8px 0; border-bottom: 1px solid var(--dsw-alias-border-l4); }
