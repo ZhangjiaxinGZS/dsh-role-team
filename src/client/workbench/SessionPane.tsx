@@ -258,7 +258,6 @@ export function SessionChat(
     >
       <div className="rt-transcript">
         <div className="rt-session-bar">
-          <SessionPreset {...props} readOnly={readOnly} />
           {(tabs.length > 1 || children.length > 0) && (
             <div className="rt-view-navigation rt-segment" role="tablist">
               {tabs.map((tab) => (
@@ -288,24 +287,34 @@ export function SessionChat(
   )
 }
 
-function SessionPreset({
-  sessionId,
-  readOnly,
-  useProjection,
-  useSession,
-}: PropsRuntime<'roleTeam.chat'> & { readOnly: boolean }) {
-  const { presets, t } = useUi()
-  const catalog = useLoad('presets', async () => (await presets?.list()) ?? [])
+type PresetProps = Pick<PropsRuntime<'roleTeam.headerActions'>, 'sessionId' | 'useSession' | 'useProjection'> & { children: ReactNode }
+
+// The host chip is read-only. An empty, writable embedded chat can still change
+// its preset, so use that same chip as the selector's anchor until the first turn.
+export function SessionPreset({ children, sessionId, useSession, useProjection }: PresetProps) {
+  const { presets } = useUi()
+  const pane = useContext(PaneContext)
+  const blank = useSession(s => s.blank && !s.running && !s.awaitingFirstTurn && !s.removed)
   const current = useProjection('agentPreset')
-  const blank = useSession((s) => s.blank && !s.running && !s.awaitingFirstTurn && !s.removed)
+  if (!blank || pane?.readOnly || !presets) return children
+  return <EditablePreset {...{ children, sessionId, presets, current }} />
+}
+
+function EditablePreset({ children, sessionId, presets, current }: {
+  children: ReactNode
+  sessionId: SessionId
+  presets: NonNullable<ReturnType<typeof useUi>['presets']>
+  current?: string | null
+}) {
+  const { t } = useUi()
+  const catalog = useLoad('presets', () => presets.list())
   const [open, setOpen] = useState(false)
   const action = useAction()
   const options = catalog.data ?? []
   const selected =
     options.find((p) => p.id === current) ?? (!current ? options.find((p) => p.isDefault) : undefined)
   const label = selected?.label ?? current
-  if (!label) return <Notice>{catalog.error}</Notice>
-  if (!blank || readOnly || !presets) return <small className="rt-preset-label">{label}</small>
+  if (!label) return <>{children}<Notice>{catalog.error}</Notice></>
   return (
     <>
       <Menu
@@ -331,7 +340,7 @@ function SessionPreset({
             disabled={action.busy || !options.length}
             onClick={() => setOpen(!open)}
           >
-            {label}
+            {current ? children : label}
             <IconChevronDownOutlineRegular size={12} />
           </button>
         }

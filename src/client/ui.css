@@ -494,7 +494,6 @@ body:has(.rt-divider[data-dragging]) * {
 .rt-history-preview > * { min-width: 0; }
 .rt-docs > header { gap: 4px; }
 .rt-docs > header .rt-row { gap: 4px; }
-.rt-preset-label,
 .rt-preset-button {
   color: var(--dsw-alias-label-secondary);
   font: inherit;

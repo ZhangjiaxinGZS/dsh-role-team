@@ -31,7 +31,7 @@ import { registerTeamTrigger } from './workbench/TeamTrigger.js'
 import { registerTeamReportTail } from './workbench/TeamReportTail.js'
 import { registerPreviewWorkspace } from './preview.js'
 import { App, LibrarySettings } from './App.js'
-import { ChildControls, ChildPermission, SessionChat, type MemberPickerBinding } from './workbench/SessionPane.js'
+import { ChildControls, ChildPermission, SessionChat, SessionPreset, type MemberPickerBinding } from './workbench/SessionPane.js'
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     'roleTeam.leadPermission': SlotMap['conversation.input.permission']
@@ -320,7 +320,11 @@ function mirrorSessionSlot(ctx: Context,
           inject: (entry.inject ?? (() => ({}))) as (id: SessionId) => Record<string, unknown>,
         }
         const component = entry.component as SlotComponent<object>
-        if (outlet === 'roleTeam.modelLabel') {
+        if (outlet === 'roleTeam.headerActions' && entry.options.id === 'agent-preset') {
+          const NativeChip = entry.component as SlotComponent<PropsRuntime<'roleTeam.headerActions'>>
+          mounted.set(entry, ctx.slots.register({ ...metadata, name: outlet, id: entry.options.id },
+            props => <SessionPreset {...props}><NativeChip {...props} /></SessionPreset>))
+        } else if (outlet === 'roleTeam.modelLabel') {
           mounted.set(entry, ctx.slots.register({ ...metadata, name: outlet }, component))
         } else if (entry.options.id) {
           mounted.set(entry, ctx.slots.register({ ...metadata, name: outlet, id: entry.options.id }, component))

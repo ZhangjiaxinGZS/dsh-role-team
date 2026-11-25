@@ -12,6 +12,7 @@ import {
   ChildControls,
   ChildPermission,
   SessionChat,
+  SessionPreset,
   SessionPane,
   sessionTarget,
   targetId,
@@ -151,7 +152,7 @@ function harness(call: ReturnType<typeof vi.fn>) {
         {...({
           sessionId: id,
           useSession: () => true,
-          useProjection: (key: string) => key === 'subagentCatalog' ? childCatalogs.get(id) : undefined,
+          useProjection: (key: string) => key === 'subagentCatalog' ? childCatalogs.get(id) : key === 'agentPreset' ? 'ptc' : undefined,
           useSessionStatus: () => approvals.has(id),
           useConversationViews: () => [
             { id: 'chat', label: 'Chat' },
@@ -160,7 +161,12 @@ function harness(call: ReturnType<typeof vi.fn>) {
           useStore: () => 'chat',
           selectView: vi.fn(),
           actions: { openView },
-          renderSlot: (name: string) => name === 'roleTeam.headerActions' && <button>badge:{id}</button>,
+          renderSlot: (name: string) => name === 'roleTeam.headerActions' && <>
+            <SessionPreset {...({ sessionId: id, useSession: () => false, useProjection: () => 'ptc' } as unknown as ComponentProps<typeof SessionPreset>)}>
+              <span>PTC Mode</span>
+            </SessionPreset>
+            <button>badge:{id}</button>
+          </>,
           renderFactorySlot: () => (
             <div data-conversation-region="chat">
               stream:{id}
@@ -242,6 +248,25 @@ function harness(call: ReturnType<typeof vi.fn>) {
     openView,
   }
 }
+it('uses the native preset chip as the only label and preserves preset selection in a blank chat', async () => {
+  const h = harness(vi.fn())
+  const select = vi.fn(async () => 'standard')
+  h.ui.presets = { list: async () => [
+    { id: 'ptc', label: 'PTC Mode', isDefault: true },
+    { id: 'standard', label: 'Standard', isDefault: false },
+  ], select }
+  const props = { sessionId: 'blank-test', useSession: () => true, useProjection: () => 'ptc' }
+  h.mount(<SessionPreset {...props as unknown as ComponentProps<typeof SessionPreset>}>
+    <span>PTC Mode</span>
+  </SessionPreset>)
+  const trigger = await screen.findByRole('button', { name: /Agent mode · PTC Mode/i })
+  await waitFor(() => expect(trigger.hasAttribute('disabled')).toBe(false))
+  expect(screen.getAllByText('PTC Mode')).toHaveLength(1)
+  fireEvent.click(trigger)
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Standard' }))
+  expect(select).toHaveBeenCalledWith('blank-test', 'standard')
+})
+
 it('routes each column, limits reset to eligible members, and moves reset into the focused chat toolbar', async () => {
   const lead = seat('chief', null)
   let child = { ...seat('scout', 'chief'), pendingMemoryRev: 2 as number | null }
@@ -283,7 +308,9 @@ it('routes each column, limits reset to eligible members, and moves reset into t
   expect(column('chief').queryByLabelText(en.ui.reset)).toBeNull()
   expect(column('chief').queryByLabelText(en.ui.history)).toBeNull()
   expect(column('chief').getByText('badge:chief-session').closest('.rt-session-bar')).toBeTruthy()
+  expect(column('chief').getAllByText(/^(ptc|PTC Mode)$/)).toHaveLength(1)
   const scout = column('scout')
+  expect(scout.getAllByText(/^(ptc|PTC Mode)$/)).toHaveLength(1)
   expect(scout.getByText('badge:scout-session').closest('.rt-session-bar')).toBeTruthy()
   expect(scout.queryByRole('textbox')).toBeNull()
   expect(scout.queryByRole('combobox')).toBeNull()
