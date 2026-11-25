@@ -1015,6 +1015,32 @@ it('resolves team message senders across seat generations and scopes aliases to 
   expect(await service.teamMessageSender({ sessionId: 'ordinary' })).toBeNull()
 })
 
+it('keeps a resumed intermediate parent live until its child is admitted', async () => {
+  const { run } = await newTeam('Nested seats')
+  const parent = await service.addMember({ runId: run.runId, roleId })
+  const parentId = parent.currentSessionId as SessionId
+  await vi.waitFor(() => expect(ctx.agents.get(parentId)).toBeUndefined())
+  const stopping = Promise.withResolvers<void>()
+  const detach = ctx.on('agent/turn-stopping', ({ agent }) => {
+    if (agent.id === parentId) stopping.resolve()
+  })
+  const provider = ctx.subagents.getProvider('spawn')!
+  const prepare = provider.prepareContinuable!.bind(provider)
+  const spy = vi.spyOn(provider, 'prepareContinuable').mockImplementation(async (request) => {
+    await stopping.promise
+    return prepare(request)
+  })
+  try {
+    const child = await service.addMember({ runId: run.runId, roleId, parentSeatId: parent.seatId })
+    expect(child.parentSeatId).toBe(parent.seatId)
+    await vi.waitFor(() => expect(ctx.agents.get(parentId)).toBeUndefined())
+  } finally {
+    stopping.resolve()
+    spy.mockRestore()
+    detach()
+  }
+})
+
 it('routes team mentions by stable seat through the current native tree and isolates rosters', async () => {
   const { run, seats: [lead] } = await newTeam('Mention routing')
   const other = await newTeam('Other team')

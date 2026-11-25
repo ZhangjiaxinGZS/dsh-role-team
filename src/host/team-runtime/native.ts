@@ -151,25 +151,30 @@ export class NativeTeam {
         return
       throw new Error('Reserved session has conflicting native membership')
     }
-    let parent: Agent | undefined = this.ctx.agents.get(parentId as SessionId)
-    if (!parent) {
-      // A cold intermediate leader must rejoin the native tree before it can create a child.
+    if (parentId === rootId) return this.spawnChild(root, childId, name, label, locale)
+
+    // A continuable member can unload as soon as its reply settles. Wake it through
+    // the native tree and hold normal settlement only until child admission completes.
+    const admission = Promise.withResolvers<void>()
+    const detach = this.ctx.on('agent/turn-stopping', ({ agent }) =>
+      agent.id === parentId ? admission.promise : undefined,
+    )
+    try {
       await this.ctx.subagents.sendMessage(
-        root,
-        parentId as SessionId,
-        [
-          {
-            type: 'text',
-            text:
-              locale === 'zh' ? '即将有新成员加入，请待命。' : 'Stand by for a team membership change.',
-          },
-        ],
+        root, parentId as SessionId,
+        [{ type: 'text', text: locale === 'zh' ? '即将有新成员加入，请待命。' : 'Stand by for a team membership change.' }],
         { signal: new AbortController().signal },
       )
-      parent = this.ctx.agents.get(parentId as SessionId)
+      const parent = this.ctx.agents.get(parentId as SessionId)
+      if (!parent || this.ctx.subagents.rootOf(parent) !== root) throw new Error('Team parent is unavailable')
+      await this.spawnChild(parent, childId, name, label, locale)
+    } finally {
+      admission.resolve()
+      detach()
     }
-    if (!parent || this.ctx.subagents.rootOf(parent).id !== root.id)
-      throw new Error('Team parent is unavailable')
+  }
+
+  private async spawnChild(parent: Agent, childId: string, name: string, label: string, locale: 'zh' | 'en') {
     const provider = this.ctx.subagents.getProvider('spawn')
     if (!provider?.prepareContinuable || provider.inheritsParentContext !== false)
       throw new Error('Fresh continuable spawn provider required')
