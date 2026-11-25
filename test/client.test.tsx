@@ -8,6 +8,7 @@ import en from '../locales/en-US.json' with { type: 'json' }
 import { Client, type Seat, type Ui } from '../src/client/ui.js'
 import { Workbench } from '../src/client/workbench/Workbench.js'
 import {
+  type MemberPickerBinding,
   ChildControls,
   ChildPermission,
   SessionChat,
@@ -131,6 +132,18 @@ function harness(call: ReturnType<typeof vi.fn>) {
     const id = useContext(Scope)
     return <button disabled={locked} aria-label={'Access: ' + id} />
   }
+  const providers = ['ACP', 'Link'].map(id => ({ id, name: id, models: [{ id: 'neon', name: 'Gemini 4 Neon' }] }))
+  const state = { current: null, groups: providers, status: 'ready', failures: [], pending: null, error: null }
+  const modelFace = () => ({ directory: { subscribe: () => () => {}, getSnapshot: () => state } })
+  const loadCatalog = vi.fn(async () => {})
+  const Picker: MemberPickerBinding['Picker'] = ({ directory, select, load }) => {
+    const { current, groups } = directory.getSnapshot()
+    return <div aria-label="native model picker"><button onClick={load}>Load models</button>
+      {groups.map(group => <section aria-label={group.name} key={group.id}>{group.models.map(model =>
+        <button key={model.id} onClick={() => select({provider:group.id, model:model.id})}>{model.name}</button>)}</section>)}
+      {current && <button onClick={() => select({...current, reasoningEffort:'high'})}>{current.provider} effort</button>}
+    </div>
+  }
   function Chat() {
     const id = useContext(Scope)
     return (
@@ -147,6 +160,7 @@ function harness(call: ReturnType<typeof vi.fn>) {
           useStore: () => 'chat',
           selectView: vi.fn(),
           actions: { openView },
+          renderSlot: (name: string) => name === 'roleTeam.headerActions' && <button>badge:{id}</button>,
           renderFactorySlot: () => (
             <div data-conversation-region="chat">
               stream:{id}
@@ -161,7 +175,11 @@ function harness(call: ReturnType<typeof vi.fn>) {
                 } as unknown as ComponentProps<typeof ChildPermission>)}
               />
               <ChildControls
-                {...({ sessionId: id, useProjection: () => undefined } as unknown as ComponentProps<
+                {...({ sessionId: id, useSession: () => false, Picker, modelFace, loadCatalog,
+                  save: async (seat: Seat, selection: NonNullable<Seat['selection']>) => {
+                    await (call as Ui['call'])('selectSeatModel', {seatId:seat.seatId, generation:seat.currentGeneration, selection})
+                    return {ok:true, value:undefined}
+                  } } as unknown as ComponentProps<
                   typeof ChildControls
                 >)}
               />
@@ -220,6 +238,7 @@ function harness(call: ReturnType<typeof vi.fn>) {
     stops,
     childCatalogs,
     approvals,
+    loadCatalog,
     openView,
   }
 }
@@ -239,8 +258,6 @@ it('routes each column, limits reset to eligible members, and moves reset into t
         return [run]
       case 'getTeam':
         return { run, seats: [lead, child] }
-      case 'seatModels':
-        return [{ model: 'flash', provider: 'demo', name: 'Flash', efforts: [] }]
       case 'selectSeatModel':
         child = { ...child, selection: input.selection }
         return child
@@ -265,23 +282,24 @@ it('routes each column, limits reset to eligible members, and moves reset into t
   expect(column('chief').getByText('approve:chief-session')).toBeTruthy()
   expect(column('chief').queryByLabelText(en.ui.reset)).toBeNull()
   expect(column('chief').queryByLabelText(en.ui.history)).toBeNull()
+  expect(column('chief').getByText('badge:chief-session').closest('.rt-session-bar')).toBeTruthy()
   const scout = column('scout')
+  expect(scout.getByText('badge:scout-session').closest('.rt-session-bar')).toBeTruthy()
   expect(scout.queryByRole('textbox')).toBeNull()
   expect(scout.queryByRole('combobox')).toBeNull()
   expect(scout.queryByText(en.ui.followLeader, { exact: false })).toBeNull()
   expect(await scout.findByRole('button', { name: 'Access: chief-session' })).toBeTruthy()
   expect(scout.getByTitle(en.ui.readOnlyMode + ' · ' + en.ui.followLeader)).toBeTruthy()
   expect(scout.queryByRole('button', { name: 'Access: scout-session' })).toBeNull()
-  fireEvent.click(scout.getByTitle(en.ui.chooseModel))
-  const picker = within(screen.getByRole('menu'))
-  fireEvent.click(await picker.findByRole('menuitem', { name: 'Flash' }))
-  await waitFor(() =>
-    expect(call).toHaveBeenCalledWith('selectSeatModel', {
-      seatId: 'scout',
-      generation: 1,
-      selection: { provider: 'demo', model: 'flash', reasoningEffort: undefined },
-    }),
-  )
+  expect(column('chief').queryByLabelText('native model picker')).toBeNull()
+  fireEvent.click(scout.getByText('Load models'))
+  expect(h.loadCatalog).toHaveBeenCalledWith('chief-session')
+  expect(scout.getAllByText('Gemini 4 Neon')).toHaveLength(2)
+  fireEvent.click(within(scout.getByRole('region', { name:'Link' })).getByText('Gemini 4 Neon'))
+  fireEvent.click(await scout.findByText('Link effort'))
+  await waitFor(() => expect(call).toHaveBeenCalledWith('selectSeatModel', {
+    seatId:'scout', generation:1, selection:{provider:'Link', model:'neon', reasoningEffort:'high'},
+  }))
   expect(scout.queryByText(en.ui.next)).toBeNull()
   expect(document.querySelector('.rt-controls .rt-chip')).toBeNull()
   expect(document.querySelectorAll('.rt-member-bar .rt-chip')).toHaveLength(2)
@@ -554,6 +572,7 @@ it('starts coaching immediately without a team debrief entry', async () => {
     <RoleLibrary roles={[{ id: 'author', name: 'Author', revision: 1 }]} changed={() => {}} />,
   )
   await screen.findByText('stream:coach-session')
+  expect(screen.getByText('badge:coach-session').closest('.rt-session-bar')).toBeTruthy()
   const toolbar = screen.getByRole('tablist').closest<HTMLElement>('.rt-session-bar')!
   expect(within(toolbar).getByRole('button', { name: en.ui.newTraining })).toBeTruthy()
   expect(screen.queryByRole('heading', { name: en.ui.training })).toBeNull()

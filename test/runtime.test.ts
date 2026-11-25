@@ -654,7 +654,9 @@ it('carries a role model and effort across training, team admission and restart'
   const child = await service.addMember({ runId: a.run.runId, roleId })
   await vi.waitFor(() => expect(request(child.currentSessionId).model).toBe('authoring'))
   expect(ctx.agents.get(child.currentSessionId as SessionId)?.model.current()).toEqual(choice)
-  const next = { provider: 'fixture', model: 'fixture', reasoningEffort: 'high' }
+  // Both providers publish the same model ID and caption. Persist the exact route.
+  ctx.llm.registerAdapter(['second-fixture'], model)
+  const next = { provider: 'second-fixture', model: choice.model, reasoningEffort: 'high' }
   await service.selectSeatModel({ seatId: child.seatId, generation: 1, selection: next })
   expect(service.index.models.get(roleId)?.selection).toEqual(next)
   await expect(
@@ -662,6 +664,7 @@ it('carries a role model and effort across training, team admission and restart'
   ).rejects.toThrow()
   await ctx.fiber.dispose()
   await boot()
+  ctx.llm.registerAdapter(['second-fixture'], model)
   const later = await service.createTraining({ roleId, mode: 'coach' })
   expect(ctx.agents.get(later.sessionId as SessionId)?.model.current()).toEqual(next)
 })

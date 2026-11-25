@@ -441,7 +441,11 @@ body:has(.rt-divider[data-dragging]) * {
   margin: 4px 10px;
 }
 .rt-transcript > .rt-intro { flex: none; margin: 0; }
-.rt-session-bar:has(.rt-chat-actions) { flex-wrap: wrap; }
+.rt-session-bar { overflow-x: auto; scrollbar-width: none; }
+.rt-session-bar::-webkit-scrollbar { display: none; }
+.rt-session-bar > * { flex-shrink: 0; white-space: nowrap; }
+.rt-header-actions { display: flex; align-items: center; gap: 4px; margin-inline-start: auto; }
+.rt-header-actions:empty { display: none; }
 .rt-chat-actions {
   display: flex;
   align-items: center;
@@ -507,7 +511,7 @@ body:has(.rt-divider[data-dragging]) * {
 .rt-session-bar > .rt-view-navigation {
   align-self: flex-start;
   flex: none;
-  margin: 4px 10px;
+  margin: 2px 0;
 }
 .rt-view-navigation button {
   background: transparent;
@@ -704,7 +708,6 @@ body:has(.rt-divider[data-dragging]) * {
 .rt-settings button {
   justify-self: start;
 }
-.rt-child-settings,
 .rt-permission {
   display: inline-flex;
   align-items: center;
@@ -752,46 +755,6 @@ body:has(.rt-divider[data-dragging]) * {
     flex-wrap: wrap;
   }
 }
-.rt-model-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 28px;
-  min-width: 0;
-  padding: 0 4px 0 8px;
-  border: 0;
-  border-radius: var(--dsw-radius-sm);
-  background: transparent;
-  color: var(--dsw-alias-label-secondary);
-  font-family: inherit;
-  font-size: 13px;
-  line-height: 20px;
-  font-weight: 400;
-  cursor: pointer;
-}
-.rt-permission {
-  display: inline-flex;
-  align-items: center;
-}
-.rt-model-icon {
-  display: var(--dsh-composer-model-icon-display, none);
-}
-.rt-model-trigger > span,
-.rt-model-trigger small {
-  display: var(--dsh-composer-model-text-display, block);
-}
-.rt-model-trigger > span {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.rt-model-trigger small {
-  color: var(--dsw-alias-label-caption);
-}
-.rt-model-trigger:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
 .rt-team-trigger {
   overflow: hidden;
   border-radius: var(--dsw-radius-lg, 12px);
@@ -838,7 +801,9 @@ div:has(> section.rt-task-preview) {
   color: var(--dsw-alias-label-primary);
   box-shadow: var(--dsw-elevation-panel);
 }
+.rt-task-preview > strong { font-size: 13px; font-weight: 600; }
 .rt-task-preview article > strong {
+  font-size: 12.5px; font-weight: 500; line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -846,9 +811,13 @@ div:has(> section.rt-task-preview) {
   overflow-wrap: anywhere;
 }
 .rt-task-preview { max-width: min(340px, 60vw); color: var(--dsw-alias-label-primary); }
-.rt-task-preview > small { display: block; margin: 4px 0; }
-.rt-task-preview article { overflow-wrap: anywhere; padding: 8px 0; border-bottom: 1px solid var(--dsw-alias-border-l4); }
-.rt-task-preview footer, .rt-task-status, .rt-task-more { font-size: 12px; color: var(--dsw-alias-label-secondary); }
+.rt-task-preview > small { display: block; margin: 4px 0; font-size: 11.5px; color: var(--dsw-alias-label-secondary); }
+.rt-task-preview article::before { content: ''; width: 5px; height: 5px; margin-top: 6px; border-radius: 50%; background: var(--dsw-alias-label-tertiary); }
+.rt-task-preview article[data-status=in_progress]::before { background: var(--dsw-alias-state-warn-primary); }
+.rt-task-preview article[data-status=completed]::before { background: var(--dsw-alias-state-success-primary); }
+.rt-task-preview footer { grid-column: 2; font-size: 11px; color: var(--dsw-alias-label-secondary); }
+.rt-task-preview article { display: grid; grid-template-columns: 5px minmax(0, 1fr); gap: 2px 6px; overflow-wrap: anywhere; padding: 6px 0; border-bottom: 1px solid var(--dsw-alias-border-l4); }
+.rt-task-status, .rt-task-more { font-size: 12px; color: var(--dsw-alias-label-secondary); }
 .rt-task-board {
   flex: 0 0 min(360px, 46%); box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column;
   gap: 8px; padding: 10px; border-inline-start: 1px solid var(--dsw-alias-border-l4); background: var(--dsw-alias-bg-base);

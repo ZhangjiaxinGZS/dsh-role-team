@@ -98,6 +98,7 @@
     "@deepseek-ai/dsh-client-ui-conversation": "0.2.2-rc.5",
     "@deepseek-ai/dsh-client-ui-input-trigger": "0.2.2-rc.5",
     "@deepseek-ai/dsh-client-ui-layout": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-client-ui-model-selection": "0.2.2-rc.5",
     "@deepseek-ai/dsh-client-ui-permission-presets": "0.2.2-rc.5",
     "@deepseek-ai/dsh-client-ui-primitives": "0.2.2-rc.5",
     "@deepseek-ai/dsh-client-ui-renderer": "0.2.2-rc.5",

@@ -10,7 +10,7 @@ import type {
 import type {} from '@deepseek-ai/dsh-agent-preset-registry/remote'
 import { presetDisplayText } from '@deepseek-ai/dsh-agent-preset-registry/display'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { SlotComponent, StoredEntry } from '@deepseek-ai/dsh-client-ui-slots'
+import type { LocaleNamespaceMap, SlotComponent, StoredEntry } from '@deepseek-ai/dsh-client-ui-slots'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-gateway/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -31,10 +31,13 @@ import { registerTeamTrigger } from './workbench/TeamTrigger.js'
 import { registerTeamReportTail } from './workbench/TeamReportTail.js'
 import { registerPreviewWorkspace } from './preview.js'
 import { App, LibrarySettings } from './App.js'
-import { ChildControls, ChildPermission, SessionChat } from './workbench/SessionPane.js'
+import { ChildControls, ChildPermission, SessionChat, type MemberPickerBinding } from './workbench/SessionPane.js'
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     'roleTeam.leadPermission': SlotMap['conversation.input.permission']
+    'roleTeam.modelLabel': SlotMap['conversation.input.model.label']
+    'roleTeam.modelOptions': SlotMap['conversation.input.model.options']
+    'roleTeam.headerActions': SlotMap['conversation.session.header.actions']
     'roleTeam.chat': { kind: 'single'; scope: 'session' }
   }
   interface LocaleNamespaceMap {
@@ -159,6 +162,7 @@ function mount(ctx: Context) {
       remove = ctx.slots.register(
         {
           name: 'roleTeam.chat',
+          children: { 'roleTeam.headerActions': { kind: 'list', scope: 'session' } },
           store: entry.store as ConversationStore,
           inject: entry.inject as unknown as (
             id: SessionId,
@@ -175,6 +179,9 @@ function mount(ctx: Context) {
       remove?.()
     }
   })
+  mirrorSessionSlot(ctx, 'conversation.session.header.actions', 'roleTeam.headerActions')
+  mirrorSessionSlot(ctx, 'conversation.input.model.label', 'roleTeam.modelLabel')
+  mirrorSessionSlot(ctx, 'conversation.input.model.options', 'roleTeam.modelOptions')
   ctx.slots.inject('conversation.input.left', () =>
     ctx.slots.register(
       {
@@ -214,15 +221,51 @@ function mount(ctx: Context) {
       remove?.()
     }
   })
-  ctx.slots.inject('conversation.input.right', () =>
-    ctx.slots.register(
-      {
+  // The host deliberately disables its root-session select RPC for addressed children.
+  // Use its installed picker and shared catalog, but commit through the seat/generation RPC.
+  ctx.inject(['modelDirectories'], scope => scope.slots.inject('conversation.input.right', () => {
+    const slot = 'conversation.input.model'
+    let active: StoredEntry | undefined
+    let remove: (() => void) | undefined
+    const sync = () => {
+      const entry = scope.slots.entriesOfSlot(slot)[0]
+      if (entry === active) return
+      remove?.()
+      remove = undefined
+      active = entry
+      if (entry?.locale !== 'model' || !entry.inject) return
+      const binding: MemberPickerBinding = {
+        Picker: entry.component as MemberPickerBinding['Picker'],
+        modelFace: entry.inject as unknown as MemberPickerBinding['modelFace'],
+        async loadCatalog(leader) {
+          const reference = shared.retain(leader)
+          try {
+            await reference.ready
+            return await scope.modelDirectories.directoryFor(leader).load()
+          } finally { reference.release() }
+        },
+        async save(seat, selection) {
+          const result = await scope.remote.roleTeam.selectSeatModel({
+            seatId: seat.seatId, generation: seat.currentGeneration, selection,
+          })
+          return result.ok ? { ok: true, value: undefined } : result
+        },
+      }
+      remove = scope.slots.register({
         name: 'conversation.input.right',
         id: 'role-team-member-settings',
-      },
-      ChildControls,
-    ),
-  )
+        children: {
+          'roleTeam.modelLabel': { kind: 'single', scope: 'session', inline: true },
+          'roleTeam.modelOptions': { kind: 'list', scope: 'session' },
+        },
+        locale: 'model',
+        inject: () => binding,
+      }, ChildControls)
+    }
+    sync()
+    const unsubscribe = scope.slots.subscribe(slot, sync)
+    return () => { unsubscribe(); remove?.() }
+  }))
   ctx.inject(['remote.settings'], (scope) => {
     const settings = scope.get(
       'remote.settings',
@@ -250,5 +293,45 @@ function mount(ctx: Context) {
         Settings,
       ),
     )
+  })
+}
+
+// Native owners exclusively declare their outlets. Mirror the live registrations
+// into the embedded pane so each contribution receives its actual session and locale.
+function mirrorSessionSlot(ctx: Context,
+  source: 'conversation.session.header.actions' | 'conversation.input.model.label' | 'conversation.input.model.options',
+  outlet: 'roleTeam.headerActions' | 'roleTeam.modelLabel' | 'roleTeam.modelOptions',
+) {
+  ctx.slots.inject(outlet, () => {
+    const mounted = new Map<StoredEntry, () => void>()
+    const sync = () => {
+      const entries = ctx.slots.entriesOfSlot(source)
+      for (const [entry, dispose] of mounted) {
+        if (entries.includes(entry)) continue
+        dispose()
+        mounted.delete(entry)
+      }
+      for (const entry of entries) {
+        if (mounted.has(entry)) continue
+        const metadata = {
+          ...entry.options,
+          ...(entry.locale && { locale: entry.locale as keyof LocaleNamespaceMap }),
+          ...(entry.store && { store: entry.store }),
+          inject: (entry.inject ?? (() => ({}))) as (id: SessionId) => Record<string, unknown>,
+        }
+        const component = entry.component as SlotComponent<object>
+        if (outlet === 'roleTeam.modelLabel') {
+          mounted.set(entry, ctx.slots.register({ ...metadata, name: outlet }, component))
+        } else if (entry.options.id) {
+          mounted.set(entry, ctx.slots.register({ ...metadata, name: outlet, id: entry.options.id }, component))
+        }
+      }
+    }
+    sync()
+    const unsubscribe = ctx.slots.subscribe(source, sync)
+    return () => {
+      unsubscribe()
+      for (const dispose of mounted.values()) dispose()
+    }
   })
 }

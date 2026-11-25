@@ -1,15 +1,17 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import {
   Menu,
   Tooltip,
-  IconDataOutlineRegular,
   IconChevronDownOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {} from '@deepseek-ai/dsh-agent-preset-registry/types'
-import type { ModelChoice } from '../../shared/index.js'
+import type { ModelSelectInjected, ModelDirectoryState } from '@deepseek-ai/dsh-client-ui-model-selection/client'
+import type { ModelSelection } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {
+  OwnerOf,
+  PropsLocale,
   PropsRuntime,
   PropsRenderFactories,
   PropsRenderSlots,
@@ -209,6 +211,7 @@ const PaneContext = createContext<{
 // Instantiated by the DSH renderer underneath the retained reference, including its scoped interaction hook.
 export function SessionChat(
   props: PropsRuntime<'roleTeam.chat'> &
+    PropsRenderSlots<'roleTeam.headerActions'> &
     PropsRenderFactories &
     Pick<
       ConversationSessionHeaderSlotProps,
@@ -275,6 +278,7 @@ export function SessionChat(
               </button>}
             </div>
           )}
+          <div className="rt-header-actions">{props.renderSlot('roleTeam.headerActions', {})}</div>
           {toolbarActions}
         </div>
         {chatHint && selected === 'chat' && <p className="rt-intro">{chatHint}</p>}
@@ -387,97 +391,70 @@ function LeaderPermission({
   )
 }
 
-// rc.5 intentionally omits the ordinary model selector on addressed subagents.
-export function ChildControls(props: PropsRuntime<'conversation.input.right'>) {
-  const pane = useContext(PaneContext)
-  return pane?.seat?.parentSeatId && pane.reference.sessionId === props.sessionId ? (
-    <MemberSettings onSelection={pane.onSelection} seat={pane.seat} {...props} />
-  ) : null
+type NativePickerProps = ModelSelectInjected & PropsLocale<'model'> & {
+  locked: boolean
+  renderSlot: PropsRenderSlots<'conversation.input.model.label' | 'conversation.input.model.options'>['renderSlot']
 }
-function MemberSettings({
-  seat,
-  useProjection,
-  onSelection,
-}: PropsRuntime<'conversation.input.right'> & {
-  seat: Seat
-  onSelection?: () => void
-}) {
-  const { t, call } = useUi(),
-    action = useAction()
-  const [open, toggle] = useState(false)
-  const models = useLoad(seat.seatId, () => call('seatModels', {}))
-  const projection = useProjection('modelSelection')
-  const current = seat.selection ?? projection?.next ?? projection?.lastUsed
-  const catalog = models.data ?? []
-  const selected = catalog.find((m) => m.provider === current?.provider && m.model === current?.model)
-  const effort = current?.reasoningEffort ?? selected?.defaultEffort
-  const modelLabel = selected?.name ?? current?.model ?? t('chooseModel')
-  const effortLabel = selected?.efforts.find((e) => e.id === effort)?.name ?? effort
-  const choices = new Map<string, ModelChoice>()
-  const modelItems = catalog.map((m) => {
-    const id = JSON.stringify([m.provider, m.model])
-    choices.set(id, { provider: m.provider, model: m.model, reasoningEffort: m.defaultEffort })
-    return { id, label: m.name }
-  })
-  const effortItems =
-    selected?.efforts.map((e) => {
-      const id = 'effort/' + e.id
-      choices.set(id, { provider: selected.provider, model: selected.model, reasoningEffort: e.id })
-      return { id, label: e.name }
-    }) ?? []
-  const items = !modelItems.length
-    ? [{ id: 'empty', label: models.error || t(models.data ? 'noModels' : 'loading'), disabled: true }]
-    : [
-        { id: 'models', label: t('chooseModel'), submenu: modelItems },
-        ...(effortItems.length ? [{ id: 'efforts', label: t('effort'), submenu: effortItems }] : []),
-      ]
-  return (
-    <span className="rt-child-settings">
-      <Menu
-        open={open}
-        portal
-        side="top"
-        align="end"
-        compact
-        autoFocus
-        items={items}
-        selectedIds={[JSON.stringify([current?.provider, current?.model]), 'effort/' + effort]}
-        onClose={() => toggle(false)}
-        onSelect={(id) => {
-          const selection = choices.get(id)
-          if (selection)
-            void action.run(async () => {
-              await call('selectSeatModel', {
-                seatId: seat.seatId,
-                generation: seat.currentGeneration,
-                selection,
-              })
-              onSelection?.()
-              toggle(false)
-            })
-        }}
-        anchor={
-          <button
-            type="button"
-            className="rt-model-trigger"
-            title={t('chooseModel')}
-            aria-label={[modelLabel, effortLabel].filter(Boolean).join(' ')}
-            aria-haspopup="menu"
-            aria-expanded={open}
-            disabled={action.busy}
-            onClick={() => {
-              if (!open) models.refresh()
-              toggle(!open)
-            }}
-          >
-            <IconDataOutlineRegular className="rt-model-icon" aria-hidden="true" size={16} />
-            <span>{modelLabel}</span>
-            <small>{effortLabel}</small>
-            <IconChevronDownOutlineRegular aria-hidden="true" size={12} />
-          </button>
+export type MemberPickerBinding = {
+  Picker: ComponentType<NativePickerProps>
+  modelFace: (id: SessionId) => ModelSelectInjected
+  loadCatalog: (leader: SessionId) => Promise<unknown>
+  save: (seat: Seat, selection: ModelSelection) => ReturnType<ModelSelectInjected['select']>
+}
+type MemberControls = PropsRuntime<'conversation.input.right'> & PropsLocale<'model'> & MemberPickerBinding
+  & PropsRenderSlots<'roleTeam.modelLabel' | 'roleTeam.modelOptions'>
+
+export function ChildControls(props: MemberControls) {
+  const pane = useContext(PaneContext)
+  if (!pane?.seat?.parentSeatId || !pane.leaderSessionId || pane.reference.sessionId !== props.sessionId) return null
+  return <MemberPicker {...props} seat={pane.seat} leader={pane.leaderSessionId as SessionId} onSelection={pane.onSelection} />
+}
+
+function MemberPicker({ Picker, modelFace, save, loadCatalog, seat, leader, onSelection, sessionId, useSession, t, renderSlot }:
+  MemberControls & { seat: Seat; leader: SessionId; onSelection?: () => void }) {
+  const face = useMemo(() => modelFace(sessionId), [modelFace, sessionId])
+  const [pending, setPending] = useState<ModelSelection | null>(null)
+  const [error, setError] = useState('')
+  const removed = useSession(state => state.removed)
+  // A sleeping seat can have a durable next model before a live child emits its projection.
+  const directory = useMemo(() => {
+    let last: ModelDirectoryState | undefined
+    let view: ModelDirectoryState
+    return {
+      ...face.directory,
+      subscribe: face.directory.subscribe,
+      getSnapshot() {
+        const source = face.directory.getSnapshot()
+        if (source !== last) {
+          last = source
+          const current = seat.selection ?? source.current
+          view = { ...source, current, pending,
+            routable: current && source.status === 'ready'
+              ? source.groups.some(group => group.id === current.provider && group.models.some(model => model.id === current.model))
+              : source.routable }
         }
-      />
-      <Notice>{action.error}</Notice>
-    </span>
-  )
+        return view
+      },
+    }
+  }, [face.directory, seat.selection, pending])
+  return <>
+    <Picker {...face} available directory={directory} t={t} locked={!!removed || !!pending}
+      load={() => { setError(''); void loadCatalog(leader).catch(e => setError(String(e))) }}
+      select={async selection => {
+        setPending(selection)
+        try {
+          const result = await save(seat, selection)
+          if (result?.ok) onSelection?.()
+          return result
+        } catch (e) {
+          setError(String(e))
+        } finally {
+          setPending(null)
+        }
+      }}
+      renderSlot={(slot, owner, options) => slot === 'conversation.input.model.label'
+        ? renderSlot('roleTeam.modelLabel', owner as unknown as OwnerOf<'roleTeam.modelLabel'>, options)
+        : renderSlot('roleTeam.modelOptions', owner as unknown as OwnerOf<'roleTeam.modelOptions'>)} />
+    <Notice>{error}</Notice>
+  </>
 }

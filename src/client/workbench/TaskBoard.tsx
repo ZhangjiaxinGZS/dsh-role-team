@@ -46,7 +46,7 @@ export function TeamPreview({ run }: { run: Run }) {
     <Notice>{error}</Notice>
     <small>{groups.map((status, i) => t(status) + ' ' + grouped[i].length).join(' · ')}</small>
     {loading ? t('loading') : !tasks.length ? t('noTeamTasks') : grouped.flat().slice(0, 5).map(task =>
-      <article key={task.id}><strong>{task.subject}</strong>
+      <article key={task.id} data-status={task.status}><strong>{task.subject}</strong>
         <footer>{t(task.status)} · {taskOwner(task, team.data?.seats ?? [])?.displayName ?? task.ownerName ?? t('unassigned')}</footer>
       </article>)}
   </section>
