@@ -1,4 +1,5 @@
-import { useSyncExternalStore } from 'react'
+import { IconChevronRightOutlineRegular, IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useState, useSyncExternalStore } from 'react'
 import type { TeamProjection, TeamTaskView } from '@deepseek-ai/dsh-agent-team/client'
 import { Notice, useLoad, useUi, type Run, type Seat } from '../ui.js'
 import { sessionTarget, useRetainedSession } from './SessionPane.js'
@@ -19,56 +20,115 @@ export function taskOwner(task: TeamTaskView, seats: Seat[]) {
   if (matches.length === 1) return matches[0]
 }
 
-export function TeamPreview({ run }: { run: Run }) {
-  const { call } = useUi()
-  const team = useLoad(run.runId, () => call('getTeam', { runId: run.runId }))
-  return <TaskBoard run={run} seats={team.data?.seats ?? []} />
-}
-
-export function TaskBoard({ run, seats, onOwner }: {
-  run: Run; seats: Seat[]; onOwner?: (id: string) => void
-}) {
-  const { t } = useUi()
+function useTeamTasks(run: Run) {
   const { reference, error } = useRetainedSession(sessionTarget(run.rootSessionId))
   const face = reference?.binding.session.projections.faceOf('agentTeam')
   const projection = useSyncExternalStore(face?.subscribe ?? noopSubscribe, face?.getSnapshot ?? nothing) as TeamProjection | undefined
-  const tasks = projection?.tasks ?? []
+  const tasks = projection?.tasks.filter(task => task.status !== 'deleted') ?? []
   const grouped = groups.map(status => tasks.filter(task => task.status === status))
-  const preview = !onOwner
   // The host emits full task snapshots. This orders recent completions by their
   // transition even if an older task finished after a newer one.
-  if (grouped[2].length > 1 && preview) {
+  if (grouped[2].length > 1) {
     const completed = new Map<string, number>()
     for (const { event } of reference?.binding.eventSource.getSnapshot().entries ?? [])
       if (event.type === 'team/task' && event.data.task.status === 'completed') completed.set(event.data.task.id, event.seq)
     grouped[2].reverse().sort((a,b) => (completed.get(b.id) ?? -1) - (completed.get(a.id) ?? -1))
   }
-  let remaining = preview ? 5 : Infinity
-  return <section className={preview ? 'rt-task-preview' : 'rt-task-board'} aria-label={t('taskBoard')}>
-    {preview && <strong>{run.title}</strong>}
-    <Notice>{error || projection?.failure}</Notice>
-    {preview && <small>{groups.map((status,i) => t(status) + ' ' + grouped[i].length).join(' · ')}</small>}
-    {!reference ? t('loading') : tasks.length === 0 ? <p>{t('noTeamTasks')}</p> :
-      <div className="rt-task-groups">{groups.map((status,i) => {
-        const list = grouped[i].slice(0, remaining)
-        remaining -= list.length
-        if (!list.length && preview) return null
-        return <section key={status} className="rt-task-group">
-          {!preview && <h3>{t(status)} <small>{grouped[i].length}</small></h3>}
-          {list.map(task => {
-            const owner = taskOwner(task, seats)
-            const blockers = task.blockedBy.map(id => tasks.find(t => t.id === id)).filter(b => b && b.status !== 'completed')
-            return <article key={task.id}>
-              <strong>{task.subject}</strong>
-              {!preview && task.description && <p>{task.description}</p>}
-              <footer>{preview && <span>{t(status)}</span>}
-                {owner && onOwner ? <button onClick={() => onOwner(owner.seatId)}>{owner.displayName}</button>
-                  : <span>{owner?.displayName ?? task.ownerName ?? t('unassigned')}</span>}
-              </footer>
-              {!preview && !!blockers.length && <small>{t('blockedBy')} · {blockers.map(b => b!.subject).join(' · ')}</small>}
-            </article>
-          })}
-        </section>
-      })}</div>}
+  return { tasks, grouped, error: error || projection?.failure, loading: !reference }
+}
+
+export function TeamPreview({ run }: { run: Run }) {
+  const { call, t } = useUi()
+  const team = useLoad(run.runId, () => call('getTeam', { runId: run.runId }))
+  const { grouped, tasks, error, loading } = useTeamTasks(run)
+  return <section className="rt-task-preview" aria-label={t('taskBoard')}>
+    <strong>{run.title}</strong>
+    <Notice>{error}</Notice>
+    <small>{groups.map((status, i) => t(status) + ' ' + grouped[i].length).join(' · ')}</small>
+    {loading ? t('loading') : !tasks.length ? t('noTeamTasks') : grouped.flat().slice(0, 5).map(task =>
+      <article key={task.id}><strong>{task.subject}</strong>
+        <footer>{t(task.status)} · {taskOwner(task, team.data?.seats ?? [])?.displayName ?? task.ownerName ?? t('unassigned')}</footer>
+      </article>)}
+  </section>
+}
+
+type Filter = typeof groups[number] | 'allTasks'
+
+function TaskRow({ task, tasks, seats, onOwner }: {
+  task: TeamTaskView; tasks: readonly TeamTaskView[]; seats: Seat[]; onOwner: (id: string) => void
+}) {
+  const { t } = useUi()
+  const [expanded, setExpanded] = useState(false)
+  const owner = taskOwner(task, seats)
+  const dependencies = task.blockedBy.map(id => tasks.find(other => other.id === id))
+  const blocked = dependencies.some(dep => dep?.status !== 'completed')
+  return <article className="rt-task-row">
+    <div className="rt-task-summary">
+      <button className="rt-task-toggle" title={task.subject} aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+        <span className="rt-task-status" aria-label={t(task.status)}>{({in_progress: '◐', pending: '○', completed: '✓', deleted: ''})[task.status]}</span>
+        <span className="rt-task-subject">{task.subject}</span>
+      </button>
+      {blocked && <small title={t('blockedBy')}>{t('blocked')}</small>}
+      {owner ? <button className="rt-task-owner" title={owner.displayName} onClick={() => onOwner(owner.seatId)}>{owner.displayName}</button>
+        : <small className="rt-task-owner">{task.ownerName ?? t('unassigned')}</small>}
+    </div>
+    {expanded && <div className="rt-task-detail">
+      <strong>{task.subject}</strong>
+      {task.description && <p>{task.description}</p>}
+      {!!dependencies.length && <small>{t('taskDependencies')} · {dependencies.map((dep, i) => dep?.subject ?? task.blockedBy[i]).join(' · ')}</small>}
+    </div>}
+  </article>
+}
+
+export function TaskBoard({ run, seats, onOwner, close }: {
+  run: Run; seats: Seat[]; onOwner: (id: string) => void; close: () => void
+}) {
+  const { t } = useUi()
+  const { grouped, tasks, error, loading } = useTeamTasks(run)
+  const [filter, setFilter] = useState<Filter>('allTasks')
+  const [search, setSearch] = useState('')
+  const [opened, setOpened] = useState({ in_progress: true, pending: true, completed: false })
+  const [limit, setLimit] = useState(5)
+  const query = search.trim().toLocaleLowerCase()
+  const matching = grouped.map(list => list.filter(task =>
+    !query || [task.subject, task.description, taskOwner(task, seats)?.displayName ?? task.ownerName]
+      .some(text => text?.toLocaleLowerCase().includes(query))))
+  function selectFilter(next: Filter) {
+    setFilter(next)
+    setOpened({ in_progress: true, pending: true, completed: next === 'completed' || !!query })
+    setLimit(5)
+  }
+  return <section className="rt-task-board" aria-label={t('taskBoard')} onKeyDown={e => {
+    if (e.key === 'Escape') { e.stopPropagation(); close() }
+  }}>
+    <header><h3>{t('taskBoard')}</h3><button className="rt-icon" aria-label={t('close')} title={t('close')} onClick={close}><IconCloseOutlineRegular size={16}/></button></header>
+    <input type="search" aria-label={t('searchTasks')} placeholder={t('searchTasks')} value={search} onChange={e => {
+      setSearch(e.target.value); setLimit(5)
+      setOpened({ in_progress: true, pending: true, completed: !!e.target.value.trim() || filter === 'completed' })
+    }} />
+    <div className="rt-task-filters">{(['allTasks', ...groups] as const).map(key =>
+      <button key={key} aria-pressed={key === filter} onClick={() => selectFilter(key)}>{t(key)}</button>)}</div>
+    <Notice>{error}</Notice>
+    <div className="rt-task-results">
+      {loading ? t('loading') : !tasks.length ? t('noTeamTasks') :
+        !matching.some((list, i) => list.length && (filter === 'allTasks' || filter === groups[i])) ? t('noMatchingTasks') :
+        groups.map((status, i) => {
+          if (filter !== 'allTasks' && filter !== status || !matching[i].length) return null
+          const list = matching[i]
+          return <section key={status} className="rt-task-group">
+            <button className="rt-task-heading" aria-expanded={opened[status]} onClick={() => {
+              setOpened({ ...opened, [status]: !opened[status] })
+              if (status === 'completed') setLimit(5)
+            }}>
+              <IconChevronRightOutlineRegular size={12}/>{t(status)} ({list.length})
+            </button>
+            {opened[status] && <>
+              {(status === 'completed' ? list.slice(0, limit) : list).map(task =>
+                <TaskRow key={task.id} task={task} tasks={tasks} seats={seats} onOwner={onOwner}/>)}
+              {status === 'completed' && list.length > limit && <button className="rt-task-more" onClick={() => setLimit(limit + 5)}>{t('moreTasks')}</button>}
+            </>}
+          </section>
+        })}
+    </div>
   </section>
 }

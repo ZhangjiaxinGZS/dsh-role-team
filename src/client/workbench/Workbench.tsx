@@ -12,6 +12,7 @@ import {
   IconChevronDownOutlineRegular,
   IconSettingsOutlineRegular,
   IconClockOutlineRegular,
+  IconFlatListOutlineRegular,
   IconRefreshOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useActivity, useReadReceipt } from './activity.js'
@@ -189,6 +190,8 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
     [focus, setFocus] = useState(''),
     [add, setAdd] = useState(false)
   const single = layout === 'focus'
+  const [tasksOpen, showTasks] = useState(false)
+  const taskButton = useRef<HTMLButtonElement>(null)
   const [timers, showTimers] = useState(false)
   const [settings, showSettings] = useState(false)
   const board = useRef<HTMLDivElement>(null)
@@ -232,7 +235,7 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
   const width = Math.min(960, Math.max(320, defaults.widths.column ?? 480))
   const columns = usePaneWidths('team.' + id + '.members')
   const viewed = team.data?.seats.find(s => s.seatId === (focus || team.data?.run.leaderSeatId))
-  useReadReceipt(layout !== 'taskBoard' && team.data?.run.status === 'active' ? viewed?.currentSessionId : undefined)
+  useReadReceipt(team.data?.run.status === 'active' ? viewed?.currentSessionId : undefined)
   if (!team.data)
     return (
       <div className="rt-pane-status">
@@ -277,7 +280,7 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
           {toggle}
           <strong title={data.run.title}>{data.run.title}</strong>
           <div className="rt-segment">
-            {(['columns', 'focus', 'taskBoard'] as const).map(k => (
+            {(['columns', 'focus'] as const).map(k => (
               <button aria-pressed={layout === k} key={k} onClick={() => setLayout(k)}>
                 {t(k)}
               </button>
@@ -287,6 +290,10 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
         <button aria-label={t('addMember')} title={t('addMember')} className="rt-add-member" disabled={!active} onClick={() => setAdd(true)}>
           <IconPlusOutlineRegular size={14} /><span>{t('addMember')}</span>
         </button>
+        <button ref={taskButton} className="rt-icon" title={t('taskBoard')} aria-label={t('taskBoard')}
+          aria-expanded={tasksOpen} onClick={() => showTasks(!tasksOpen)}>
+          <IconFlatListOutlineRegular size={16} />
+        </button>
         <button className="rt-icon" title={t('teamTimers')} aria-label={t('teamTimers')} onClick={() => showTimers(true)}>
           <IconClockOutlineRegular size={16} />
         </button>
@@ -294,8 +301,8 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
           <IconSettingsOutlineRegular size={16} />
         </button>
       </header>
-      {layout !== 'taskBoard' && <MemberBar seats={seats} active={active} target={target} pickSeat={pickSeat}
-        resetSeat={canReset ? selected : undefined} onReset={setReset} />}
+      <MemberBar seats={seats} active={active} target={target} pickSeat={pickSeat}
+        resetSeat={canReset ? selected : undefined} onReset={setReset} />
       {reset && <SeatResetModal seat={reset} close={() => setReset(undefined)} done={() => {
         setReset(undefined)
         team.refresh()
@@ -313,9 +320,7 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
           </div>
         </div>
       </Modal>}
-      {layout === 'taskBoard' ? <TaskBoard run={data.run} seats={seats} onOwner={id => {
-        setFocus(id); setLayout('focus')
-      }} /> : <div className="rt-floor">
+      <div className="rt-floor">
         <div ref={board} className={'rt-columns' + (single ? ' rt-single' : '')}
           onPointerDownCapture={releaseLock} onWheelCapture={releaseLock} onTouchMoveCapture={releaseLock} onKeyDownCapture={releaseLock}
           onScroll={e => {
@@ -365,8 +370,10 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
               </Fragment>
             ))}
         </div>
+        {tasksOpen && <TaskBoard run={data.run} seats={seats}
+          close={() => { showTasks(false); taskButton.current?.focus() }}
+          onOwner={id => { setFocus(id); setLayout('focus'); showTasks(false); taskButton.current?.focus() }} />}
       </div>
-      }
       {add && (
         <TeamSetup
           team={data}

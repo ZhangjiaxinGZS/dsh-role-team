@@ -71,6 +71,7 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
       {children}
     </div>
   ),
+  IconFlatListOutlineRegular: () => null,
   IconDataOutlineRegular: () => null,
   Tooltip: ({ label, children }: { label: string; children: ReactNode }) => (
     <span title={label}>{children}</span>
@@ -1455,7 +1456,7 @@ it('shows native projected tasks with blockers and opens their owner in single c
   const tasks = [
     { id:'first', status:'in_progress', ownerId:'worker-session', subject:'Collect evidence', description:'Look at logs', blockedBy:[] },
     { id:'next', status:'pending', ownerName:'lead', subject:'Review', description:'Verify the result', blockedBy:['first'] },
-    { id:'done', status:'completed', subject:'Setup', blockedBy:[] },
+    ...Array.from({length:23}, (_, i) => ({ id: 'done' + i, status:'completed', subject:'Setup ' + i, blockedBy:[] })),
   ]
   const projection = { tasks }
   h.ui.retain = target => {
@@ -1464,11 +1465,33 @@ it('shows native projected tasks with blockers and opens their owner in single c
     return ref
   }
   h.mount(<Workbench roles={[]} />)
-  fireEvent.click(await screen.findByRole('button', { name:en.ui.taskBoard }))
-  const board = await screen.findByRole('region', {name:en.ui.taskBoard})
-  await within(board).findByText('Look at logs')
-  expect(within(board).getByText(en.ui.blockedBy+' · Collect evidence')).toBeTruthy()
-  fireEvent.click(within(board).getByRole('button',{name:seats[1].displayName}))
+  const opener = await screen.findByRole('button', { name:en.ui.taskBoard })
+  expect(document.querySelectorAll('.rt-team-navigation .rt-segment button')).toHaveLength(2)
+  const chat = document.querySelector('.rt-column')
+  fireEvent.click(opener)
+  const board = within(await screen.findByRole('region', {name:en.ui.taskBoard}))
+  const evidence = await board.findByTitle('Collect evidence')
+  expect(document.querySelector('.rt-column')).toBe(chat)
+  expect(board.queryByText('Look at logs')).toBeNull()
+  fireEvent.click(evidence)
+  expect(board.getByText('Look at logs')).toBeTruthy()
+  fireEvent.click(evidence)
+  fireEvent.click(board.getByTitle('Review'))
+  expect(board.getByText(en.ui.taskDependencies+' · Collect evidence')).toBeTruthy()
+  const completed = board.getByRole('button', {name: en.ui.completed + ' (23)'})
+  expect(completed.getAttribute('aria-expanded')).toBe('false')
+  fireEvent.click(completed)
+  expect(board.getAllByTitle(/^Setup /)).toHaveLength(5)
+  expect(board.getByTitle('Setup 22')).toBeTruthy()
+  fireEvent.click(board.getByRole('button', {name:en.ui.moreTasks}))
+  expect(board.getAllByTitle(/^Setup /)).toHaveLength(10)
+  fireEvent.click(board.getByRole('button', {name:en.ui.pending}))
+  expect(board.queryByTitle('Collect evidence')).toBeNull()
+  fireEvent.click(board.getByRole('button', {name:en.ui.allTasks}))
+  fireEvent.change(board.getByRole('searchbox'), {target:{value:'logs'}})
+  expect(board.queryByTitle('Review')).toBeNull()
+  fireEvent.click(board.getByRole('button',{name:seats[1].displayName}))
+  expect(screen.queryByRole('region', {name:en.ui.taskBoard})).toBeNull()
   await waitFor(() => expect(document.querySelector('.rt-chip[aria-pressed=true]')?.getAttribute('data-seat')).toBe('worker'))
   expect(screen.getByRole('button',{name:en.ui.focus}).getAttribute('aria-pressed')).toBe('true')
 })
