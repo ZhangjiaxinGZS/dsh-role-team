@@ -20,6 +20,7 @@ import {
 } from '../src/client/workbench/SessionPane.js'
 import { registerPreviewWorkspace } from '../src/client/preview.js'
 import type { Context } from '@deepseek-ai/cordis'
+import { UpdateNotice } from '../src/client/UpdateNotice.js'
 import { App, LibrarySettings, PreviewToggle } from '../src/client/App.js'
 import { DocumentEditor, Documents, EditorBuffers } from '../src/client/roles/DocumentEditor.js'
 import { TeamSetup } from '../src/client/team-setup/TeamSetup.js'
@@ -1119,7 +1120,7 @@ it('opens the default session, follows native collapse, and reopens the last mem
   expect(openSession.mock.calls).toEqual([[root], [member]])
 })
 
-function installWidthStorage() {
+function installTestStorage() {
   const disk = new Map<string, string>()
   vi.stubGlobal('localStorage', {
     getItem: (key: string) => disk.get(key) ?? null,
@@ -1145,7 +1146,7 @@ const widthPreference = (selector: string) =>
   document.querySelector<HTMLElement>(selector)!.style.getPropertyValue('--rt-pane-width')
 
 it('resizes the role list and profile independently, clamps both and restores defaults after remount', async () => {
-  installWidthStorage()
+  installTestStorage()
   const h = harness(vi.fn(async (method: string) => method === 'readDocument' ? null : []))
   const library = () => h.mount(<RoleLibrary roles={[{ id: 'resize-role', name: 'Resize', revision: 1 }]} changed={vi.fn()} />)
   const separator = (name: string) => screen.getByRole('separator', { name: 'Resize · ' + name })
@@ -1172,7 +1173,7 @@ it('resizes the role list and profile independently, clamps both and restores de
 })
 
 it('stores team list and adjacent member widths, scoped to team and seats across remounts', async () => {
-  installWidthStorage()
+  installTestStorage()
   const runs = ['width-a', 'width-b'].map(runId => ({ runId, title: runId, rootSessionId: runId + '-root', leaderSeatId: 'lead', status: 'active' }))
   const h = harness(vi.fn(async (method: string, input: { runId: string }) => {
     if (method === 'listTeams') return runs
@@ -1205,7 +1206,7 @@ it('stores team list and adjacent member widths, scoped to team and seats across
 })
 
 it('keeps the layout and column preference, locates members, and shows live session status', async () => {
-  installWidthStorage()
+  installTestStorage()
   const resize = new Map<Element, () => void>()
   vi.stubGlobal('ResizeObserver', class {
     constructor(private callback: () => void) {}
@@ -1492,7 +1493,7 @@ it('submits a weekly schedule to the selected team and shows the archive impact 
 })
 
 it('follows horizontal visibility, preserves an explicit pick during motion and focuses the selected chat', async () => {
-  installWidthStorage()
+  installTestStorage()
   const seats = ['a','b','c','d'].map(id => seat(id, id === 'a' ? null : 'a'))
   const run = { runId: 'spy', title: 'Spy', leaderSeatId: 'a', rootSessionId: 'a-session', status: 'active' }
   const h = harness(vi.fn(async (method: string) =>
@@ -1793,7 +1794,7 @@ it.each([
 })
 
 it('guards drawer drafts and CAS conflicts, remembers tabs, restores focus and skips unavailable schedules', async () => {
-  installWidthStorage()
+  installTestStorage()
   localStorage.setItem('dsh-role-team:drawer-tab','obsolete')
   const run = { runId:'drawer',title:'Drawer',status:'active',rootSessionId:'chief-session',leaderSeatId:'chief',locale:'en' }
   const snapshot = (text:string, hash:string) => ({text,hash,updatedBy:'user',updatedAt:'2026-10-01T00:00:00Z'})
@@ -2118,4 +2119,68 @@ it('retains an edited permission when the profile refreshes and reloads the conf
   fireEvent.click(screen.getByRole('button', { name: en.ui.useDisk }))
   await waitFor(() => expect(field.value).toBe('auto'))
   expect(call.mock.calls.some(([method]) => method === 'saveDocument')).toBe(false)
+})
+
+it('shows a newer release in the app header and remembers dismissal for that version only', async () => {
+  installTestStorage()
+  let latestVersion = '1.4.1'
+  const response = () => ({ currentVersion: '1.4.0', latestVersion, enabled: true, hasUpdate: true,
+    releaseUrl: 'https://github.com/ZhangjiaxinGZS/dsh-role-team/releases/tag/v' + latestVersion })
+  const call = vi.fn(async (method: string) => method === 'checkUpdate' ? response() : [])
+  const { mount } = harness(call)
+  const view = mount(<App />)
+  const header = within(view.container.querySelector('.rt-top')!)
+  fireEvent.click(await header.findByRole('button', { name: 'Update available v1.4.1' }))
+  const dialog = within(screen.getByRole('dialog', { name: en.ui.updateTitle }))
+  expect(dialog.getByText('v1.4.0')).toBeTruthy()
+  expect(dialog.getByText('v1.4.1')).toBeTruthy()
+  expect(dialog.getByRole('link').getAttribute('href')).toBe(response().releaseUrl)
+  fireEvent.click(dialog.getByRole('button', { name: en.ui.updateIgnore }))
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(header.queryByRole('button', { name: /Update available/ })).toBeNull()
+  view.unmount()
+  const remount = mount(<UpdateNotice />)
+  await act(async () => {})
+  expect(remount.container.childElementCount).toBe(0)
+  remount.unmount()
+  latestVersion = '1.4.2'
+  mount(<UpdateNotice />)
+  expect(await screen.findByRole('button', { name: 'Update available v1.4.2' })).toBeTruthy()
+})
+
+it.each(['disabled', 'current', 'offline'])('keeps the update notice hidden when %s', async state => {
+  const call = vi.fn(async () => {
+    if (state === 'offline') throw new Error('Host disconnected')
+    return { enabled: state !== 'disabled', currentVersion: '1.4.1', latestVersion: '1.4.1',
+      hasUpdate: false, releaseUrl: 'https://github.com/ZhangjiaxinGZS/dsh-role-team/releases' }
+  })
+  const view = harness(call).mount(<UpdateNotice />)
+  await act(async () => {})
+  expect(call).toHaveBeenCalledWith('checkUpdate', {})
+  expect(view.container.childElementCount).toBe(0)
+})
+
+it('copies the chosen profile upgrade command and clears its feedback when the modal closes', async () => {
+  const writeText = vi.fn().mockRejectedValueOnce(new Error('Denied')).mockResolvedValue(undefined)
+  vi.stubGlobal('navigator', Object.create(navigator, { clipboard: { value: { writeText } } }))
+  const call = vi.fn(async () => ({ enabled: true, hasUpdate: true, currentVersion: '0.3.0',
+    latestVersion: '0.4.0', releaseUrl: 'https://github.com/ZhangjiaxinGZS/dsh-role-team/releases/tag/v0.4.0' }))
+  harness(call).mount(<UpdateNotice />)
+  fireEvent.click(await screen.findByRole('button', { name: /Update available/ }))
+  const dialog = within(screen.getByRole('dialog'))
+  vi.useFakeTimers()
+  try {
+    const baseline = vi.getTimerCount()
+    const web = dialog.getByRole('button', { name: 'Copy command · Web' })
+    await act(async () => fireEvent.click(web))
+    expect(web.textContent).toBe('Copy command · Web')
+    expect(writeText.mock.calls[0][0]).toContain('dsh plugin --profile web add "$PWD/dsh-role-team-0.4.0.tgz"')
+    const desktop = dialog.getByRole('button', { name: 'Copy command · Desktop (macOS)' })
+    await act(async () => fireEvent.click(desktop))
+    expect(writeText.mock.calls[1][0]).toContain('bin/dsh" plugin --profile desktop add "$PWD/dsh-role-team-0.4.0.tgz"')
+    expect(desktop.textContent).toBe(en.ui.copiedCode)
+    expect(vi.getTimerCount()).toBe(baseline + 1)
+    fireEvent.click(dialog.getByRole('button', { name: en.ui.close }))
+    expect(vi.getTimerCount()).toBe(baseline)
+  } finally { vi.useRealTimers() }
 })

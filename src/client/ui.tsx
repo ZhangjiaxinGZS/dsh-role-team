@@ -142,6 +142,23 @@ export function Notice({ children }: { children?: ReactNode }) {
     </div>
   ) : null
 }
+export function CopyButton({ text, label }: { text: string; label: string }) {
+  const { t } = useUi()
+  const [copied, setCopied] = useState(false)
+  const resetTimer = useRef<number>()
+  useEffect(() => () => window.clearTimeout(resetTimer.current), [])
+  const copy = (button: HTMLButtonElement) => {
+    void navigator.clipboard?.writeText(text).then(() => {
+      if (!button.isConnected) return
+      window.clearTimeout(resetTimer.current)
+      setCopied(true)
+      resetTimer.current = window.setTimeout(() => setCopied(false), 1500)
+    }).catch(() => {})
+  }
+  return <button type="button" disabled={!navigator.clipboard?.writeText} onClick={e => copy(e.currentTarget)}>
+    {copied ? t('copiedPath') : label}
+  </button>
+}
 export function Modal({
   title,
   children,

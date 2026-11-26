@@ -23,7 +23,13 @@ const run = z.strictObject({ runId: id })
 const seat = z.strictObject({ seatId: id })
 const training = z.strictObject({ trainingId: id })
 const team = z.strictObject({ run: indexRecords.team_runs, seats: z.array(indexRecords.team_seats) })
+const updateInfo = z.strictObject({
+  enabled: z.boolean(), currentVersion: z.string(), latestVersion: z.string().nullable(),
+  hasUpdate: z.boolean(), releaseUrl: z.url(),
+})
+export type UpdateInfo = z.infer<typeof updateInfo>
 export const runtimeMethods = {
+  checkUpdate: [z.strictObject({ force: z.boolean().optional() }), updateInfo],
   createRole: [z.strictObject({
     name: title,
     summary: z.string().trim().max(160).optional(),

@@ -29,6 +29,7 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
     default: typeof RoleTeam
   }
   const ctx = new Context()
+  const updateFetch = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
   const temp = await mkdtemp(join(process.cwd(), 'node_modules/.role-bundle-'))
   try {
     await ctx.plugin(Storage)
@@ -60,6 +61,9 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
     const peer = new Peer(ctx, { principal: { kind: 'owner' } })
     const call = (method: string, args: Record<string, unknown>) =>
       ctx.typertGateway.invoke({ namespace: 'roleTeam', method, args, peer })
+    expect(updateFetch).not.toHaveBeenCalled()
+    expect(await call('checkUpdate', { request: {} })).toMatchObject({ enabled: true, hasUpdate: false })
+    expect(updateFetch).toHaveBeenCalledTimes(1)
     expect(await call('listRoles', {})).toEqual([])
     await expect(
       call('resetSeat', { request: { seatId: 'seat', generation: 0, handoff: '' } }),
@@ -82,6 +86,10 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
     expect((await service.readSnapshot('proof', 1)).role.body).toBe('Hello')
     await fiber.dispose()
     expect(ctx.get('roleTeam')).toBeUndefined()
+    const disabled = await ctx.plugin(host.default, { roleStoreDir: join(temp, 'roles'), checkUpdates: false })
+    expect(await call('checkUpdate', { request: { force: true } })).toMatchObject({ enabled: false, hasUpdate: false })
+    expect(updateFetch).toHaveBeenCalledTimes(1)
+    await disabled.dispose()
 
     const client = await readFile(require.resolve(moduleId + '/client'), 'utf8')
     let factory:
@@ -182,6 +190,7 @@ it('loads the manifest-selected Host and renderer artifacts and disposes their r
       await clientFiber.dispose()
       expect(clientCtx.slots.entriesOfSlot('main')).toHaveLength(0)
     } finally {
+    updateFetch.mockRestore()
       await clientCtx.fiber.dispose()
     }
     for (const lang of ['en', 'zh'])

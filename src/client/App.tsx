@@ -1,3 +1,4 @@
+import { UpdateNotice } from './UpdateNotice.js'
 import { useNavigation } from './navigation.js'
 import { Button, IconPanelLeftOutlineRegular, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useState, useRef, useSyncExternalStore } from 'react'
@@ -72,6 +73,7 @@ export function App() {
             </button>
           ))}
         </nav>
+        <UpdateNotice />
         {preview && <PreviewToggle preview={preview} />}
       </header>
       <Notice>{catalog.error}</Notice>

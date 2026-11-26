@@ -4,6 +4,14 @@
     "description": "Manage editable role cards, memories and published revisions."
   },
   "ui": {
+    "updateAvailable": "Update available",
+    "updateTitle": "Plugin update",
+    "updateCurrent": "Installed",
+    "updateLatest": "Latest",
+    "updateRelease": "View GitHub Release",
+    "updateInstructions": "Download the tarball and SHA256SUMS.txt to a permanent directory. From there, run the command for your profile, then restart the host.",
+    "updateCopy": "Copy command",
+    "updateIgnore": "Ignore this version",
     "policyTitle": "Leader collaboration policy",
     "policyDelegate": "Delegate first",
     "policyDelegateHint": "Delegate specialist work to members. The leader coordinates and verifies delivery.",

@@ -10,11 +10,15 @@
 - **团队工作台**支持单栏和多栏对话，用 `@成员` 指派工作，通过共享任务板、定时任务和成员回报跟进进度。
 - **会话与权限**由宿主管理。团队各有独立会话，模型与工具沿用宿主配置。首次培养会话默认完全权限，可以在输入栏切换。
 
-### v0.2.0 团队协作
+### v0.3.0 团队协作
+
+角色可保存默认模型和权限。角色改名后，工作台同步更新席位名称。团队设置中可以查看和复制工作目录。
 
 团队面板将简报、任务板和定时任务放在三个标签页。简报变更通过消息后缀同步，保留系统提示词的缓存前缀，压缩或换代后会重新同步。多层团队按发送者与接收者的关系折叠例行通知。每个团队可选择优先委派、自由协作或自定义规则；优先委派时，队长会先向用户澄清缺失的目标与约束。
 
 [设计说明](docs/DESIGN-v0.2.0.md) · [评测协议](docs/EVALUATION.md) · [复现指南](benchmarks/README.md) · [Flash 首轮报告](benchmarks/results/live-deepseek-flash/report.md) · [Codex 首轮报告](benchmarks/results/live-codex/report.md)
+
+打开角色团队页面时会向 GitHub 查询最新发布版本，宿主缓存结果六小时。在 `role-team` 插件配置中设置 `checkUpdates: false` 可关闭此请求。
 
 ### 安装与上手
 
@@ -41,7 +45,9 @@ Train an AI team the way you would train a group of specialists. Coach each role
 - **Team workspace.** Follow conversations side by side or focus on one member. Assign work with @mentions and track it through the shared task board, schedules and member reports.
 - **Sessions and permissions.** Each team has its own conversations. Models and tools come from the host. A role’s first coaching chat starts with Full access, adjustable in the composer.
 
-### Team collaboration in v0.2.0
+### Team collaboration in v0.3.0
+
+Save a default model and permission preset per role. Seat names follow role renames, and team settings let you view and copy the workspace directory.
 
 The team panel has three tabs for the shared brief, task board and schedules. Brief updates travel in a message suffix so the system prompt prefix stays stable. The host resynchronizes the brief after compaction or seat replacement. Nested teams fold routine notifications according to the sender’s relationship to the recipient. Each team can use delegation-first, balanced or custom rules. The delegation-first policy asks the lead to clarify missing requirements before assigning work.
 
@@ -60,6 +66,8 @@ Use DeepSeek Harness 0.2.2-rc.5 or a compatible 0.2.x host and Node.js 24.9+. Do
 [MIT](LICENSE) · Copyright © 2026 ZhangjiaxinGZS
 
 ## Host runtime
+
+Opening the workbench checks the public GitHub Release endpoint for updates. The host caches the result for six hours. Set `checkUpdates: false` on the `role-team` plugin entry to disable these requests.
 
 The Host provides the plain-text role library, coaching sessions, native team orchestration, revision controls and seat replacement. The client workbench binds a separate live conversation to each seat. Run `npm run typecheck` and `npm test` for development checks.
 

@@ -4,6 +4,14 @@
     "description": "管理可直接编辑的角色卡、记忆和发布版本。"
   },
   "ui": {
+    "updateAvailable": "有新版本",
+    "updateTitle": "插件更新",
+    "updateCurrent": "当前版本",
+    "updateLatest": "最新版本",
+    "updateRelease": "查看 GitHub Release",
+    "updateInstructions": "将压缩包和 SHA256SUMS.txt 下载到固定目录。在该目录运行对应端的命令，完成后重启宿主。",
+    "updateCopy": "复制命令",
+    "updateIgnore": "忽略此版本",
     "policyTitle": "队长协作策略",
     "policyDelegate": "优先委派",
     "policyDelegateHint": "专业任务优先交给对应成员，队长负责统筹与验收。",

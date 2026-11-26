@@ -126,6 +126,27 @@ html[data-platform='darwin'] .rt-top {
   flex: none;
   -webkit-app-region: no-drag;
 }
+.rt-update-badge {
+  margin-inline-start: auto;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 999px;
+  color: var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-bg-layer-1);
+  padding-inline: 10px;
+  font-size: 12px;
+}
+.rt-update-badge:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.rt-update-badge:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 2px; }
+.rt-update-badge + .rt-preview-toggle { margin-inline-start: 0; }
+.rt-update-details { display: grid; gap: 12px; min-width: 0; }
+.rt-update-details dl { display: flex; flex-wrap: wrap; gap: 24px; margin: 0; }
+.rt-update-details dt { color: var(--dsw-alias-label-secondary); }
+.rt-update-details dd { margin: 0; font-weight: 600; }
+.rt-update-details a { color: var(--dsw-alias-state-business-primary); }
+.rt-update-details section { min-width: 0; padding: 8px; border: 1px solid var(--dsw-alias-border-l4); border-radius: var(--dsw-radius-sm); }
+.rt-update-details section > div { display: flex; justify-content: space-between; align-items: center; }
+.rt-update-details code { display: block; overflow-wrap: anywhere; user-select: text; }
+.rt-update-details > button { justify-self: start; }
 .rt-preview-toggle button { width: 28px; padding: 0; }
 .rt-preview-toggle svg { transform: scaleX(-1); }
 .rt-top h1 {

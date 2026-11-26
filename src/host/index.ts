@@ -1,6 +1,7 @@
 import { Service, type Context, type Volatile } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import schema from '@deepseek-ai/schemastery'
+import { ReleaseCheck } from './release-check.js'
 import { TeamRuntime } from './team-runtime/index.js'
 import { NativeTeam } from './team-runtime/native.js'
 import { runtimeMethods, type Input } from '../shared/runtime.js'
@@ -9,6 +10,7 @@ import { repository, teamDomain } from './storage/index.js'
 import type { DeleteRequest, EditRequest, FileRef, RoleTeamRpc } from '../shared/index.js'
 
 export interface Config {
+  checkUpdates: Volatile<boolean>
   roleStoreDir: Volatile<string>
 }
 declare module '@deepseek-ai/cordis' {
@@ -20,12 +22,14 @@ declare module '@deepseek-ai/cordis' {
 export default class RoleTeamService extends TypertRemoteService implements RoleTeamRpc {
   static inject = ['storageDomain']
   static Config = schema.object({
+    checkUpdates: schema.boolean().default(true).volatile(),
     roleStoreDir: schema
       .string()
       .pattern(/^(?:\/|[A-Za-z]:[\\/]|\\\\)/)
       .default(defaultRoleDir())
       .volatile(),
   })
+  private readonly updates: ReleaseCheck
   private readonly pathSetting: Volatile<string>
   private roles!: RoleStore
   private mounted?: TeamRuntime
@@ -38,6 +42,7 @@ export default class RoleTeamService extends TypertRemoteService implements Role
   constructor(ctx: Context, config: Config) {
     super(ctx, 'roleTeam')
     this.pathSetting = config.roleStoreDir
+    this.updates = new ReleaseCheck(() => config.checkUpdates.get())
     ctx.on('agent/created', async ({ agent }) => {
       const reserved = (id?: string) => id !== undefined && /^rt-(?:root|child|training)-/.test(id)
       const header = agent.session.header
@@ -258,6 +263,10 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     return this.runtime.ordered('review/' + request.trainingId, () =>
       this.runtime.training.confirmProposal(request),
     )
+  }
+
+  @Remote checkUpdate({ force }: Input<'checkUpdate'>) {
+    return this.updates.check(force)
   }
 
   @Remote async libraryInfo(_request: Input<'libraryInfo'>) {
