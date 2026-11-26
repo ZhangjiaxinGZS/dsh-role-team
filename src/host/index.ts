@@ -131,9 +131,7 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     const seat = receiver && this.index.seats.get(receiver.seatId)
     if (!seat) return null
 
-    const members = new Map(this.runtime.getTeam(seat.runId).seats.map(s =>
-      [s.seatId, this.roles.published(s.roleId)?.role.meta.name ?? s.displayName] as const,
-    ))
+    const members = new Map(this.runtime.getTeam(seat.runId).seats.map(s => [s.seatId, s.displayName] as const))
     const candidates = generations.filter(g => members.has(g.seatId))
     const exact = candidates.find(g => g.sessionId === senderId)
 

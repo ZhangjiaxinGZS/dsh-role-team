@@ -43,6 +43,7 @@ import Teams from '@deepseek-ai/dsh-agent-team'
 import * as BoardTools from '@deepseek-ai/dsh-tool-agent-team'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type RoleTeam from '../src/host/index.js'
+import { runtimeMethods } from '../src/shared/runtime.js'
 import { serializeMarkdown } from '../src/host/role-store/markdown.js'
 
 class Catalog extends Query {
@@ -998,6 +999,60 @@ it('executes all coaching tools in the native PTC Node runtime and records succe
   ])
   expect(calls.at(-1)?.arguments).toMatchObject({ name: 'lead' })
   expect(JSON.stringify(calls.at(-1)?.content)).toContain('系统名称')
+})
+
+it('shows a published rename immediately and falls back to the stored seat name after deletion', async () => {
+  const { run, seats: [leader] } = await newTeam('Name history')
+  const original = await service.readDocument({ roleId })
+  const edited = await service.saveDocument({ roleId, expectedHash: original!.hash,
+    text: serializeMarkdown({ id: roleId, name: '复核员' }, 'Review the draft') })
+  expect(edited.ok).toBe(true)
+  async function check(name: string) {
+    const team = await service.getTeam({ runId: run.runId })
+    expect(team.seats).toEqual([{ ...leader, displayName: name }])
+    expect(await service.teamMentionRoster({ sessionId: run.rootSessionId })).toMatchObject({
+      members: [{ name, seatId: leader.seatId, address: 'lead' }],
+    })
+    expect(await service.teamMessageSender({ sessionId: run.rootSessionId, senderId: run.rootSessionId }))
+      .toMatchObject({ name })
+  }
+  await check('复核员')
+  const expectedHash = (await service.readDocument({ roleId }))!.hash
+  expect(await service.deleteRole({ roleId, expectedHash })).toMatchObject({ ok: true })
+  await check('Reviewer')
+  await ctx.fiber.dispose()
+  await boot()
+  await check('Reviewer')
+})
+
+it('numbers renamed seats per team and preserves native addresses and numbered role names', async () => {
+  const { run, seats: [leader] } = await newTeam('Rename duplicate seats')
+  const other = await newTeam('Same role in another team')
+  const child = await service.addMember({ runId: run.runId, roleId })
+  async function rename(name: string) {
+    const expectedHash = (await service.readDocument({ roleId }))!.hash
+    expect(await service.saveDocument({ roleId, expectedHash,
+      text: serializeMarkdown({ id: roleId, name }, 'Review') })).toMatchObject({ ok: true })
+  }
+  await rename('复核员')
+  const labels = async () => (await service.getTeam({ runId: run.runId })).seats.map(s => [s.seatId, s.displayName])
+  expect(await labels()).toEqual([[leader.seatId, '复核员'], [child.seatId, '复核员 2']])
+  expect((await service.getTeam({ runId: other.run.runId })).seats[0].displayName).toBe('复核员')
+  const numbered = await service.createRole({ name: '编辑 2' })
+  if (!numbered.ok) throw new Error('Fixture role was not created')
+  const editor = await service.addMember({ runId: run.runId, roleId: numbered.status.roleId })
+  await rename('编辑')
+  expect(await labels()).toEqual([[leader.seatId, '编辑'], [child.seatId, '编辑 3'], [editor.seatId, '编辑 2']])
+  expect(await service.teamMentionRoster({ sessionId: run.rootSessionId })).toMatchObject({
+    members: [{ name: '编辑', address: 'lead' }, { name: '编辑 3', seatId: child.seatId, address: child.nativeAgentName },
+      { name: '编辑 2', address: editor.nativeAgentName }],
+  })
+  expect(await service.teamMessageSender({ sessionId: run.rootSessionId, senderId: child.currentSessionId }))
+    .toMatchObject({ name: '编辑 3' })
+  const longName = '编'.repeat(160)
+  await rename(longName)
+  const sender = await service.teamMessageSender({ sessionId: run.rootSessionId, senderId: child.currentSessionId })
+  expect(runtimeMethods.teamMessageSender[1].parse(sender)?.name).toBe(longName + ' 2')
 })
 
 it('resolves team message senders across seat generations and scopes aliases to the receiving team', async () => {

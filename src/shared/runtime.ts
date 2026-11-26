@@ -63,7 +63,7 @@ export const runtimeMethods = {
   ],
   teamMessageSender: [
     z.strictObject({ sessionId: id, senderId: id.optional(), senderName: id.optional() }),
-    z.strictObject({ name: title.nullable(), fromParent: z.boolean().optional() }).nullable(),
+    z.strictObject({ name: indexRecords.team_seats.shape.displayName.nullable(), fromParent: z.boolean().optional() }).nullable(),
   ],
   renameTeam: [run.extend({ title }), indexRecords.team_runs],
   teamArchiveImpact: [run, z.int().nonnegative()],

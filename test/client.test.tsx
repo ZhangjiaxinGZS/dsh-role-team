@@ -23,7 +23,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import { App, LibrarySettings, PreviewToggle } from '../src/client/App.js'
 import { DocumentEditor, Documents, EditorBuffers } from '../src/client/roles/DocumentEditor.js'
 import { TeamSetup } from '../src/client/team-setup/TeamSetup.js'
-import { serializeMarkdown } from '../src/shared/markdown.js'
+import { roleMeta } from '../src/shared/index.js'
+import { parseMarkdown, serializeMarkdown } from '../src/shared/markdown.js'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 // The browser supplies the shared menu. Exercise the catalog and selection callbacks here.
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
@@ -871,6 +872,53 @@ it('confirms the selected role by name and hash, supports cancel and clears the 
   await screen.findByText(en.ui.emptyRoles)
   expect(changed).toHaveBeenCalledOnce()
   expect(call).toHaveBeenCalledWith('deleteRole', { roleId: 'writer', expectedHash: file.hash })
+})
+
+it('reads fresh seat and task owner labels when returning from a role library rename', async () => {
+  const lead = seat('reviewer', null)
+  const run = { runId: 'rename', title: 'Editorial', status: 'active',
+    leaderSeatId: lead.seatId, rootSessionId: lead.currentSessionId }
+  let name = 'Reviewer', revision = 1
+  const call = vi.fn(async (method: string, input: any) => {
+    if (method === 'listRoles') return [{ roleId: lead.roleId, publishedRevision: revision }]
+    if (method === 'readSnapshot') return { role: { meta: { name }, body: 'Check the draft' } }
+    if (method === 'readDocument') return {
+      text: serializeMarkdown({ id: lead.roleId, name }, 'Check the draft'), hash: 'f'.repeat(64),
+    }
+    if (method === 'saveDocument') {
+      name = parseMarkdown(input.text, roleMeta, lead.roleId, 'role.md').meta.name
+      revision++
+      return { ok: true, hash: 'a'.repeat(64) }
+    }
+    if (method === 'listTeams') return [run]
+    if (method === 'getTeam') return { run, seats: [{ ...lead, displayName: name }] }
+    return []
+  })
+  const h = harness(call)
+  const retain = h.ui.retain
+  const tasks = { tasks: [{ id: 'review', subject: 'Review draft', status: 'pending',
+    ownerId: lead.currentSessionId, blockedBy: [] }] }
+  h.ui.retain = target => {
+    const ref = retain(target)
+    ref.binding.session.projections.faceOf = () => ({ getSnapshot: () => tasks, subscribe: () => () => {} })
+    return ref
+  }
+  h.mount(<App />)
+  fireEvent.click(screen.getByRole('button', { name: en.ui.teams }))
+  const chip = () => document.querySelector('.rt-chip[data-seat="reviewer"] .rt-seat-name')
+  await waitFor(() => expect(chip()?.textContent).toBe('Reviewer'))
+  fireEvent.click(screen.getByRole('button', { name: en.ui.library }))
+  fireEvent.click(await screen.findByRole('button', { name: en.ui.edit }))
+  fireEvent.change(screen.getByLabelText(en.ui.name), { target: { value: 'Copy editor' } })
+  fireEvent.click(screen.getByRole('button', { name: en.ui.save }))
+  await screen.findByRole('button', { name: 'Copy editor' })
+  fireEvent.click(screen.getByRole('button', { name: en.ui.teams }))
+  await waitFor(() => expect(chip()?.textContent).toBe('Copy editor'))
+  expect(screen.getByRole('button', { name: run.title }).getAttribute('aria-current')).toBe('page')
+  fireEvent.click(screen.getByRole('button', { name: en.ui.teamPanel }))
+  fireEvent.click(screen.getByRole('tab', { name: /^Tasks/ }))
+  const board = within(await screen.findByRole('region', { name: en.ui.taskBoard }))
+  expect(board.getByRole('button', { name: 'Copy editor' })).toBeTruthy()
 })
 
 it('restores the last role, role view, page and team after leaving the panel', async () => {

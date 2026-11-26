@@ -2,7 +2,7 @@ import type {} from '@deepseek-ai/dsh-compaction'
 import { randomUUID } from 'node:crypto'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SessionId } from '@deepseek-ai/dsh-session'
-import type { IndexRecord, Snapshot, ModelChoice } from '../../shared/index.js'
+import { roleNameKey, type IndexRecord, type Snapshot, type ModelChoice } from '../../shared/index.js'
 import type { Input } from '../../shared/runtime.js'
 import { RoleStore } from '../role-store/index.js'
 import { generationKey, type Index } from '../storage/index.js'
@@ -58,7 +58,25 @@ export class TeamRuntime {
   getTeam(runId: string) {
     const run = this.index.runs.get(runId)
     if (!run) throw new Error('Team not found')
-    return { run, seats: this.index.seats.list().filter((s) => s.runId === runId) }
+    // The stored displayName is the seat's historical fallback. Resolve labels on read
+    // so a new publication is visible without rewriting seat or generation records.
+    const seats = this.index.seats.list().filter(s => s.runId === runId).map(s => ({
+      ...s, displayName: this.roles.published(s.roleId)?.role.meta.name ?? s.displayName,
+    }))
+    const reserved = new Set(seats.map(s => roleNameKey(s.displayName)))
+    const counts = new Map<string, number>()
+    for (const seat of seats) {
+      const base = seat.displayName
+      const key = roleNameKey(base)
+      let number = (counts.get(key) ?? 0) + 1
+      if (number > 1) {
+        // A separate role can already own a numbered name such as “Editor 2”.
+        while (reserved.has(roleNameKey(base + ' ' + number))) number++
+        seat.displayName = base + ' ' + number
+      }
+      counts.set(key, number)
+    }
+    return { run, seats }
   }
   active(runId: string) {
     const { run } = this.getTeam(runId)
@@ -80,7 +98,7 @@ export class TeamRuntime {
     }
     const members = seats.filter(s => s.status === 'active' && !s.joining).map(s => {
       const role = this.roles.published(s.roleId) ?? this.cache.get(s.roleId + '/' + s.adoptedRoleRev)
-      return { seatId: s.seatId, name: role?.role.meta.name ?? s.displayName, duty: role?.role.meta.summary ?? '',
+      return { seatId: s.seatId, name: s.displayName, duty: role?.role.meta.summary ?? '',
         address: address(s), leader: !s.parentSeatId }
     })
     return { runId, members }
@@ -600,8 +618,7 @@ export class TeamRuntime {
     installRolePrompt(agent, () =>
       [
         run.locale === 'en' ? 'Work and reply in English.' : '请用中文协作、报到并回复用户。',
-        seat.displayName,
-        ...(view().role.role.meta.name !== seat.displayName ? [view().role.role.meta.name] : []),
+        view().role.role.meta.name,
         view().role.role.meta.summary,
         view().role.role.body,
         run.locale === 'en'
