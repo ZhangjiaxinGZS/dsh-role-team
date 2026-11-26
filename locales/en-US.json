@@ -284,8 +284,9 @@
     "profileTab": "Profile",
     "defaultsTab": "Defaults",
     "defaultModel": "Default model",
+    "hostDefault": "Host default",
     "defaultPermission": "Default permission",
-    "defaultsEffectHint": "Applies to new conversations, teams, and added members. You can still change them anytime in chat.",
+    "defaultsEffectHint": "New sessions use this model. Training chats and team leaders use this permission. Team members follow their leader’s permission.",
     "unavailableModel": "Unavailable"
   }
 }

@@ -294,6 +294,7 @@ function CreateRole({
           {t('name')}
           <input
             data-modal-autofocus
+            disabled={action.busy}
             required
             maxLength={160}
             value={name}
@@ -302,7 +303,7 @@ function CreateRole({
         </label>
         <label>
           {t('duty')}
-          <input maxLength={160} value={summary} onChange={(e) => setSummary(e.target.value)} />
+          <input disabled={action.busy} maxLength={160} value={summary} onChange={(e) => setSummary(e.target.value)} />
         </label>
         <RoleDefaultsFields
           entries={entries}

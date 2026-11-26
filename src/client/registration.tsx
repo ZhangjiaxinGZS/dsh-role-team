@@ -95,7 +95,7 @@ function mount(ctx: Context) {
           | import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['permissionPresets']
           | undefined
         if (!remote) return null
-        return unwrap(await remote.catalog()).options
+        return unwrap(await remote.catalog())
       },
     },
     retain: (target) => ctx.sessions.retain(target, options),

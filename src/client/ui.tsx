@@ -52,7 +52,7 @@ export interface Ui {
     select(sessionId: SessionReference['sessionId'], preset: string): Promise<string>
   }
   permissions?: {
-    list(): Promise<{ value: string; name: string }[] | null>
+    list(): Promise<{ options: { value: string; name: string }[]; defaultPreset: string } | null>
   }
   pick?: () => Promise<string | null>
   settings?: {
@@ -92,7 +92,7 @@ export function useAction() {
   return { busy, error, run, clear: () => setError('') }
 }
 /** Keep only results for the visible identity. Overlapping refreshes cannot publish stale data. */
-export function useLoad<T>(key: string, read: () => Promise<T>, interval = 0) {
+export function useLoad<T>(key: string, read: () => Promise<T>, interval = 0, revision?: string) {
   const reader = useRef(read)
   reader.current = read
   const sequence = useRef(0),
@@ -129,7 +129,7 @@ export function useLoad<T>(key: string, read: () => Promise<T>, interval = 0) {
       alive = false
       window.clearInterval(timer)
     }
-  }, [key, interval, version])
+  }, [key, interval, version, revision])
   return {
     ...(state.key === key ? state : {}),
     refresh: useCallback(() => setVersion((v) => v + 1), []),

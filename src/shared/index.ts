@@ -28,6 +28,7 @@ export const roleMeta = z.strictObject({
     .regex(/^[^\r\n]*$/)
     .optional(),
   version: revision.optional(),
+  // Legacy profile metadata. Runtime model defaults come from defaultModel.
   model: z.string().min(1).optional(),
   defaultModel: modelChoice.optional(),
   defaultPermission: permissionPresetId.optional(),

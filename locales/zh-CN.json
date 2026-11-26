@@ -284,8 +284,9 @@
     "profileTab": "档案",
     "defaultsTab": "默认配置",
     "defaultModel": "默认模型",
+    "hostDefault": "宿主默认",
     "defaultPermission": "默认权限",
-    "defaultsEffectHint": "仅对新建对话、新建团队及新添成员生效，对话中仍可随时调整。",
+    "defaultsEffectHint": "新会话使用此模型。培养对话与新团队的队长使用此权限，队员跟随队长权限。",
     "unavailableModel": "当前不可用"
   }
 }

@@ -17,7 +17,7 @@ import {
   IconRefreshOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useActivity, useReadReceipt } from './activity.js'
-import { Fragment, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   MoreMenu,
   Modal,
@@ -577,19 +577,23 @@ export function SeatResetModal({
 function WorkspacePathField({ path }: { path?: string }) {
   const { t } = useUi()
   const [copied, setCopied] = useState(false)
+  const resetTimer = useRef<number>()
+  useEffect(() => () => window.clearTimeout(resetTimer.current), [])
   if (!path) return null
-  const copy = () => {
+  const copy = (button: HTMLButtonElement) => {
     void navigator.clipboard?.writeText(path).then(() => {
+      if (!button.isConnected) return
+      window.clearTimeout(resetTimer.current)
       setCopied(true)
-      window.setTimeout(() => setCopied(false), 1500)
-    })
+      resetTimer.current = window.setTimeout(() => setCopied(false), 1500)
+    }).catch(() => {})
   }
   return (
     <div className="rt-workspace-dir">
       <span className="rt-workspace-dir-label">{t('directory')}</span>
       <div className="rt-workspace-dir-row">
         <code className="rt-workspace-path" title={path}>{path}</code>
-        <button type="button" onClick={copy}>{t(copied ? 'copiedPath' : 'copyPath')}</button>
+        <button type="button" disabled={!navigator.clipboard?.writeText} onClick={e => copy(e.currentTarget)}>{t(copied ? 'copiedPath' : 'copyPath')}</button>
       </div>
     </div>
   )

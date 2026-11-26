@@ -25,7 +25,7 @@ import { RoleDefaultsPanel } from './RoleDefaults.js'
 // Allow intermediate empty or trailing-space names in the form, while the write contract stays strict.
 type Conflict = Extract<EditResult, { code: 'conflict' }>
 type Buffer = { text: string; base: FileContents | null; conflict?: Conflict }
-type Departure = { kind: 'collapse' | 'switch'; proceed: () => void }
+export type Departure = { kind: 'collapse' | 'switch'; proceed: (savedHash?: string) => void }
 export type ProfileGuard = RefObject<((request: Departure) => void) | null>
 
 export function leaveProfile(guard: ProfileGuard, request: Departure) {
@@ -117,7 +117,7 @@ export function Documents({
       }),
     )
   })
-  const role = useLoad(JSON.stringify([roleId, revision, version]), async () => {
+  const role = useLoad(roleId, async () => {
     const file = await call('readDocument', { roleId })
     if (!file) return { file, profile: { meta: { id: roleId, name: roleId }, body: '' } }
     try {
@@ -126,7 +126,7 @@ export function Documents({
       if (!(error instanceof DocumentError)) throw error
       return { file, error: error.detail.file + ' · ' + t('line') + ' ' + error.detail.line + ' · ' + error.message }
     }
-  })
+  }, 0, JSON.stringify([revision, version]))
   const edit = () => { if (role.data) setPanel({ mode: 'edit', initial: role.data.file }) }
   const read = () => setPanel({ mode: 'read' })
   return (
@@ -149,7 +149,7 @@ export function Documents({
               if (role.data?.file)
                 leaveProfile(profileGuard, {
                   kind: 'switch',
-                  proceed: () => setPanel({ mode: 'history', hash: role.data!.file!.hash }),
+                  proceed: savedHash => setPanel({ mode: 'history', hash: savedHash ?? role.data!.file!.hash }),
                 })
             }}>{t('roleHistory')}</Button>}
           {toggleSize && (

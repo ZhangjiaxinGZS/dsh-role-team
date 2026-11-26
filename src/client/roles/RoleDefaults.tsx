@@ -9,7 +9,7 @@ import {
 } from '../../shared/index.js'
 import { serializeMarkdown } from '../../shared/markdown.js'
 import { Modal, Notice, useAction, useLoad, useUi, type Labels } from '../ui.js'
-import type { ProfileGuard } from './DocumentEditor.js'
+import type { Departure, ProfileGuard } from './DocumentEditor.js'
 
 type ModelEntry = {
   provider: string
@@ -19,8 +19,6 @@ type ModelEntry = {
   efforts: { id: string; name: string }[]
   isDefault?: boolean
 }
-
-type Departure = { kind: 'collapse' | 'switch'; proceed: () => void }
 
 const PERMISSION_LABELS: Record<PermissionPresetId, Labels> = {
   'read-only': 'readOnlyMode',
@@ -48,12 +46,6 @@ function resolveInitialModel(entries: ModelEntry[]): ModelChoice | undefined {
   }
 }
 
-function resolveInitialPermission(
-  options: { value: PermissionPresetId; label: string }[],
-): PermissionPresetId | undefined {
-  return options.find((o) => o.value === 'danger-full-access')?.value ?? options[0]?.value
-}
-
 export function useRoleDefaultCatalogs() {
   const { call, permissions, t } = useUi()
   const models = useLoad('role-defaults-models', async () => {
@@ -74,22 +66,13 @@ export function useRoleDefaultCatalogs() {
   const entries = models.data ?? []
   const availablePermissions = useMemo(() => {
     const allowed = new Set<string>(permissionPresetId.options)
-    if (permCatalog.data) {
-      return permCatalog.data
-        .filter((o): o is { value: PermissionPresetId; name: string } => allowed.has(o.value))
-        .map((o) => ({ value: o.value, label: t(PERMISSION_LABELS[o.value]) || o.name }))
-    }
-    return permissionPresetId.options.map((value) => ({
-      value,
-      label: t(PERMISSION_LABELS[value]),
-    }))
+    return (permCatalog.data?.options ?? [])
+      .filter((o): o is { value: PermissionPresetId; name: string } => allowed.has(o.value))
+      .map((o) => ({ value: o.value, label: t(PERMISSION_LABELS[o.value]) || o.name }))
   }, [permCatalog.data, t])
 
   const initialModel = useMemo(() => resolveInitialModel(entries), [entries])
-  const initialPermission = useMemo(
-    () => resolveInitialPermission(availablePermissions),
-    [availablePermissions],
-  )
+  const initialPermission = availablePermissions.find(o => o.value === permCatalog.data?.defaultPreset)?.value
 
   return { entries, availablePermissions, initialModel, initialPermission }
 }
@@ -228,6 +211,7 @@ export function RoleDefaultsFields({
             if (raw) onPermissionChange(raw as PermissionPresetId)
           }}
         >
+          {!permission && <option value="">{t(availablePermissions.length ? 'hostDefault' : 'unavailableModel')}</option>}
           {missingPermission && (
             <option value={permission}>
               {t(PERMISSION_LABELS[permission])} · {t('unavailableModel')}
@@ -278,7 +262,8 @@ export function RoleDefaultsPanel({
 
   if (file?.hash !== observed) {
     setObserved(file?.hash)
-    if (!touched && !conflict) {
+    if (touched) setConflict(true)
+    else if (!conflict) {
       setModel(meta.defaultModel)
       setPermission(meta.defaultPermission)
     }
@@ -295,7 +280,7 @@ export function RoleDefaultsPanel({
     else request.proceed()
   })
 
-  const save = (afterSave?: () => void) =>
+  const save = (afterSave?: (savedHash?: string) => void) =>
     action.run(async () => {
       try {
         const { defaultModel: _m, defaultPermission: _p, ...rest } = meta
@@ -316,13 +301,14 @@ export function RoleDefaultsPanel({
           }
           throw new Error(result.error.message)
         }
+        if (result.status.error) throw new Error(result.status.error.message)
         setModel(effectiveModel)
         setPermission(effectivePermission)
         setTouched(false)
         setConflict(false)
         setSaved(true)
         changed()
-        afterSave?.()
+        afterSave?.(result.hash ?? undefined)
       } finally {
         setDeparture(undefined)
       }

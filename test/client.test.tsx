@@ -559,6 +559,7 @@ it('creates and publishes the named role before opening its first independent co
   fireEvent.click(screen.getByRole('button', { name: /New role/ }))
   const form = within(screen.getByRole('dialog'))
   expect(form.getAllByRole('textbox')).toHaveLength(2)
+  expect(form.getByRole<HTMLSelectElement>('combobox', { name: en.ui.defaultPermission }).disabled).toBe(true)
   fireEvent.change(form.getByLabelText(en.ui.name), { target: { value: 'Author' } })
   fireEvent.change(form.getByLabelText(en.ui.duty), { target: { value: 'Write stories' } })
   fireEvent.click(form.getByText(en.ui.create))
@@ -568,7 +569,6 @@ it('creates and publishes the named role before opening its first independent co
   expect(call).toHaveBeenCalledWith('createRole', {
     name: 'Author',
     summary: 'Write stories',
-    defaultPermission: 'danger-full-access',
   })
   const methods = call.mock.calls.map(([method]) => method)
   expect(methods.indexOf('createRole')).toBeLessThan(methods.indexOf('openTraining'))
@@ -1835,7 +1835,7 @@ it('explains each leader policy, validates custom rules, and restores the saved 
   expect(save().disabled).toBe(true)
 })
 
-it('shows and copies the team workspace directory in board settings', async () => {
+async function openWorkspaceSettings(writeText: () => Promise<void>) {
   const run = {
     runId: 'cwd-run',
     title: 'Workspace Team',
@@ -1845,8 +1845,7 @@ it('shows and copies the team workspace directory in board settings', async () =
     workspaceCwd: '/Users/demo/project-alpha',
     locale: 'en',
   }
-  const writeText = vi.fn(async () => {})
-  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+  vi.stubGlobal('navigator', Object.create(navigator, { clipboard: { value: { writeText } } }))
   const call = vi.fn(async (method: string) => {
     if (method === 'listTeams') return [run]
     if (method === 'getTeam') return { run, seats: [seat('lead', null)] }
@@ -1854,11 +1853,41 @@ it('shows and copies the team workspace directory in board settings', async () =
   })
   harness(call).mount(<Workbench roles={[]} />)
   fireEvent.click(await screen.findByTitle(en.ui.boardSettings))
-  const dialog = screen.getByRole('dialog', { name: en.ui.boardSettings })
-  expect(within(dialog).getByText('/Users/demo/project-alpha')).toBeTruthy()
-  fireEvent.click(within(dialog).getByRole('button', { name: en.ui.copyPath }))
-  await waitFor(() => expect(writeText).toHaveBeenCalledWith('/Users/demo/project-alpha'))
-  expect(await within(dialog).findByRole('button', { name: en.ui.copiedPath })).toBeTruthy()
+  return within(screen.getByRole('dialog', { name: en.ui.boardSettings }))
+}
+
+it('shows and copies the team workspace directory in board settings', async () => {
+  const writeText = vi.fn(async () => {})
+  const dialog = await openWorkspaceSettings(writeText)
+  expect(dialog.getByText('/Users/demo/project-alpha')).toBeTruthy()
+  fireEvent.click(dialog.getByRole('button', { name: en.ui.copyPath }))
+  expect(await dialog.findByRole('button', { name: en.ui.copiedPath })).toBeTruthy()
+  expect(writeText).toHaveBeenCalledWith('/Users/demo/project-alpha')
+})
+
+it('handles a denied copy and clears copy feedback when the settings close', async () => {
+  const late = Promise.withResolvers<void>()
+  const writeText = vi.fn<() => Promise<void>>().mockRejectedValueOnce(new Error('Denied'))
+    .mockResolvedValueOnce(undefined).mockResolvedValueOnce(undefined).mockReturnValueOnce(late.promise)
+  const dialog = await openWorkspaceSettings(writeText)
+  vi.useFakeTimers()
+  try {
+    const copy = dialog.getByRole('button', { name: en.ui.copyPath })
+    await act(async () => fireEvent.click(copy))
+    expect(copy.textContent).toBe(en.ui.copyPath)
+    const baseline = vi.getTimerCount()
+    await act(async () => fireEvent.click(copy))
+    expect(copy.textContent).toBe(en.ui.copiedPath)
+    await act(async () => fireEvent.click(copy))
+    expect(vi.getTimerCount()).toBe(baseline + 1)
+    fireEvent.click(copy)
+    fireEvent.click(dialog.getByRole('button', { name: en.ui.close }))
+    expect(vi.getTimerCount()).toBe(baseline)
+    await act(async () => late.resolve())
+    expect(vi.getTimerCount()).toBe(baseline)
+  } finally {
+    vi.useRealTimers()
+  }
 })
 
 it('lets users configure default model and default permission when creating a role', async () => {
@@ -1891,10 +1920,10 @@ it('lets users configure default model and default permission when creating a ro
   })
   const h = harness(call)
   h.ui.permissions = {
-    list: async () => [
+    list: async () => ({ defaultPreset: 'danger-full-access', options: [
       { value: 'workspace-write', name: 'Workspace write' },
       { value: 'danger-full-access', name: 'Full access' },
-    ],
+    ] }),
   }
   h.mount(<RoleLibrary roles={[]} changed={() => {}} />)
   fireEvent.click(screen.getByRole('button', { name: en.ui.newRole }))
@@ -1920,6 +1949,17 @@ it('lets users configure default model and default permission when creating a ro
       defaultPermission: 'workspace-write',
     }),
   )
+})
+
+it('preselects the host permission default when full access is also available', async () => {
+  const h = harness(vi.fn(async () => []))
+  h.ui.permissions = { list: async () => ({ defaultPreset: 'read-only', options: [
+    { value: 'danger-full-access', name: 'Full access' }, { value: 'read-only', name: 'Read only' },
+  ] }) }
+  h.mount(<RoleLibrary roles={[]} changed={() => {}} />)
+  fireEvent.click(screen.getByRole('button', { name: en.ui.newRole }))
+  const permissions = screen.getByRole<HTMLSelectElement>('combobox', { name: en.ui.defaultPermission })
+  await waitFor(() => expect(permissions.value).toBe('read-only'))
 })
 
 it('edits role defaults in the Defaults tab, guards unsaved switches, and preserves unavailable values', async () => {
@@ -1955,10 +1995,10 @@ it('edits role defaults in the Defaults tab, guards unsaved switches, and preser
   })
   const h = harness(call)
   h.ui.permissions = {
-    list: async () => [
+    list: async () => ({ defaultPreset: 'danger-full-access', options: [
       { value: 'workspace-write', name: 'Workspace write' },
       { value: 'danger-full-access', name: 'Full access' },
-    ],
+    ] }),
   }
   const changed = vi.fn()
   h.mount(<Documents roleId="director" revision={1} changed={changed} />)
@@ -1987,4 +2027,32 @@ it('edits role defaults in the Defaults tab, guards unsaved switches, and preser
   expect(docText).toContain('defaultPermission: workspace-write')
   expect(docText).toContain('Keep it crisp.')
   expect(changed).toHaveBeenCalled()
+})
+
+it('retains an edited permission when the profile refreshes and reloads the conflicting revision on request', async () => {
+  const roleId = 'director'
+  let revision = 1
+  const call = vi.fn(async (method: string) => {
+    if (method === 'readDocument') return { hash: String(revision).repeat(64), text: serializeMarkdown(
+      { id: roleId, name: 'Director', defaultPermission: revision === 1 ? 'read-only' : 'auto' }, 'Original profile') }
+    return []
+  })
+  const h = harness(call)
+  h.ui.permissions = { list: async () => ({ defaultPreset: 'read-only', options:
+    ['read-only', 'workspace-write', 'auto'].map(value => ({ value, name: value })) }) }
+  const page = () => <Documents roleId={roleId} revision={revision} changed={() => {}} />
+  const app = h.mount(page())
+  await screen.findByText('Director', { selector: 'h2' })
+  fireEvent.click(screen.getByRole('tab', { name: en.ui.defaultsTab }))
+  const field = await screen.findByRole<HTMLSelectElement>('combobox', { name: en.ui.defaultPermission })
+  await within(field).findByRole('option', { name: en.ui.workspaceWrite })
+  fireEvent.change(field, { target: { value: 'workspace-write' } })
+  revision++
+  app.rerender(<Client.Provider value={h.ui}>{page()}</Client.Provider>)
+  expect((await screen.findByRole('alert')).textContent).toBe(en.ui.conflict)
+  expect(field.value).toBe('workspace-write')
+  expect(screen.getByRole<HTMLButtonElement>('button', { name: en.ui.save }).disabled).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: en.ui.useDisk }))
+  await waitFor(() => expect(field.value).toBe('auto'))
+  expect(call.mock.calls.some(([method]) => method === 'saveDocument')).toBe(false)
 })
