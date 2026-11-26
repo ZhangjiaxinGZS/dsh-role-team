@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { Notice, useAction, useLoad, useUi } from '../ui.js'
 import type { Input } from '../../shared/runtime.js'
 import type { ScheduleRow, Timing } from '../../shared/schedules.js'
@@ -40,19 +40,19 @@ function cadence(rule: Timing, t: ReturnType<typeof useUi>['t']) {
       return t(rule.kind) + ' · ' + duration.format(seconds)
     }
     case 'at':
-      return t('at')
+      return t('at') + ' · ' + new Date(rule.at).toLocaleString()
     case 'rrule':
       return rule.rrule
     case 'cron':
       return rule.cron.expression + ' · ' + rule.cron.time_zone
     case 'daily':
-      return [t('daily'), rule.daily.time.replace(/:00(?:\.000)?$/, ''), rule.daily.time_zone].join(
+      return [t('daily'), rule.daily.time.replace(/^(\d{2}:\d{2}):00(?:\.0+)?$/, '$1'), rule.daily.time_zone].join(
         ' · ',
       )
     case 'weekly':
       return [
         rule.weekly.weekdays.map((n) => weekLabel(n, navigator.language)).join(', '),
-        rule.weekly.time.replace(/:00(?:\.000)?$/, ''),
+        rule.weekly.time.replace(/^(\d{2}:\d{2}):00(?:\.0+)?$/, '$1'),
         rule.weekly.time_zone,
       ].join(' · ')
   }
@@ -258,6 +258,32 @@ function Editor({
   )
 }
 
+function SchedulePrompt({ text }: { text: string }) {
+  const { t } = useUi()
+  const id = useId()
+  const paragraph = useRef<HTMLParagraphElement>(null)
+  const [long, setLong] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  useLayoutEffect(() => {
+    const element = paragraph.current!
+    const measure = () => {
+      const threeLines = 3 * parseFloat(getComputedStyle(element).lineHeight)
+      const overflow = element.scrollHeight > Math.ceil(threeLines)
+      setLong(overflow)
+      if (!overflow) setExpanded(false)
+    }
+    measure()
+    const observer = typeof ResizeObserver !== 'undefined' && new ResizeObserver(measure)
+    if (observer) observer.observe(element)
+    return () => { if (observer) observer.disconnect() }
+  }, [text])
+  return <div className="rt-timer-prompt">
+    <p id={id} ref={paragraph} data-expanded={expanded}>{text}</p>
+    {long && <button type="button" aria-expanded={expanded} aria-controls={id}
+      onClick={() => setExpanded(!expanded)}>{t(expanded ? 'timerCollapsePrompt' : 'timerExpandPrompt')}</button>}
+  </div>
+}
+
 function History({ runId, task }: { runId: string; task: ScheduleRow }) {
   const { call, t } = useUi(),
     [before, setBefore] = useState<string>()
@@ -267,7 +293,7 @@ function History({ runId, task }: { runId: string; task: ScheduleRow }) {
     2500,
   )
   return (
-    <section>
+    <section className="rt-timer-history">
       <h4>
         {task.title} · {t('timerHistory')}
       </h4>
@@ -277,8 +303,8 @@ function History({ runId, task }: { runId: string; task: ScheduleRow }) {
       ) : history.data.records.length ? (
         history.data.records.map((r) => (
           <article key={r.messageId}>
-            <time>{new Date(r.deliveredAt).toLocaleString()}</time>
-            <p>{r.prompt}</p>
+            <time dateTime={r.deliveredAt}>{new Date(r.deliveredAt).toLocaleString()}</time>
+            {r.prompt && <SchedulePrompt text={r.prompt} />}
           </article>
         ))
       ) : (
@@ -358,31 +384,28 @@ export function SchedulePanel({ runId, active, tasks, available = true }: {
           )}
           {!tasks.data ? <p>{t('loading')}</p> : !tasks.data.length && <p>{t('emptyTimers')}</p>}
           {tasks.data?.map((task) => (
-            <article key={task.id}>
-              <strong>{task.title}</strong>
-              <small>
-                {cadence(task.timing, t)} ·{' '}
-                {t(
-                  task.status === 'active'
-                    ? 'activeTimer'
-                    : task.status === 'paused'
-                      ? 'pausedTimer'
-                      : 'endedTimer',
-                )}
-              </small>
-              {task.status === 'active' && (
-                <small>
-                  {t('scheduledFor')} · {new Date(task.scheduledAt).toLocaleString()}
-                </small>
-              )}
-              <p>{task.prompt}</p>
+            <article className="rt-timer-card" key={task.id}>
+              <header>
+                <h4>{task.title}</h4>
+                <span className="rt-timer-status" data-status={task.status}>
+                  {t(task.status === 'active' ? 'activeTimer' : task.status === 'paused' ? 'pausedTimer' : 'endedTimer')}
+                </span>
+              </header>
+              <dl className="rt-timer-meta">
+                <div><dt>{t('timerRule')}</dt><dd>{cadence(task.timing, t)}</dd></div>
+                {task.status === 'active' && <div>
+                  <dt>{t('scheduledFor')}</dt>
+                  <dd><time dateTime={task.scheduledAt}>{new Date(task.scheduledAt).toLocaleString()}</time></dd>
+                </div>}
+              </dl>
+              <SchedulePrompt text={task.prompt} />
               {deleting === task.id ? (
-                <div>
-                  {t('deleteTimerHint')}{' '}
+                <div className="rt-timer-confirm" role="group" aria-label={t('deleteTimer')}>
+                  <p>{t('deleteTimerHint')}</p>
                   <button disabled={action.busy} onClick={() => setDeleting(undefined)}>
                     {t('cancel')}
-                  </button>{' '}
-                  <button disabled={action.busy} onClick={() => apply(task, 'delete')}>
+                  </button>
+                  <button className="rt-destructive" disabled={action.busy} onClick={() => apply(task, 'delete')}>
                     {t('deleteTimer')}
                   </button>
                 </div>
@@ -411,7 +434,7 @@ export function SchedulePanel({ runId, active, tasks, available = true }: {
                       <button disabled={action.busy} onClick={() => apply(task, 'run')}>
                         {t('runTimer')}
                       </button>
-                      <button disabled={action.busy} onClick={() => setDeleting(task.id)}>
+                      <button className="rt-destructive" disabled={action.busy} onClick={() => setDeleting(task.id)}>
                         {t('deleteTimer')}
                       </button>
                     </>

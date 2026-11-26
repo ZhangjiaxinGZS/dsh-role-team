@@ -47,7 +47,7 @@ export function TeamPreview({ run }: { run: Run }) {
     <strong>{run.title}</strong>
     <Notice>{error}</Notice>
     <small>{groups.map((status, i) => t(status) + ' ' + grouped[i].length).join(' · ')}</small>
-    {loading ? t('loading') : !tasks.length ? t('noTeamTasks') : visible.map(task =>
+    {loading || !tasks.length ? <p className="rt-task-preview-empty">{t(loading ? 'loading' : 'noTeamTasks')}</p> : visible.map(task =>
       <article key={task.id} data-status={task.status}><strong>{task.subject}</strong>
         <footer>{t(task.status)} · {taskOwner(task, team.data?.seats ?? [])?.displayName ?? task.ownerName ?? t('unassigned')}</footer>
       </article>)}

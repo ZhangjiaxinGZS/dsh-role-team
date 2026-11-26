@@ -6,6 +6,8 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import en from '../locales/en-US.json' with { type: 'json' }
 import { Client, type Seat, type Ui } from '../src/client/ui.js'
+import { SchedulePanel } from '../src/client/workbench/SchedulePanel.js'
+import type { ScheduleRow } from '../src/shared/schedules.js'
 import { TeamPreview } from '../src/client/workbench/TaskBoard.js'
 import { Workbench } from '../src/client/workbench/Workbench.js'
 import {
@@ -1494,6 +1496,80 @@ it('offers team-only atomic mentions, disambiguates names and renders the serial
   expect(source.codec!.clipboardText(encoded)).toBe(encoded)
   expect(memberRule.match('go ' + encoded, 0, { read: () => undefined })).toMatchObject({ start: 3, end: 3 + encoded.length, data: { label: rows[1].name } })
   expect(memberRule.match('@readme.md', 0, { read: () => undefined })).toBeUndefined()
+})
+
+it('shows schedule status and cadence, expands only overflowing prompts and confirms deletion inline', async () => {
+  const style = document.createElement('style')
+  style.textContent = readFileSync('src/client/ui.css', 'utf8')
+  document.head.append(style)
+  const prompt = 'First instruction\nSecond instruction\nThird instruction\nComplete the final step.'
+  // jsdom does not lay out text. Provide the intrinsic heights the drawer measures.
+  const height = vi.spyOn(Element.prototype, 'scrollHeight', 'get').mockImplementation(function (this: Element) {
+    return this.textContent === prompt ? 72 : 18
+  })
+  try {
+    const rows: ScheduleRow[] = (['active', 'paused', 'ended'] as const).map(status => ({
+      id: status, title: 'Task ' + status, status, prompt: status === 'active' ? prompt : 'Brief.',
+      timing: { kind: 'daily', daily: { time: '09:00', time_zone: 'Asia/Shanghai' } },
+      scheduledAt: '2026-08-07T01:00:00.000Z', updatedAt: null,
+    }))
+    const call = vi.fn(async () => ({}))
+    harness(call).mount(<SchedulePanel runId="demo" active tasks={{ data: rows, refresh: vi.fn() }}/>)
+    const cards = screen.getAllByRole('article')
+    expect(cards.map(card => card.querySelector('header .rt-timer-status')?.textContent))
+      .toEqual([en.ui.activeTimer, en.ui.pausedTimer, en.ui.endedTimer])
+    const active = within(cards[0])
+    expect(active.getByText(en.ui.timerRule).tagName).toBe('DT')
+    expect(active.getByText(/09:00.*Asia\/Shanghai/)).toBeTruthy()
+    expect(cards[0].querySelector('time')?.dateTime).toBe(rows[0].scheduledAt)
+    expect(cards[1].querySelector('time')).toBeNull()
+    const toggle = active.getByRole('button', { name: en.ui.timerExpandPrompt })
+    const paragraph = document.getElementById(toggle.getAttribute('aria-controls')!)!
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(getComputedStyle(paragraph).getPropertyValue('-webkit-line-clamp')).toBe('3')
+    fireEvent.click(toggle)
+    expect(active.getByRole('button', { name: en.ui.timerCollapsePrompt }).getAttribute('aria-expanded')).toBe('true')
+    expect(paragraph.textContent).toBe(prompt)
+    expect(getComputedStyle(paragraph).getPropertyValue('-webkit-line-clamp')).not.toBe('3')
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(within(cards[1]).queryByRole('button', {name: en.ui.timerExpandPrompt})).toBeNull()
+    const actions = cards[0].querySelector<HTMLElement>('.rt-timer-actions')!
+    expect(within(actions).getAllByRole('button').map(b => b.textContent)).toEqual([
+      en.ui.timerHistory, en.ui.edit, en.ui.pauseTimer, en.ui.runTimer, en.ui.deleteTimer,
+    ])
+    expect(within(cards[1]).getByRole('button', {name: en.ui.resumeTimer})).toBeTruthy()
+    const remove = within(actions).getByRole('button', {name: en.ui.deleteTimer})
+    expect(remove.classList.contains('rt-destructive')).toBe(true)
+    fireEvent.click(remove)
+    const confirm = within(active.getByRole('group', {name: en.ui.deleteTimer}))
+    expect(confirm.getByText(en.ui.deleteTimerHint)).toBeTruthy()
+    expect(call).not.toHaveBeenCalled()
+    fireEvent.click(confirm.getByRole('button', {name: en.ui.deleteTimer}))
+    await waitFor(() => expect(call).toHaveBeenCalledWith('changeTeamSchedule', {
+      runId: 'demo', id: 'active', expectedUpdatedAt: null, action: 'delete',
+    }))
+  } finally { height.mockRestore(); style.remove() }
+})
+
+it('sizes the loading and empty preview text independently of the app shell', async () => {
+  const style = document.createElement('style')
+  style.textContent = readFileSync('src/client/ui.css', 'utf8')
+  document.head.append(style)
+  try {
+    const run = { runId:'peek', title:'Preview', status:'active' as const, leaderSeatId:'lead',
+      rootSessionId:'lead-session', workspaceCwd:'/tmp', createdAt:'', locale:'en' as const }
+    harness(vi.fn(async () => ({ run, seats: [] }))).mount(<TeamPreview run={run}/>)
+    const preview = screen.getByRole('region', {name: en.ui.taskBoard})
+    expect(preview.closest('.rt-app')).toBeNull()
+    expect(getComputedStyle(preview).fontSize).toBe('12.5px')
+    expect(getComputedStyle(preview).lineHeight).toBe('1.45')
+    const loading = within(preview).getByText(en.ui.loading)
+    expect(loading.matches('p.rt-task-preview-empty')).toBe(true)
+    const empty = await within(preview).findByText(en.ui.noTeamTasks)
+    expect(empty.matches('p.rt-task-preview-empty')).toBe(true)
+    expect(getComputedStyle(empty).fontSize).toBe('12px')
+  } finally { style.remove() }
 })
 
 it('submits a weekly schedule to the selected team and shows the archive impact before confirmation', async () => {

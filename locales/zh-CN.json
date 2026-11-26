@@ -227,6 +227,8 @@
     "newTimer": "新建定时任务",
     "emptyTimers": "这个团队还没有定时任务",
     "timerTitle": "任务名称",
+    "timerExpandPrompt": "展开全文",
+    "timerCollapsePrompt": "收起",
     "timerPrompt": "交给队长的执行内容",
     "timerRule": "执行方式",
     "after": "延时一次",

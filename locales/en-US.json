@@ -227,6 +227,8 @@
     "newTimer": "New task",
     "emptyTimers": "No scheduled tasks for this team",
     "timerTitle": "Task name",
+    "timerExpandPrompt": "Show full prompt",
+    "timerCollapsePrompt": "Show less",
     "timerPrompt": "Instructions for the team leader",
     "timerRule": "Frequency",
     "after": "After a delay",
