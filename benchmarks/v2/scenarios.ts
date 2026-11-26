@@ -272,7 +272,8 @@ export const catalogue: V2Scenario[] = [
       fact('pending', '待办', ['seal check', '封签检查']),
       fact('authority', '依据', ['D']),
     ],
-    prompt: 'Maintain the authoritative dispatch plan and its open action across shift handoffs.',
+    prompt:
+      'Maintain the authoritative dispatch plan and its open action across shift handoffs. plan.md is read-only; do not edit it. Write the final handoff plan to delivery.json.',
     stages: [
       { instruction: 'Approval B overrides north with west, and ops hands ownership to logistics.' },
       {

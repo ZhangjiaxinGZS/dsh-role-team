@@ -12,10 +12,14 @@ import { safeDiagnostic } from './diagnostic.ts'
 const agent={provider:'deepseek-account',model:'deepseek-flash'}
 const judge={provider:'openai-codex',model:'gpt-6.2-astra'}
 const temperature='provider-default (stripped by openai-codex)'
-const pilot=process.argv.includes('--pilot')
-const scenarios=catalogue.filter(s=>s.split==='dev' && (!pilot || ['S1','G1','L2'].includes(s.id)))
-const matrixFor=seed=>blocks(scenarios,1,seed).filter(job=>!pilot || mainArms.includes(job.arm))
-const out=fileURLToPath(new URL(pilot?'../results/v2.1-live-pilot/':'../results/v2.1-live-dev-deepseek-flash/',import.meta.url))
+const flags=process.argv.slice(process.argv[2]==='worker'?3:2)
+if(flags.length>1 || flags.some(f=>!['--pilot','--l2-check'].includes(f)))throw Error('Expected --pilot, --l2-check, or no flag')
+const l2Check=flags.includes('--l2-check')
+const selected=l2Check?['L2']:flags.includes('--pilot')?['S1','G1','L2']:null
+const phase=l2Check?'live-l2-check':selected?'live-pilot':'live-dev'
+const scenarios=catalogue.filter(s=>s.split==='dev' && (!selected || selected.includes(s.id)))
+const matrixFor=seed=>blocks(scenarios,1,seed).filter(job=>!selected || mainArms.includes(job.arm))
+const out=fileURLToPath(new URL('../results/v2.1-'+(selected?phase:'live-dev-deepseek-flash')+'/',import.meta.url))
 const file=(name)=>join(out,name)
 const save=async(name,data)=>{
   await writeFile(file(name+'.tmp'), typeof data==='string'?data:JSON.stringify(data,null,2)+'\n',{mode:0o600})
@@ -29,7 +33,7 @@ async function worker(job){
   const paths={workspace,roleStoreDir:roleStore,traceDir:join(root,'traces'),dshHome:join(root,'dsh')}
   for(const dir of Object.values(paths))await mkdir(dir,{mode:0o700})
   const scenario=scenarios.find(s=>s.id===job.scenario)
-  if(!scenario || (pilot && !mainArms.includes(job.arm)))throw Error('Job outside selected Dev matrix')
+  if(!scenario || (selected && !mainArms.includes(job.arm)))throw Error('Job outside selected Dev matrix')
   return withLocalHost({...paths,arm:job.arm,model:'deepseek-account:deepseek-flash',preset:'standard'},async ctx=>{
     if(job.pairs){
       const pairs=[]
@@ -55,7 +59,7 @@ async function isolated(job){
     const env={PATH:process.env.PATH,HOME:join(root,'home'),CODEX_HOME:join(root,'codex'),DSH_HOME:join(root,'dsh'),TMPDIR:root,DSH_TELEMETRY_DISABLED:'1',XDG_CONFIG_HOME:join(root,'config'),XDG_DATA_HOME:join(root,'data'),XDG_CACHE_HOME:join(root,'cache')}
     for(const k of ['BENCH_HOST_ANCHOR','BENCH_CODEX_PACKAGE','BENCH_V010_PACKAGE','BENCH_V020_PACKAGE'])env[k]=process.env[k]
     return await new Promise((resolve,reject)=>{
-      const child=fork(fileURLToPath(import.meta.url),(pilot?['worker','--pilot']:['worker']),{cwd:root,env,execArgv:[],stdio:['ignore','ignore','ignore','ipc']})
+      const child=fork(fileURLToPath(import.meta.url),['worker',...flags],{cwd:root,env,execArgv:[],stdio:['ignore','ignore','ignore','ipc']})
       const timer=setTimeout(()=>child.kill('SIGKILL'),20*60000)
       let result
       child.on('message',m=>{result=m})
@@ -76,10 +80,10 @@ async function main(){
     protocol={seed,split:'dev',repeats:1,agent:'deepseek-account:deepseek-flash',reasoningEffort:'high',judge:'openai-codex:gpt-6.2-astra',matrix}
   }
   const expected=matrixFor(protocol.seed)
-  if(pilot && (scenarios.length!==3 || expected.length!==9))throw Error('Invalid pilot scope')
+  if(selected && (scenarios.length!==selected.length || expected.length!==selected.length*mainArms.length))throw Error('Invalid selected scope')
   if(protocol.matrix.length!==expected.length||expected.some((j,i)=>j.scenario.id!==protocol.matrix[i].scenario||j.arm!==protocol.matrix[i].arm||protocol.matrix[i].repeat!==1))throw Error('Invalid Dev matrix')
   delete protocol.requiredTemperature
-  Object.assign(protocol,{temperature,version:'2.1',phase:pilot?'live-pilot':'live-dev',mode:'live',limits:defaultLimits,stepLimits})
+  Object.assign(protocol,{temperature,version:'2.1',phase,mode:'live',limits:defaultLimits,stepLimits})
   protocol.reservation='admit while settled weighted cost < maxWeightedCostUnits; cancel on observed usage, steps or wall time'
   await save('protocol.json',protocol)
   await save('report.md','# Benchmark v2.1 · Dev 真机冒烟\n\n运行中。temperature: '+temperature+'。\n')
@@ -104,7 +108,7 @@ async function main(){
   const ballots=preferencePackets(trials)
   let pairs=[]
   if(ballots.length)try{({pairs}=await isolated({...protocol.matrix.find(j=>j.scenario==='G3'),arm:'single-agent',pairs:ballots}))}catch(e){errors.push({stage:'pairwise judge',failure:e.message})}
-  const summary=reportV2(trials,1,{coding,pairs},{scenarios,repeats:1,mode:'live',arms:pilot?mainArms:undefined})
+  const summary=reportV2(trials,1,{coding,pairs},{scenarios,repeats:1,mode:'live',arms:selected?mainArms:undefined})
   await save('audit/human-review.json',trials.filter(t=>blindSample(trials).includes(blindId(t))).map(blindPacket))
   await save('audit/pairs.json',pairs)
   await save('summary.json',{mode:'live',temperature,planned:expected.length,completed:trials.length,detail,errors,...summary})

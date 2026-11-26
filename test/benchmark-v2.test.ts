@@ -334,6 +334,41 @@ it('recognizes equivalent facts while rejecting inconsistent dates, alternatives
     expect(check(id, key, value), value).toBe(false)
 })
 
+describe('L2 handoff', () => {
+  const scenario = catalogue.find(s => s.id === 'L2')!
+  it('gives every arm the read-only plan and delivery file contract', () => {
+    expect(scenario.prompt).toContain('plan.md is read-only')
+    expect(scenario.prompt).toContain('delivery.json')
+    expect(writable(scenario, 'lead', 'plan.md')).toBe(false)
+    expect(writable(scenario, 'lead', 'delivery.json')).toBe(true)
+  })
+
+  it.each([
+    ['authority', 'D', true],
+    ['authority', 'Approval D', true],
+    ['authority', 'Approval D (supersedes Approvals A, B and C)', true],
+    ['authority', 'Approval D (supersedes Approval C)', true],
+    ['authority', 'Approval D (supersedes all previous approvals)', true],
+    ['authority', 'Approval C', false],
+    ['authority', 'Approval C (supersedes Approval D)', false],
+    ['authority', 'Approval D (subject to finance approval)', false],
+    ['authority', 'Approval D (supersedes Approvals A, B and D)', false],
+    ['pending', 'seal check', true],
+    ['pending', 'seal check — must be passed before dispatch', true],
+    ['pending', 'Seal check before dispatch.', true],
+    ['pending', 'Seal check (required before dispatch)', true],
+    ['pending', 'Perform a seal check prior to dispatch', true],
+    ['pending', '发车前完成封签检查', true],
+    ['pending', 'radio check', false],
+    ['pending', 'seal check and radio check before dispatch', false],
+    ['pending', 'seal check — must be passed after dispatch', false],
+    ['pending', 'seal check before dispatch; per-vehicle seal-id record required', false],
+    ['pending', 'seal check complete', false],
+  ] as const)('checks %s = %s', (field, value, accepted) => {
+    expect(factChecks(scenario.facts, { [field]: value }, 'L2')[field]).toBe(accepted)
+  })
+})
+
 it('distinguishes repeated identical failed steps from independent retries and successful work', async () => {
   const { Budget } = await import('../benchmarks/v2/protocol.ts')
   const b = new Budget(defaultLimits)

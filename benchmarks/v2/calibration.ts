@@ -45,11 +45,13 @@ export function fixture(s: V2Scenario, kind: Kind): Evidence {
   if (s.id === 'S2' && kind === 'reference') artifact = { duration: '12 minutes' }
   if (s.id === 'S2' && kind === 'equivalent') artifact = { 时长: '720 seconds' }
   if (s.id === 'L3' && kind === 'equivalent') artifact = { 吊装: 'B1', 封签: 'C3', 审计: 'A2' }
+  if (s.id === 'L2' && kind === 'equivalent')
+    artifact = { ...Object.fromEntries(fields), 依据: 'Approval D (supersedes Approvals A, B and C)', 待办: 'seal check — must be passed before dispatch' }
   if (kind === 'spurious') {
     if (s.id === 'G5') artifact = { ...Object.fromEntries(fields), budget: 'WITHHELD', recovery: 'WITHHELD' }
     if (s.id === 'S2') artifact = { duration: '12 hours' }
     if (s.id === 'S3') artifact = { codes: '1:west|23:north|7:east' }
-    if (s.id === 'L2') artifact = { ...Object.fromEntries(fields), region: 'west', pending: 'radio check' }
+    if (s.id === 'L2') artifact = { ...Object.fromEntries(fields), authority: 'Approval C', pending: 'seal check and radio check' }
     if (s.id === 'L3') artifact = { lift: 'A1', audit: 'C2', seal: 'B3' }
   }
   const events: AuditEvent[] = []

@@ -83,6 +83,30 @@ function quantifiedTradeoff(text: string) {
   }
   return cost && latency
 }
+function handoffValue(key: string, text: string) {
+  const value = text.replace(/[.。]$/u, '')
+  if (key === 'authority') {
+    const match = /^(?:approval )?d(?: \((?:final|supersedes ([^()]+))\))?$/u.exec(value)
+    if (!match) return false
+    if (!match[1] || /^(?:all )?(?:prior|previous|earlier) approvals$/u.test(match[1])) return true
+    // A supersession note may only name earlier approvals, never another current authority.
+    return match[1]
+      .replace(/^approvals? /u, '')
+      .split(/,\s*(?:and )?|\s+and\s+|\s*\/\s*/u)
+      .every(id => /^(?:approval )?[abc]$/u.test(id))
+  }
+  if (key !== 'pending') return false
+  const action = value
+    .replace(/\s+\(([^()]+)\)$/u, ' $1')
+    .replace(/\s+[-–—]\s+|:\s+/u, ' ')
+    .replace(/\bprior to dispatch$/u, 'before dispatch')
+  return (
+    /^(?:seal check(?: (?:(?:must be (?:passed|completed)|(?:is )?required) )?before dispatch)?|pre-dispatch seal check)$/u.test(action)
+    || /^(?:pass|perform|complete) (?:the |a )?seal check before dispatch$/u.test(action)
+    || /^(?:发车前|发运前)(?:完成|通过)?封签检查$/u.test(value)
+  )
+}
+
 export function factChecks(facts: Fact[], artifact: unknown, scenario?: string) {
   const norm = (s: string) => s.normalize('NFKC').trim().toLowerCase().replace(/\s+/g, ' ')
   const entries = new Map<string, unknown[]>()
@@ -122,6 +146,7 @@ export function factChecks(facts: Fact[], artifact: unknown, scenario?: string) 
         if (['C2', 'G1'].includes(scenario ?? '') && f.key === 'deadline' && weekday(text, expected[0]))
           return true
         if (scenario === 'G3' && storageValue(f.key, text)) return true
+        if (scenario === 'L2' && handoffValue(f.key, text)) return true
         if (scenario === 'S2' && /^(720\s*(seconds?|秒)|0\.2\s*(hours?|小时))$/.test(text)) return true
         if (!f.unit) return expected.includes(text)
         const quantity = /^([+-]?\d+(?:\.\d+)?)\s*([^\d]*)$/u.exec(text)

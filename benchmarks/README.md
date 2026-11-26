@@ -149,3 +149,5 @@ Within each S/M/L tier, compare the three primary arms on the same scenario and 
 The tier score is `0.50 × mean(Q) + 0.25 × mean(X) + 0.25 × mean(E)`. The report shows the matched denominator and tied best/worst arms. Offline fixtures use a deterministic event clock. `N/A` marks inapplicable measures, `SKIPPED (offline)` marks intentionally omitted online judgments, and `ERR/MISSING` marks expected live data that was missing or rejected.
 
 Run the live v2.1 pilot with `node benchmarks/drivers/v2-dev-smoke.mjs --pilot`. It runs S1, G1 and L2 once on each primary arm, saves resumable tickets under `results/v2.1-live-pilot/`, and uses the same isolated host and provider-default Codex sampling as the Dev smoke test. Set `BENCH_V020_PACKAGE` to a built checkout of tag `v0.2.0` when the current plugin version has advanced.
+
+Use `--l2-check` for the L2 handoff recheck. It runs one trial per primary arm and saves its three tickets under `results/v2.1-live-l2-check/`.
