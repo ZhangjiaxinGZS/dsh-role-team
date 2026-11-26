@@ -83,7 +83,7 @@ export class TeamRuntime {
     if (run.status !== 'active') throw new Error('Team is not active')
     return run
   }
-  mentionRoster(runId: string) {
+  mentionRoster(runId: string, selfSeatId?: string) {
     const { seats } = this.getTeam(runId)
     const byId = new Map(seats.map(s => [s.seatId, s]))
     const address = (seat: Seat): string => {
@@ -96,7 +96,7 @@ export class TeamRuntime {
       }
       return path.join('/')
     }
-    const members = seats.filter(s => s.status === 'active' && !s.joining).map(s => {
+    const members = seats.filter(s => s.status === 'active' && (!s.joining || s.seatId === selfSeatId)).map(s => {
       const role = this.roles.published(s.roleId) ?? this.cache.get(s.roleId + '/' + s.adoptedRoleRev)
       return { seatId: s.seatId, name: s.displayName, duty: role?.role.meta.summary ?? '',
         address: address(s), leader: !s.parentSeatId }
@@ -326,6 +326,15 @@ export class TeamRuntime {
     })
   }
   private async finishJoin(seat: Seat) {
+    const ready = await this.index.seats.update(seat.seatId, ({ joining, ...row }) => row)
+    try {
+      await this.notifyJoined(ready)
+    } catch (error) {
+      this.native.ctx.logger.warn(`Could not announce joined seat ${seat.seatId}: ${String(error)}`)
+    }
+    return ready
+  }
+  private async notifyJoined(seat: Seat) {
     const run = this.active(seat.runId)
     const snap = await this.snapshot(seat.roleId, seat.adoptedRoleRev)
     const duty = snap.role.meta.summary || (run.locale === 'en' ? 'Awaiting assignment' : '待队长安排')
@@ -347,7 +356,6 @@ export class TeamRuntime {
         delivery: 'queue',
         text: message,
       })
-    return this.index.seats.update(seat.seatId, ({ joining, ...ready }) => ready)
   }
   /** Restore interrupted creation intents before the next UI operation addresses their seats. */
   async recover() {
@@ -380,10 +388,11 @@ export class TeamRuntime {
         await this.archiveTeam(run.runId)
         continue
       }
-      for (const seat of this.getTeam(run.runId).seats.filter(
-        (s) => s.joining && s.status === 'active',
-      )) {
+      for (const pending of this.getTeam(run.runId).seats.filter(s => s.joining && s.status === 'active')) {
         await this.ordered(run.runId, async () => {
+          const seat = this.index.seats.get(pending.seatId)
+          if (!seat?.joining || seat.status !== 'active') return
+          // spawn validates the native membership and reuses an already-admitted child.
           const parent = this.seat(seat.parentSeatId!)
           await this.native.spawn(
             run.rootSessionId,
@@ -637,7 +646,7 @@ export class TeamRuntime {
         run.locale === 'en'
           ? "Team brief: this team shares a concise brief. Any member may call read_team_brief; only the leader (and user) may call update_team_brief (max 1500 chars: current goal, locked decisions/guardrails, current stage and artifact paths—never paste long reports). Updates sync incrementally. The user's latest direct instruction always overrides the brief."
           : '团队简报：本队共享一份简短主线简报。成员可用 read_team_brief 查看；仅队长（和用户）可用 update_team_brief 更新（限 1500 字，只写主线目标、已拍板决定与红线、当前阶段与产物路径，不粘贴长报告）。简报变更时系统会自动增量同步。用户最新直接指令始终高于简报。',
-        JSON.stringify({ ...this.mentionRoster(run.runId), selfSeatId: seat.seatId }),
+        JSON.stringify({ ...this.mentionRoster(run.runId, seat.seatId), selfSeatId: seat.seatId }),
       ].join('\n'),
     )
     agent.ctx.systemPrompt.context({

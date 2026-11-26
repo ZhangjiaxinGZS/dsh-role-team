@@ -816,6 +816,35 @@ it.each(['collapse', 'switch'] as const)('protects profile edits on %s and leave
   expect(await screen.findByText('New draft')).toBeTruthy()
 })
 
+it.each(['rt-app', 'rt-settings', 'rt-modal-content'])('keeps the focused field border in %s', scope => {
+  const style = document.createElement('style')
+  // jsdom does not resolve custom properties in border shorthands.
+  style.textContent = 'select:focus, input:focus, textarea:focus { border: 0; }\n' +
+    readFileSync('src/client/ui.css', 'utf8')
+      .replaceAll('var(--dsw-alias-border-l3)', '#777')
+      .replaceAll('var(--dsw-alias-state-business-primary)', '#3366cc')
+  document.head.append(style)
+  try {
+    const { container } = render(<div className={scope}>
+      <div className="rt-defaults"><select><option>A</option><option>B</option></select></div>
+      <input /><textarea />
+      <div className="rt-transcript"><select><option>A</option></select></div>
+    </div>)
+    for (const field of Array.from(container.querySelectorAll<HTMLElement>('select, input, textarea'))) {
+      if (field.closest('.rt-transcript')) {
+        field.focus()
+        expect(getComputedStyle(field).borderTopWidth).not.toBe('1px')
+        continue
+      }
+      field.focus()
+      if (field instanceof HTMLSelectElement) fireEvent.change(field, { target: { value: 'B' } })
+      expect(document.activeElement).toBe(field)
+      expect(getComputedStyle(field).borderTopWidth).toBe('1px')
+      expect(getComputedStyle(field).borderTopColor).toBe('rgb(51, 102, 204)')
+    }
+  } finally { style.remove() }
+})
+
 it('chains split-view scrolling and gives the full profile a single scroll surface', async () => {
   const style = document.createElement('style')
   style.textContent = readFileSync('src/client/ui.css', 'utf8')

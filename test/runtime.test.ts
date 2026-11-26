@@ -735,6 +735,64 @@ it('applies the leader permission but not a member permission, and restores the 
   expect(presets.current(next.session)).toBe('read-only')
   await ctx.subagents.waitForTreeWork(root)
 })
+it('includes the joining child in its first system message and makes it public before notifying the lead', async () => {
+  const { run } = await newTeam('Admission order')
+  const firstSystem = Promise.withResolvers<string>()
+  let noticeRoster: ReturnType<typeof service.teamMentionRoster> | undefined
+  ctx.on('session/event', (session, event) => {
+    if (session.id.startsWith('rt-child-') && event.type === 'system/message' && event.data.turn === 1) {
+      const text = event.data.message.content.flatMap(b => b.type === 'text' ? [b.text] : []).join('\n')
+      firstSystem.resolve(text)
+    }
+    if (session.id === run.rootSessionId && !noticeRoster &&
+        (event.type === 'user/message' || event.type === 'agent/inbox/spliced') &&
+        JSON.stringify(event.data).includes('已加入团队并就绪')) {
+      noticeRoster = service.teamMentionRoster({ sessionId: run.rootSessionId })
+    }
+  })
+  // Hold admission open until the child's actual first system/message has been recorded.
+  const start = ctx.subagents.startActivation.bind(ctx.subagents)
+  let pendingRoster: Awaited<ReturnType<typeof service.teamMentionRoster>> | undefined
+  vi.spyOn(ctx.subagents, 'startActivation').mockImplementation(async spec => {
+    const activation = await start(spec)
+    await firstSystem.promise
+    pendingRoster = await service.teamMentionRoster({ sessionId: run.rootSessionId })
+    return activation
+  })
+  const child = await service.addMember({ runId: run.runId, roleId })
+  const rosterLine = (await firstSystem.promise).split('\n').find(line => line.startsWith('{"runId":'))
+  expect(rosterLine).toBeDefined()
+  expect(JSON.parse(rosterLine!)).toMatchObject({ runId: run.runId, selfSeatId: child.seatId,
+    members: expect.arrayContaining([expect.objectContaining({ seatId: child.seatId, address: child.nativeAgentName })]) })
+  expect(pendingRoster?.members.map(s => s.seatId)).toEqual([run.leaderSeatId])
+  await vi.waitFor(() => expect(noticeRoster).toBeDefined())
+  expect((await noticeRoster)?.members.map(s => s.seatId)).toContain(child.seatId)
+})
+
+it('keeps an admitted child ready after a notification failure and recovers a legacy joining flag', async () => {
+  const { run } = await newTeam('Recover admission')
+  const offline = new Error('Join notice delivery unavailable')
+  const send = vi.spyOn(ctx.subagents, 'sendMessage').mockRejectedValue(offline)
+  const fallback = vi.spyOn(ctx.sessionController, 'prompt').mockRejectedValue(offline)
+  const child = await service.addMember({ runId: run.runId, roleId })
+  expect(send.mock.calls.length + fallback.mock.calls.length).toBeGreaterThan(0)
+  expect(child.joining).toBeUndefined()
+  expect(service.index.seats.get(child.seatId)?.status).toBe('active')
+  send.mockRestore()
+  fallback.mockRestore()
+  await ctx.subagents.waitForTreeWork(ctx.agents.get(run.rootSessionId as SessionId)!)
+  await service.index.seats.update(child.seatId, s => ({ ...s, joining: true }))
+  await ctx.fiber.dispose()
+  await boot()
+  expect(service.index.seats.get(child.seatId)).toMatchObject({ status: 'active',
+    currentSessionId: child.currentSessionId, currentGeneration: 1 })
+  expect(service.index.seats.get(child.seatId)?.joining).toBeUndefined()
+  expect((await ctx.subagents.listDescendants(run.rootSessionId as SessionId)).map(s => s.id))
+    .toEqual([child.currentSessionId])
+  expect((await service.teamMentionRoster({ sessionId: run.rootSessionId }))?.members.map(s => s.seatId))
+    .toContain(child.seatId)
+})
+
 it('delivers a localized membership notice and mirrors the lead permission to live and new children', async () => {
   ctx.provide('shell', { sandboxMode: 'workspace-write' } as never)
   ctx.provide('approval', { config: { policy: 'ask' } } as never)

@@ -40,6 +40,17 @@
   border-radius: var(--dsw-radius-sm);
   padding: 6px 10px;
 }
+:is(.rt-app, .rt-settings, .rt-modal-content)
+  :is(select, textarea, input):not(.rt-transcript *, [type='checkbox'], [type='radio'], [type='range']) {
+  border: 1px solid var(--dsw-alias-border-l3);
+}
+:is(.rt-app, .rt-settings, .rt-modal-content)
+  :is(select, textarea, input):not(.rt-transcript *, [type='checkbox'], [type='radio'], [type='range']):is(:focus, :focus-visible) {
+  /* Pointer input can suppress the host outline. Keep the field edge visible. */
+  border: 1px solid var(--dsw-alias-state-business-primary);
+  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 1px;
+}
 :where(.rt-app, .rt-settings, .rt-modal-content) :where(button):not(:where(.rt-transcript *)) {
   min-height: 28px;
   padding: 3px 10px;
