@@ -278,6 +278,8 @@
     "briefDiscard": "放弃修改",
     "briefSaveAndLeave": "保存并继续",
     "briefSynced": "已同步团队简报",
-    "schedulesUnavailable": "当前宿主未启用定时任务服务。"
+    "schedulesUnavailable": "当前宿主未启用定时任务服务。",
+    "copyPath": "复制",
+    "copiedPath": "已复制"
   }
 }

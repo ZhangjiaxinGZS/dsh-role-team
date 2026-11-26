@@ -1777,3 +1777,29 @@ it('explains each leader policy, validates custom rules, and restores the saved 
   expect(screen.getByRole<HTMLTextAreaElement>('textbox', {name:en.ui.policyInstructions}).disabled).toBe(true)
   expect(save().disabled).toBe(true)
 })
+
+it('shows and copies the team workspace directory in board settings', async () => {
+  const run = {
+    runId: 'cwd-run',
+    title: 'Workspace Team',
+    status: 'active',
+    leaderSeatId: 'lead',
+    rootSessionId: 'lead-session',
+    workspaceCwd: '/Users/demo/project-alpha',
+    locale: 'en',
+  }
+  const writeText = vi.fn(async () => {})
+  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+  const call = vi.fn(async (method: string) => {
+    if (method === 'listTeams') return [run]
+    if (method === 'getTeam') return { run, seats: [seat('lead', null)] }
+    return []
+  })
+  harness(call).mount(<Workbench roles={[]} />)
+  fireEvent.click(await screen.findByTitle(en.ui.boardSettings))
+  const dialog = screen.getByRole('dialog', { name: en.ui.boardSettings })
+  expect(within(dialog).getByText('/Users/demo/project-alpha')).toBeTruthy()
+  fireEvent.click(within(dialog).getByRole('button', { name: en.ui.copyPath }))
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith('/Users/demo/project-alpha'))
+  expect(await within(dialog).findByRole('button', { name: en.ui.copiedPath })).toBeTruthy()
+})

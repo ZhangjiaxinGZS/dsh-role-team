@@ -313,6 +313,7 @@ function TeamBoard({ run, roles, toggle, onMembersChanged }: {
         team.refresh()
       }} />}
       {settings && <Modal title={t('boardSettings')} close={() => showSettings(false)}>
+        <WorkspacePathField path={data.run.workspaceCwd} />
         <div className="rt-width-settings">
           <label htmlFor="rt-column-width">{t('columnWidth')} <output htmlFor="rt-column-width">{width} px</output></label>
           <input id="rt-column-width" type="range" min={320} max={960} step={10} value={width}
@@ -570,6 +571,27 @@ export function SeatResetModal({
         </footer>
       </form>
     </Modal>
+  )
+}
+
+function WorkspacePathField({ path }: { path?: string }) {
+  const { t } = useUi()
+  const [copied, setCopied] = useState(false)
+  if (!path) return null
+  const copy = () => {
+    void navigator.clipboard?.writeText(path).then(() => {
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    })
+  }
+  return (
+    <div className="rt-workspace-dir">
+      <span className="rt-workspace-dir-label">{t('directory')}</span>
+      <div className="rt-workspace-dir-row">
+        <code className="rt-workspace-path" title={path}>{path}</code>
+        <button type="button" onClick={copy}>{t(copied ? 'copiedPath' : 'copyPath')}</button>
+      </div>
+    </div>
   )
 }
 

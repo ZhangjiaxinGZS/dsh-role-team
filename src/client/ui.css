@@ -906,3 +906,32 @@ button.rt-task-owner { min-height: 22px; padding: 1px 6px; font-size: 12px; colo
 .rt-policy-hint { display: block; margin-block-start: 2px; }
 .rt-policy-custom textarea { box-sizing: border-box; width: 100%; resize: vertical; }
 .rt-policy-custom > div { display: flex; justify-content: space-between; align-items: center; margin-block-start: 6px; }
+
+.rt-workspace-dir {
+  display: grid;
+  gap: 6px;
+  padding-block-end: 12px;
+  margin-block-end: 12px;
+  border-block-end: 1px solid var(--dsw-alias-border-l4);
+}
+.rt-workspace-dir-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-secondary);
+}
+.rt-workspace-dir-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.rt-workspace-path {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-module-platform);
+  font: 12.5px/1.45 var(--ds-font-family-code);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
