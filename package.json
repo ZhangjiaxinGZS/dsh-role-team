@@ -1,6 +1,6 @@
 {
   "name": "dsh-role-team",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Plain-text role and memory library for DeepSeek Harness teams",
   "type": "module",
   "engines": {
