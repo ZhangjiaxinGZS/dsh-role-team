@@ -2,14 +2,14 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { ContextMessageNode } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { IconChevronDownOutlineRegular, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
-import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ComponentType, type ReactNode } from 'react'
+import { extractMarkdownPlainText, IconChevronDownOutlineRegular, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ComponentType, type ReactNode } from 'react'
 import type { Ui } from '../ui.js'
 
 type Input = Pick<ContextMessageNode, 'source' | 'content'>
 type NodeKind = 'turn-trigger' | 'context' | 'turn-process'
 type Props<K extends NodeKind> = PropsRuntime<'conversation.chat.node', K> & PropsLocale<'chat'>
-type Sender = { name: string | null } | null
+type Sender = { name: string | null; fromParent?: boolean } | null
 type Text = Ui['t']
 
 export function teamMessage({ source, content }: Input) {
@@ -44,7 +44,7 @@ export function teamMessage({ source, content }: Input) {
         const line = prefix[2]
         status = line.startsWith('finished') ? 'completed' : line.startsWith('was stopped') ? 'aborted'
           : line.startsWith('ran out') ? 'max-tokens' : line.startsWith('declined') ? 'refusal'
-          : line.startsWith('failed') ? 'error' : undefined
+          : line.startsWith('failed') ? 'error' : 'unknown'
       }
       omitted = /^\s*It sent you a message just before finishing, so its closing message is omitted\./.test(body)
       // Native notices have a dedicated marker block. Preserve significant Markdown
@@ -69,19 +69,20 @@ const statusLabels: Readonly<Partial<Record<string, Parameters<Text>[0]>>> = {
   'max-tokens': 'reportLimit', refusal: 'reportRefused',
 }
 
-function ReportBody({ message, t, id }: { message: Message; t: Text; id: string }) {
+function ReportBody({ message, t, id, clamp }: { clamp: boolean; message: Message; t: Text; id: string }) {
   const content = useRef<HTMLDivElement>(null)
   const [long, setLong] = useState(false), [full, setFull] = useState(false)
   useLayoutEffect(() => {
+    if (!clamp) return
     const element = content.current!
     const measure = () => setLong(element.getBoundingClientRect().height > 260)
     measure()
     const observer = typeof ResizeObserver !== 'undefined' && new ResizeObserver(measure)
     if (observer) observer.observe(element)
     return () => { if (observer) observer.disconnect() }
-  }, [message])
+  }, [message, clamp])
   return <div id={id} className="rt-report">
-    <div className="rt-report-window" data-full={long && full || undefined} id={id + '-body'}>
+    <div className="rt-report-window" data-full={!clamp || (long && full) || undefined} id={id + '-body'}>
       <div className="rt-team-trigger-body" ref={content}>
         {message.omitted && <small>{t('reportAlreadySent')}</small>}
         {message.parts.map((part, i) => 'text' in part
@@ -95,19 +96,54 @@ function ReportBody({ message, t, id }: { message: Message; t: Text; id: string 
   </div>
 }
 
-export function TeamMessageCard({ message, name, time, t }: { message: Message; name: string; time: number; t: Text }) {
-  const [open, setOpen] = useState(true)
+export function TeamMessageCard({ message, name, time, t, fromParent = false }: { fromParent?: boolean; message: Message; name: string; time: number; t: Text }) {
+  const [open, setOpen] = useState(fromParent)
   const id = useId()
   const date = new Date(time)
   const title = t('messageFrom').replace('{name}', () => name)
   const status = message.status && Object.hasOwn(statusLabels, message.status) ? statusLabels[message.status] : undefined
-  return <section className="rt-team-trigger" data-turn-trigger>
+  const markdown = fromParent ? '' : message.parts.flatMap(part => 'text' in part ? [part.text] : []).join('\n')
+  const summary = useMemo(() => fromParent ? '' : extractMarkdownPlainText(markdown, { mode: 'first-line' }), [fromParent, markdown])
+  const alert = ['aborted', 'error', 'refusal'].includes(message.status ?? '')
+  return <section className="rt-team-trigger" data-turn-trigger data-alert={alert || undefined} data-status={message.status}>
     <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
-      <span>{message.settled ? title + ' · ' + t(status ?? 'reportEnded') : title}</span>
+      <span className="rt-report-sender">{title}{message.settled && <span className="rt-report-status">{' · ' + t(status ?? 'reportEnded')}</span>}</span>
+      {!open && !fromParent && <span className="rt-report-summary">{summary}</span>}
       <time dateTime={date.toISOString()} title={date.toLocaleString()}>{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
       <IconChevronDownOutlineRegular size={12} />
     </button>
-    {open && <ReportBody id={id} message={message} t={t} />}
+    {open && <ReportBody clamp={fromParent} id={id} message={message} t={t} />}
+  </section>
+}
+
+function syncSnapshot({ source, content }: Input, t: Text) {
+  if (!source || typeof source !== 'object' || !('kind' in source) ||
+      (source.kind !== 'team-policy' && source.kind !== 'team-brief')) return null
+  const text = content.flatMap(block => block.type === 'text' ? [block.text] : []).join('')
+  if (source.kind === 'team-policy') {
+    const mode = Reflect.get(source, 'mode')
+    const name = mode === 'custom' ? 'policyCustom' : mode === 'balanced' ? 'policyBalanced' : 'policyDelegate'
+    return { policy: true, title: t('policySynced') + ' · ' + t(name),
+      body: text.replace(/^<team-leader-policy\b[^>]*>\r?\n?/, '').replace(/\r?\n?<\/team-leader-policy>\s*$/, '') }
+  }
+  const body = text
+    .replace(/^<team-brief-update\b[^>]*>\r?\n?/, '').replace(/\r?\n?<\/team-brief-update>\s*$/, '')
+    .replace(/^(?:说明：用户最新直接指令的优先级始终高于本简报。|Note: The user’s latest direct instruction always overrides this brief\.)\r?\n/, '')
+  return { body, policy: false, title: t('briefSynced') + ' · ' + t(Reflect.get(source, 'updatedBy') === 'leader' ? 'briefUpdatedByLeader' : 'briefUpdatedByUser') }
+}
+
+function SyncNotice({ notice, time, t }: { notice: NonNullable<ReturnType<typeof syncSnapshot>>; time: number; t: Text }) {
+  const [open, setOpen] = useState(false)
+  const id = useId(), date = new Date(time)
+  return <section className="rt-team-trigger" data-brief-notice={!notice.policy || undefined} data-policy-notice={notice.policy || undefined}>
+    <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
+      <span>{notice.title}</span>
+      <time dateTime={date.toISOString()}>{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
+      <IconChevronDownOutlineRegular size={12}/>
+    </button>
+    {open && <div id={id} className="rt-team-trigger-body"><MarkdownText text={notice.body} omitHtml labels={{
+      code: { copyLabel: t('copyCode'), copiedLabel: t('copiedCode') }, footnotes: t('footnotes'),
+    }}/></div>}
   </section>
 }
 
@@ -136,7 +172,7 @@ export function registerTeamTrigger(ctx: Context, call: Ui['call'], t: Text) {
       && !message.parts.some(part => 'block' in part || part.text.trim())
     if (moved || emptyReceipt) return null
     const alias = senderName && !/^(?:role-|rt-(?:root|child)-|lead$)/.test(senderName) ? senderName : undefined
-    return <TeamMessageCard message={message} name={resolved.sender.name ?? alias ?? t('messageMember')} time={time} t={t} />
+    return <TeamMessageCard fromParent={resolved.sender.fromParent} message={message} name={resolved.sender.name ?? alias ?? t('messageMember')} time={time} t={t} />
   }
 
   // Only move context rows inside the native fold range. Partially loaded turns
@@ -152,9 +188,26 @@ export function registerTeamTrigger(ctx: Context, call: Ui['call'], t: Text) {
     const { node, useChat, sessionId } = props
     const source = useChat(s => s.nodes.turnDataSource(node.data.turn, 'context'))
     const rows = useSyncExternalStore(source.subscribe, source.getSnapshot)
-    return <>{rows.map(row => {
-      if (!inProcess(row.seq, props)) return null
-      const message = teamMessage(row)
+    const latest = new Map<string, Message>()
+    const entries = rows.filter(row => inProcess(row.seq, props))
+      .map(row => ({ row, message: teamMessage(row) }))
+      .filter(({ message }) => {
+        if (!message) return true
+        const key = message.senderId ? 'id:' + message.senderId : message.senderName && 'name:' + message.senderName
+        if (!key) return true
+        if (!message.settled) {
+          latest.set(key, message)
+          return true
+        }
+        const report = latest.get(key)
+        if (!report || (message.status && message.status !== 'completed')) return true
+        report.settled = true
+        report.status = 'completed'
+        return false
+      })
+    return <>{entries.map(({ row, message }) => {
+      const notice = syncSnapshot(row, t)
+      if (notice) return <SyncNotice key={row.seq} notice={notice} time={row.time} t={t}/>
       return message && <Report key={row.seq} message={message} sessionId={sessionId} time={row.time} fallback={null} />
     })}</>
   }
@@ -172,6 +225,9 @@ export function registerTeamTrigger(ctx: Context, call: Ui['call'], t: Text) {
   for (const key of ['turn-trigger', 'context'] as const) {
     register(key, (props, native) => {
       const { data } = props.node
+      const notice = syncSnapshot(data, t)
+      if (notice) return props.node.kind === 'context' && inProcess(data.seq, props)
+        ? null : <SyncNotice notice={notice} time={data.time} t={t}/>
       const message = teamMessage(data)
       return message ? <Report message={message} sessionId={props.sessionId} time={data.time} fallback={native}
         moved={props.node.kind === 'context' && inProcess(data.seq, props)} /> : native

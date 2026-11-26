@@ -1,0 +1,21 @@
+{
+  "host": "DSH Desktop runtime 0.2.2-rc.5",
+  "node": "v26.6.0",
+  "baselineTag": "v0.1.0",
+  "baselineCommit": "f3e0b353fe894adbc36784c496c1fefc9ca31ec5",
+  "subscription": "dsh-codex-subscription 3.2.30",
+  "sha256": {
+    "v0.1.0/dist/host.js": "bd2d0554ca5f4d75bff94b1bb0da0b9a9083bf67e77e8795549a19484d19dcf8",
+    "v0.1.0/dist/remote.js": "34723297de625edec6f35431f244e88fdb82416500193a5a5b77df0b403e6b37",
+    "v0.1.0/dist/schedules-CdtW7Gnc.js": "32597c14fc1cd08504d03e06f3c0ad41e15de54dbfcf7ee1ee95badf5d0fbdda",
+    "v0.1.0/dist/shared-DrX8sV4W.js": "2e9f9e1f3bb65f430748b15a9de141a16f32bfe7b6aaa4f9d9179f7b96bc46a2",
+    "v0.1.0/dist/shared.js": "3249c46e1c646914b0796f516d5eaca70e7a73cbdca9e1b9a53ae7569603b5ca",
+    "v0.2.0/dist/host.js": "fc72cde677f0b00463ce09d4644f5357d69052e615ac128f811c6dbc0f3860d1",
+    "v0.2.0/dist/remote.js": "163141b0fb425c63fc371b45fbede55d2426f9dad5f0d72496e2f3fde7ccb4c3",
+    "v0.2.0/dist/runtime-KlI7kjYl.js": "349e87e8cc81edcbed1b052aae373a81cd6260e82ff4d2430e398db87c81ad01",
+    "v0.2.0/dist/shared-uN6t1-Qi.js": "5aa8b53955fe4879be0160cb846ebee2fbd78912b99378dad3f59a1abbc96826",
+    "v0.2.0/dist/shared.js": "2b404194b5984a6590de1dc5f430dcaa6f1c318a22163fec76281ea094c3416f",
+    "dsh-codex-subscription-3.2.30.tgz": "9ae3f74b83b0a378ed82c0062af35ea00a16fecdcb6c7fd2ca44b0cdde36d587",
+    "dsh-desktop-runtime/package.json": "fa342021105009d1facf56958989dd9ddb26357b090808f9523b1bf924fed150"
+  }
+}

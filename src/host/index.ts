@@ -3,7 +3,7 @@ import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import schema from '@deepseek-ai/schemastery'
 import { TeamRuntime } from './team-runtime/index.js'
 import { NativeTeam } from './team-runtime/native.js'
-import type { Input } from '../shared/runtime.js'
+import { runtimeMethods, type Input } from '../shared/runtime.js'
 import { defaultRoleDir, RoleStore } from './role-store/index.js'
 import { repository, teamDomain } from './storage/index.js'
 import type { DeleteRequest, EditRequest, FileRef, RoleTeamRpc } from '../shared/index.js'
@@ -72,7 +72,6 @@ export default class RoleTeamService extends TypertRemoteService implements Role
         'sessionController',
         'sessionQuery',
         'sessionPersistence',
-        'agentTeams',
         'subagents',
         'workspaceRegistry',
         'tools',
@@ -137,11 +136,18 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     ))
     const candidates = generations.filter(g => members.has(g.seatId))
     const exact = candidates.find(g => g.sessionId === senderId)
-    if (exact) return { name: members.get(exact.seatId)! }
+
     // Collaboration names are unique among siblings, but can repeat in different branches.
     const matches = new Set(candidates.filter(g => g.nativeAgentName === senderName).map(g => g.seatId))
     const [only] = matches
-    return { name: matches.size === 1 ? members.get(only)! : null }
+    const senderSeat = exact?.seatId ?? (matches.size === 1 ? only : undefined)
+    const ancestors = new Set<string>()
+    let parent = seat.parentSeatId
+    while (parent && members.has(parent) && !ancestors.has(parent)) {
+      ancestors.add(parent)
+      parent = this.index.seats.get(parent)?.parentSeatId ?? null
+    }
+    return { name: senderSeat ? members.get(senderSeat)! : null, fromParent: !!senderSeat && ancestors.has(senderSeat) }
   }
 
   @Remote async getTeam(request: Input<'getTeam'>) {
@@ -149,7 +155,23 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     await this.runtime.native.retryLegacySessions(team.seats.map((seat) => seat.currentSessionId))
     const seats = new Set(team.seats.map(seat => seat.seatId))
     const formalSessionIds = this.index.generations.list().filter(g => seats.has(g.seatId)).map(g => g.sessionId)
-    return { ...team, formalSessionIds }
+    return { ...team, formalSessionIds, capabilities: { schedules: Boolean(this.runtime.native.ctx.get('schedule')) } }
+  }
+
+  @Remote async updateLeaderPolicy(request: Input<'updateLeaderPolicy'>) {
+    const { runId, policy } = runtimeMethods.updateLeaderPolicy[0].parse(request)
+    return this.runtime.ordered(runId, () => {
+      this.runtime.active(runId)
+      return this.index.runs.update(runId, row => ({ ...row, leaderPolicy: policy }))
+    })
+  }
+
+  @Remote async getTeamBrief({ runId }: Input<'getTeamBrief'>) {
+    this.runtime.getTeam(runId)
+    return this.runtime.briefs.read(runId)
+  }
+  @Remote async saveTeamBrief({ runId, text, expectedHash }: Input<'saveTeamBrief'>) {
+    return this.runtime.briefs.save(runId, text, expectedHash, 'user')
   }
 
   @Remote async renameTeam(request: Input<'renameTeam'>) {

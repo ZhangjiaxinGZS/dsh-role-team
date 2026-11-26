@@ -3,8 +3,8 @@ import type {} from '@deepseek-ai/dsh-fs'
 import { realpath, stat } from 'node:fs/promises'
 import { parsePatch } from '@deepseek-ai/dsh-fs-patch'
 import { homedir } from 'node:os'
-import { isAbsolute, relative, resolve, sep } from 'node:path'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { assembleContextFor, type Agent } from '@deepseek-ai/dsh-agent'
 import { scopeParentOf } from '@deepseek-ai/dsh-scope'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-tools'
@@ -20,7 +20,7 @@ function inside(base: string, target: string) {
 export async function workspacePath(path: string, roles: string) {
   if (!isAbsolute(path)) throw new Error('Select an absolute workspace directory')
   const cwd = await realpath(path)
-  if (inside(roles, cwd) || inside(cwd, roles) || !(await stat(cwd)).isDirectory())
+  if ([roles, join(dirname(roles), 'teams')].some(root => inside(root, cwd) || inside(cwd, root)) || !(await stat(cwd)).isDirectory())
     throw new Error('Workspace must be a directory separate from the role library')
   return cwd
 }
@@ -68,22 +68,50 @@ function fileTargets(name: string, args: Record<string, unknown>): string[] {
       return []
   }
 }
-// Minimal mode owns a complete system prompt. Required context still reaches its model.
+// A complete section replaces the waterfall result after all assemble listeners have returned.
 export function installRolePrompt(agent: Agent, text: () => string) {
   agent.ctx.systemPrompt.section({ name: 'role-team-role', order: 0, interpolate: false, text })
+  let sectionPreserved = true
+  let checkComplete = true
+  let completeOverride = false
+  let assemblyContext: import('@deepseek-ai/dsh-system-prompt').AssembleContext | undefined
+  agent.ctx.on('system-prompt/change', () => { checkComplete = true })
+  agent.ctx.on('session/event', (session, event) => {
+    if (session.id === agent.id && event.type === 'agent-preset/selected') checkComplete = true
+  })
+  agent.ctx.on('system-prompt/assemble', async (_input, context, next) => {
+    const result = await next()
+    if (context.scope === agent) {
+      if (checkComplete) assemblyContext = context
+      sectionPreserved = result.sections.some(s => s.name === 'role-team-role')
+    }
+    return result
+  }, { prepend: true })
+  agent.ctx.on('agent/pre-step', async (payload, next) => {
+    if (payload.agent === agent && checkComplete) {
+      // Reuse the host's step/tool-set context. Probe only after registration changes.
+      const current = assemblyContext?.signal === payload.signal ? assemblyContext
+        : { ...assembleContextFor(agent, payload.signal), modelSelection: payload.modelSelection }
+      const final = await agent.ctx.systemPrompt.assemble(current)
+      completeOverride = sectionPreserved && !final.sections.some(s => s.name === 'role-team-role')
+      checkComplete = false
+      assemblyContext = undefined
+    }
+    return next()
+  })
   agent.ctx.systemPrompt.context({
-    name: 'role-team-minimal-profile',
+    name: 'role-team-fallback-profile',
     order: 0,
     interpolate: false,
     required: true,
-    text: () => (agent.ctx.get('agentPresets')?.composedPreset(agent.ctx) === 'minimal' ? text() : ''),
+    text: () => (!sectionPreserved || completeOverride || agent.ctx.get('agentPresets')?.composedPreset(agent.ctx) === 'minimal' ? text() : ''),
   })
 }
 
 export function isolate(agent: Agent, roles: string, active: () => boolean, locale: 'zh' | 'en' = 'zh', team?: 'leader' | 'member') {
   const tools = agent.ctx.tools
   // Mask inherited lookup tools for both native and PTC executors, including late registrations.
-  const blocked = (name: string) => blockedTool(name) || (!!team && name.startsWith('schedule_')) || (team === 'member' && name.startsWith('team_schedule_'))
+  const blocked = (name: string) => blockedTool(name) || (!!team && name.startsWith('schedule_')) || (team === 'member' && (name.startsWith('team_schedule_') || name === 'update_team_brief'))
   const masked = new Set<string>()
   const restrictLookup = () => {
     const names = tools
@@ -136,7 +164,7 @@ export function isolate(agent: Agent, roles: string, active: () => boolean, loca
     const cwd = await dirs.ensure(agent, exec.signal)
     const home = resolve(process.env.DSH_HOME?.trim() || resolve(homedir(), '.dsh'))
     const protectedRoots = [
-      roles,
+      roles, join(dirname(roles), 'teams'),
       await realpath(home).catch((e: NodeJS.ErrnoException) => {
         if (e.code === 'ENOENT') return home
         throw e

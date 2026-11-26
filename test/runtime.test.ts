@@ -1,3 +1,5 @@
+import { once } from 'node:events'
+import { spawn } from 'node:child_process'
 import Schedule from '@deepseek-ai/dsh-schedule'
 import * as ScheduleTools from '@deepseek-ai/dsh-tool-schedule'
 import NodePtcRuntime from '@deepseek-ai/dsh-ptc-runtime-node'
@@ -1006,12 +1008,12 @@ it('resolves team message senders across seat generations and scopes aliases to 
   const member = await service.addMember({ runId: run.runId, roleId: programmer, displayName: 'dev' })
   const who = (sender: { senderId?: string; senderName?: string }) =>
     service.teamMessageSender({ sessionId: run.rootSessionId, ...sender })
-  expect(await who({ senderId: member.currentSessionId })).toEqual({ name: '程序员' })
-  expect(await who({ senderName: member.nativeAgentName })).toEqual({ name: '程序员' })
+  expect(await who({ senderId: member.currentSessionId })).toEqual({ name: '程序员', fromParent: false })
+  expect(await who({ senderName: member.nativeAgentName })).toEqual({ name: '程序员', fromParent: false })
   await service.resetSeat({ seatId: member.seatId, generation: 1, handoff: '' })
-  expect(await who({ senderId: member.currentSessionId })).toEqual({ name: '程序员' })
+  expect(await who({ senderId: member.currentSessionId })).toEqual({ name: '程序员', fromParent: false })
   const other = await newTeam('separate roster')
-  expect(await who({ senderId: other.run.rootSessionId })).toEqual({ name: null })
+  expect(await who({ senderId: other.run.rootSessionId })).toEqual({ name: null, fromParent: false })
   expect(await service.teamMessageSender({ sessionId: 'ordinary' })).toBeNull()
 })
 
@@ -1046,6 +1048,9 @@ it('routes team mentions by stable seat through the current native tree and isol
   const other = await newTeam('Other team')
   const child = await service.addMember({ runId: run.runId, roleId, displayName: 'dev' })
   const leaf = await service.addMember({ runId: run.runId, roleId, displayName: 'qa', parentSeatId: child.seatId })
+  for (const ancestor of [run.rootSessionId, child.currentSessionId])
+    expect(await service.teamMessageSender({ sessionId:leaf.currentSessionId,senderId:ancestor })).toMatchObject({fromParent:true})
+  expect(await service.teamMessageSender({ sessionId:child.currentSessionId,senderId:leaf.currentSessionId })).toMatchObject({fromParent:false})
   const roster = await service.teamMentionRoster({ sessionId: leaf.currentSessionId })
   expect(roster?.members.map(m => [m.seatId, m.address, m.leader])).toEqual(expect.arrayContaining([
     [lead.seatId, 'lead', true], [child.seatId, 'dev', false], [leaf.seatId, 'dev/qa', false],
@@ -1226,12 +1231,8 @@ it('limits native PTC schedule access to the calling team and its confirmed lead
     id: 'ptc',
     plugins: [{ id: 'ptc-executor', name: '@deepseek-ai/dsh-tool-executor-ptc' }],
   })
-  const { run: a } = await service.createTeam({
-    title: 'PTC A',
-    roleId,
-    workspaceCwd: cwd,
-    agentPreset: 'ptc',
-  })
+  const { run: a } = await newTeam('PTC A')
+  await ctx.agentPresets.select(ctx.agents.get(a.rootSessionId as SessionId)!, 'ptc')
   const { run: b } = await newTeam('PTC B')
   const foreign = await service.createTeamSchedule({
     runId: b.runId,
@@ -1243,17 +1244,32 @@ it('limits native PTC schedule access to the calling team and its confirmed lead
   ctx.on('session/event', (s, e) => {
     if (s.id === a.rootSessionId) events.push(e)
   })
-  model.program =
-    'await tools.team_schedule_create({title:"Confirmed",prompt:"Inspect fixture",timing:{kind:"after",after_seconds:600}})'
+  const lead = ctx.agents.get(a.rootSessionId as SessionId)!
+  const pluginTools = lead.ctx.tools.definitions(lead).filter(t => ['read_team_brief','update_team_brief'].includes(t.name) || t.name.startsWith('team_schedule_'))
+  expect(pluginTools).toHaveLength(5)
+  for (const def of pluginTools) {
+    const schema = def.parameters as { type:string; properties:Record<string,{type:string}> }
+    expect(schema.type).toBe('object')
+    expect(Reflect.ownKeys(schema)).not.toContain('~standard')
+    expect(JSON.stringify(schema)).not.toMatch(/"(?:anyOf|oneOf|nullable|~standard)"/)
+    for (const field of Object.values(schema.properties)) expect(['string','number','boolean','array']).toContain(field.type)
+  }
+  model.program = 'await tools.read_team_brief({}); await tools.update_team_brief({text:"PTC plan"}); ' +
+    'await tools.team_schedule_create({title:"Confirmed",prompt:"Inspect fixture",kind:"after",after_seconds:600})'
   await prompt(a.rootSessionId, '确认，十分钟后检查测试数据。')
   expect((await service.teamSchedules({ runId: a.runId })).map((t) => t.title)).toEqual([
     'Confirmed',
   ])
-  model.program = `await tools.team_schedule_change({id:${JSON.stringify(foreign.id)},expectedUpdatedAt:${JSON.stringify(foreign.updatedAt)},action:"delete"})`
+  expect((await service.getTeamBrief({runId:a.runId}))?.text).toBe('PTC plan')
+  expect(JSON.stringify(request(a.rootSessionId).messages.filter(m=>m.role==='system'))).toContain('团队简报')
+  const foreignDelete = { id: foreign.id, action: 'delete', expectedUpdatedAt: foreign.updatedAt ?? undefined }
+  model.program = `await tools.team_schedule_change(${JSON.stringify(foreignDelete)})`
   await prompt(a.rootSessionId, 'Try a foreign id')
   expect(
     events.filter((e) => e.type === 'tool/ptc-dispatch').map((e) => [e.data.name, e.data.isError]),
   ).toEqual([
+    ['read_team_brief', false],
+    ['update_team_brief', false],
     ['team_schedule_create', false],
     ['team_schedule_change', true],
   ])
@@ -1294,4 +1310,273 @@ it('allows a native temporary child under an active seat while retaining team is
     hold.resolve()
     await ctx.subagents.waitForTreeWork(root)
   }
+})
+
+it('stores isolated team briefs atomically and enforces CAS, file boundaries and archival', async () => {
+  const { run } = await newTeam('Brief storage')
+  const runId = run.runId
+  expect((await service.getTeam({ runId })).capabilities).toEqual({ schedules: false })
+  const save = (text: string, expectedHash: string | null) => service.saveTeamBrief({ runId, text, expectedHash })
+  expect(await service.getTeamBrief({ runId })).toBeNull()
+  const path = join(folder, 'teams', runId, 'brief.md')
+  await expect(readFile(path)).rejects.toMatchObject({ code: 'ENOENT' })
+  const results = await Promise.all([save('first', null), save('second', null)])
+  const current = (await service.getTeamBrief({ runId }))!
+  expect(results).toContainEqual({ ok: false, code: 'conflict', current })
+  const { createHash } = await import('node:crypto')
+  expect(current.hash).toBe(createHash('sha256').update(await readFile(path)).digest('hex'))
+  const { TeamBriefs } = await import('../src/host/team-runtime/briefs.js')
+  const store = new TeamBriefs({ roles: { root: join(folder, 'roles') } } as never)
+  for (const invalid of ['../roles', 'a/b', '', 'a'.repeat(129)]) await expect(store.read(invalid)).rejects.toThrow(/identifier/)
+  for (const target of [folder, join(folder, 'teams'), dirname(path)]) {
+    await expect(service.createTeam({ roleId, title: 'bad', workspaceCwd: target })).rejects.toThrow(/separate/)
+  }
+  const member = await service.addMember({ runId, roleId })
+  // Use registered tools so a failure cannot be mistaken for "unknown tool".
+  for (const name of ['glob', 'grep', 'apply_patch']) {
+    if (ctx.agents.get(member.currentSessionId as SessionId)!.ctx.tools.definitions(ctx.agents.get(member.currentSessionId as SessionId)!).some(t => t.name === name)) continue
+    ctx.tools.register({ name, description: name, parameters: { type: 'object' },
+      output: { schema: { type: 'string' }, render: () => [] }, execute: async () => 'unexpected' })
+  }
+  for (const [name, args] of [
+    ['read', { file_path: path }], ['write', { file_path: path, content: 'bad' }],
+    ['edit', { file_path: path, old_string: current.text, new_string: 'bad' }],
+    ['apply_patch', { input: `*** Begin Patch\n*** Delete File: ${path}\n*** End Patch` }],
+    ['glob', { path: dirname(path), pattern: '*' }], ['grep', { path: path, pattern: 'first' }],
+  ] as const) {
+    const result = await tool(member.currentSessionId, name, args)
+    expect(result.isError, name).toBe(true)
+    expect(JSON.stringify(result.content), name).toMatch(/受保护|private role/)
+  }
+  expect(await service.getTeamBrief({ runId })).toEqual(current)
+  expect(await save('   ', current.hash)).toEqual({ ok: true, brief: null })
+  await expect(readFile(path)).rejects.toMatchObject({ code: 'ENOENT' })
+  await expect(save('x'.repeat(4001), null)).rejects.toThrow(/4000/)
+  await save('x'.repeat(4000), null)
+  await service.archiveTeam({ runId })
+  const retained = (await service.getTeamBrief({ runId }))!
+  await expect(save('denied', retained.hash)).rejects.toThrow(/not active/)
+  await service.deleteTeam({ runId })
+  await expect(readdir(dirname(path))).rejects.toMatchObject({ code: 'ENOENT' })
+  expect(await service.readDocument({ roleId })).not.toBeNull()
+})
+
+it('places actual brief revisions in the benchmark prefix only', async () => {
+  const { installPrefixBrief } = await import('../benchmarks/drivers/prefix-brief.ts')
+  let runId = ''
+  installPrefixBrief(ctx, () => runId)
+  const {run} = await newTeam('prefix control')
+  runId = run.runId
+  let hash: string | null = null
+  const suffixes: SessionEvent[] = []
+  ctx.on('session/event', (session, event) => {
+    if (session.id === run.rootSessionId && event.type === 'user/message' && event.data.source.kind === 'team-brief')
+      suffixes.push(event)
+  })
+  for (const text of ['prefix revision one','prefix revision two']) {
+    const saved = await service.saveTeamBrief({runId, text, expectedHash:hash})
+    if (!saved.ok || !saved.brief) throw new Error('fixture brief save failed')
+    hash = saved.brief.hash
+    await prompt(run.rootSessionId, 'Continue.')
+    const messages = request(run.rootSessionId).messages
+    expect(JSON.stringify(messages.filter(m => m.role === 'system').at(-1))).toContain(text)
+    expect(suffixes).toHaveLength(0)
+  }
+})
+
+it('synchronizes one brief suffix per generation, restores after compaction, and persists across restart', async () => {
+  const { run } = await newTeam('Brief sync')
+  const runId = run.runId, id = run.rootSessionId
+  const events: SessionEvent[] = []
+  const observe = () => ctx.on('session/event', (s, e) => { if (s.id === id) events.push(e) })
+  const notices = () => events.filter(e => e.type === 'user/message' && e.data.source.kind === 'team-brief')
+  observe()
+  await prompt(id, 'baseline')
+  const system = request(id).messages.filter(m => m.role === 'system').map(m => m.content)
+  expect(JSON.stringify(system)).toContain('团队简报')
+  await service.saveTeamBrief({ runId, text: 'unique-brief-one', expectedHash: null })
+  await prompt(id, 'first'); await prompt(id, 'second')
+  expect(notices()).toHaveLength(1)
+  expect(request(id).messages.filter(m => m.role === 'system').map(m => m.content)).toEqual(system)
+  expect((await tool(id, 'update_team_brief', { text: 'x'.repeat(1501) })).content).toEqual(expect.arrayContaining([
+    expect.objectContaining({ text: expect.stringMatching(/1500.*1501.*file paths/) }),
+  ]))
+  expect((await tool(id, 'update_team_brief', { text: 'unique-brief-two' })).isError).toBeFalsy()
+  await prompt(id, 'no echo')
+  expect(notices()).toHaveLength(1)
+  const session = ctx.agents.get(id as SessionId)!.session
+  const seq = notices()[0].seq
+  const compactionId = crypto.randomUUID() as import('@deepseek-ai/dsh-compaction/types').CompactionId
+  session.append('compaction/start', { compactionId, turn: null })
+  session.append('compaction/summary', { compactionId, summary:[{ type:'text', text:'summary' }],
+    shadowedRange:{ start:seq, end:seq }, shadowedSeqs:[seq], shadowedTokenCount:1, provider:'fixture', model:'fixture' })
+  session.append('compaction/end', { compactionId, turn: null })
+  const leaderGeneration = () => service.index.generations.list().find(g => g.sessionId === id)
+  await vi.waitFor(() => expect(leaderGeneration()?.seenBriefHash).toBeNull())
+  await prompt(id, 'after compaction'); await prompt(id, 'and again')
+  expect(notices()).toHaveLength(2)
+  expect(JSON.stringify(notices()[1])).toContain('unique-brief-two')
+  const member = await service.addMember({ runId, roleId })
+  await ctx.subagents.waitForTreeWork(ctx.agents.get(id as SessionId)!)
+  const childRequest = request(member.currentSessionId)
+  expect(JSON.stringify(childRequest.messages)).toContain('unique-brief-two')
+  expect(childRequest.tools?.map(t => t.name)).toContain('read_team_brief')
+  expect(childRequest.tools?.map(t => t.name)).not.toContain('update_team_brief')
+  let denied = false
+  model.pause = async req => {
+    if (req.sessionId === member.currentSessionId)
+      denied = Boolean((await tool(member.currentSessionId, 'update_team_brief', { text:'forbidden' })).isError)
+  }
+  await service.promptSeat({ seatId:member.seatId, generation:1, requestId:crypto.randomUUID(), delivery:'queue',text:'test member scope' })
+  await ctx.subagents.waitForTreeWork(ctx.agents.get(id as SessionId)!)
+  model.pause = undefined
+  expect(denied).toBe(true)
+  expect((await service.getTeamBrief({ runId }))?.text).toBe('unique-brief-two')
+  const next = await service.resetSeat({ seatId:member.seatId, generation:1, handoff:'' })
+  await ctx.subagents.waitForTreeWork(ctx.agents.get(id as SessionId)!)
+  expect(JSON.stringify(model.requests.find(r => r.sessionId === next.currentSessionId)?.messages)).toContain('unique-brief-two')
+  await ctx.subagents.waitForTreeWork(ctx.agents.get(id as SessionId)!)
+  await ctx.fiber.dispose(); await boot(); observe()
+  await prompt(id, 'after restart')
+  expect(notices()).toHaveLength(2)
+  const previous = (await service.getTeamBrief({ runId }))!
+  await service.saveTeamBrief({ runId, expectedHash:previous.hash, text:'third version' })
+  await prompt(id, 'new version'); await prompt(id, 'same')
+  expect(notices()).toHaveLength(3)
+})
+
+it('uses the effective prompt on first entry and after recomposing a managed agent', async () => {
+  for (const id of ['standard', 'minimal', 'custom']) await ctx.plugin(AgentPreset, { id, plugins: [] })
+  const ordinary = await newTeam('Standard first entry')
+  const first = ctx.agents.get(ordinary.run.rootSessionId as SessionId)!
+  await ctx.agentPresets.select(first, 'standard')
+  await prompt(first.id, 'first standard request')
+  const standard = request(first.id).messages
+  expect(JSON.stringify(standard.filter(m => m.role === 'system'))).toContain('rule-one')
+  expect(JSON.stringify(standard.filter(m => m.role === 'user'))).not.toContain('rule-one')
+  const { run } = await newTeam('Custom first entry')
+  const id = run.rootSessionId, agent = ctx.agents.get(id as SessionId)!
+  await ctx.agentPresets.select(agent, 'custom')
+  const complete = agent.ctx.systemPrompt.section({ name:'fixture-complete', order:0, complete:true, text:'custom static prefix' })
+  await prompt(id, 'custom first')
+  const surface = request(id).messages
+  expect(JSON.stringify(surface.filter(m => m.role === 'system'))).not.toContain('rule-one')
+  expect(JSON.stringify(surface.filter(m => m.role === 'user'))).toMatch(/rule-one[\s\S]*read_team_brief/)
+  complete()
+  await ctx.agentPresets.recompose(agent.ctx, 'standard')
+  agent.session.append('agent-preset/selected', { agentPreset:'standard' })
+  await prompt(id, 'back to standard')
+  expect(JSON.stringify(request(id).messages.filter(m => m.role === 'system'))).toContain('rule-one')
+  expect(request(id).tools?.map(t => t.name)).not.toContain('session_search')
+  const min = await newTeam('Minimal first entry')
+  const minimal = ctx.agents.get(min.run.rootSessionId as SessionId)!
+  await ctx.agentPresets.select(minimal, 'minimal')
+  minimal.ctx.systemPrompt.section({ name:'minimal-body', order:0, complete:true, text:'minimal' })
+  await prompt(min.run.rootSessionId, 'minimal first')
+  expect(JSON.stringify(request(min.run.rootSessionId).messages.filter(m => m.role === 'user'))).toContain('read_team_brief')
+})
+
+it('rechecks the brief revision after a different host releases its filesystem lock', async () => {
+  const { run: { runId } } = await newTeam('Shared directory')
+  const seed = await service.saveTeamBrief({ runId, text:'initial', expectedHash:null })
+  if (!seed.ok || !seed.brief) throw Error('No seed brief')
+  const dir = join(folder, 'teams', runId)
+  // A separate Node process follows the same on-disk writer contract as a second profile.
+  const writer = spawn(process.execPath, ['--input-type=module','-e', `
+    import lockfile from 'proper-lockfile'
+    import { readFile, writeFile, rename } from 'node:fs/promises'
+    import { join } from 'node:path'
+    const dir = process.argv[1], path = join(dir, 'brief.md')
+    const release = await lockfile.lock(dir)
+    try {
+      const next = (await readFile(path, 'utf8')).replace(/initial$/, 'other profile')
+      process.send('locked')
+      await new Promise(resolve => process.once('message', resolve))
+      await writeFile(path + '.stage', next)
+      await rename(path + '.stage', path)
+    } finally { await release(); process.disconnect() }
+  `, dir], { stdio:['ignore','ignore','inherit','ipc'] })
+  const exit = once(writer, 'exit')
+  try {
+    await Promise.race([once(writer,'message'), exit.then(() => { throw Error('Writer exited before locking') })])
+    const pending = service.saveTeamBrief({ runId, expectedHash:seed.brief.hash, text:'stale' })
+    const early = await Promise.race([pending.then(() => 'committed'), new Promise(resolve => setTimeout(() => resolve('waiting'), 100))])
+    writer.send('commit')
+    expect(early).toBe('waiting')
+    expect(await pending).toMatchObject({ ok:false,code:'conflict',current:{text:'other profile'} })
+    expect(await exit).toEqual([0,null])
+    expect(await readdir(dirname(dir))).toEqual([runId])
+  } finally {
+    if (writer.exitCode === null && writer.signalCode === null) writer.kill()
+    await exit
+  }
+})
+
+it('delivers changed leader policies as committed suffixes only to team seats with collaborators', async () => {
+  const { run } = await newTeam('Policy sync')
+  const { runId, rootSessionId: id } = run
+  const root = ctx.agents.get(id as SessionId)!
+  const finish = async () => {
+    await ctx.subagents.waitForTreeWork(root)
+    await root.whenIdle() // Child settlement can wake the parent for one last turn.
+  }
+  const events: { id: string; mode: string; seq: SessionEvent['seq']; text: string }[] = []
+  const observe = () => ctx.on('session/event', (session, event) => {
+    if (event.type === 'user/message' && event.data.source.kind === 'team-policy')
+      events.push({ id: session.id, seq: event.seq, mode: event.data.source.mode, text: JSON.stringify(event.data.content) })
+  })
+  const from = (sessionId: string) => events.filter(e => e.id === sessionId)
+  observe()
+  await prompt(id, 'solo')
+  expect(events).toEqual([])
+  expect(run.leaderPolicy).toBeUndefined()
+  const deputy = await service.addMember({ runId, roleId, displayName: 'Deputy' })
+  await finish()
+  expect(from(deputy.currentSessionId)).toEqual([])
+  const leaf = await service.addMember({ runId, roleId, displayName: 'Leaf', parentSeatId: deputy.seatId })
+  await finish()
+  const delegate = async () => {
+    await service.promptSeat({ seatId: deputy.seatId, generation: 1, delivery: 'queue', text: 'review', requestId: crypto.randomUUID() })
+    await finish()
+  }
+  await delegate()
+  await prompt(id, 'baseline')
+  expect(from(id).map(e => e.mode)).toEqual(['delegate'])
+  expect(from(id)[0]?.text).toContain('必须先向用户一次性澄清对齐，获得确认后再派发给成员。需求明确后，动手前先核对')
+  expect(from(deputy.currentSessionId).map(e => e.mode)).toEqual(['delegate'])
+  expect(from(leaf.currentSessionId)).toEqual([])
+  const system = () => Buffer.from(JSON.stringify(request(id).messages.filter(m => m.role === 'system')))
+  const before = system()
+  expect(before.toString()).not.toContain('动手前先核对')
+  for (const customText of [undefined, '  ', 'x'.repeat(1201)]) {
+    await expect(service.updateLeaderPolicy({ runId, policy: { mode: 'custom', customText } })).rejects.toThrow()
+  }
+  await service.updateLeaderPolicy({ runId, policy: { mode: 'balanced' } })
+  await prompt(id, 'changed'); await prompt(id, 'unchanged')
+  expect(from(id).map(e => e.mode)).toEqual(['delegate', 'balanced'])
+  expect(system().equals(before)).toBe(true)
+  const customText = 'unique-consultation-rule'
+  const policy = { mode: 'custom' as const, customText }
+  expect((await service.updateLeaderPolicy({ runId, policy })).leaderPolicy).toEqual(policy)
+  await service.saveTeamBrief({ runId, text:'concurrent brief', expectedHash:null })
+  await prompt(id, 'sync both')
+  expect(JSON.stringify(request(id).messages)).toContain('concurrent brief')
+  expect(from(id).at(-1)?.text).toContain(customText)
+  expect(system().equals(before)).toBe(true)
+  await delegate()
+  expect(from(deputy.currentSessionId).map(e => e.mode)).toEqual(['delegate', 'custom'])
+  expect(from(leaf.currentSessionId)).toEqual([])
+  const seq = from(id).at(-1)!.seq
+  const compactionId = crypto.randomUUID() as import('@deepseek-ai/dsh-compaction/types').CompactionId
+  root.session.append('compaction/start', { compactionId, turn: null })
+  root.session.append('compaction/summary', { compactionId, summary:[{ type:'text', text:'summary' }],
+    shadowedRange:{ start:seq, end:seq }, shadowedSeqs:[seq], shadowedTokenCount:1, provider:'fixture', model:'fixture' })
+  root.session.append('compaction/end', { compactionId, turn:null })
+  await prompt(id, 'after compaction'); await prompt(id, 'again')
+  expect(from(id).map(e => e.mode)).toEqual(['delegate', 'balanced', 'custom', 'custom'])
+  await ctx.fiber.dispose(); await boot(); observe()
+  await prompt(id, 'after restart')
+  expect(from(id)).toHaveLength(4)
+  await service.archiveTeam({ runId })
+  await expect(service.updateLeaderPolicy({ runId, policy: { mode: 'balanced' } })).rejects.toThrow(/not active/)
 })

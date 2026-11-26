@@ -10,22 +10,28 @@
 - **团队工作台**支持单栏和多栏对话，用 `@成员` 指派工作，通过共享任务板、定时任务和成员回报跟进进度。
 - **会话与权限**由宿主管理。团队各有独立会话，模型与工具沿用宿主配置。首次培养会话默认完全权限，可以在输入栏切换。
 
+### v0.2.0 团队协作
+
+团队面板将简报、任务板和定时任务放在三个标签页。简报变更通过消息后缀同步，保留系统提示词的缓存前缀，压缩或换代后会重新同步。多层团队按发送者与接收者的关系折叠例行通知。每个团队可选择优先委派、自由协作或自定义规则；优先委派时，队长会先向用户澄清缺失的目标与约束。
+
+[设计说明](docs/DESIGN-v0.2.0.md) · [评测协议](docs/EVALUATION.md) · [复现指南](benchmarks/README.md) · [Flash 首轮报告](benchmarks/results/live-deepseek-flash/report.md) · [Codex 首轮报告](benchmarks/results/live-codex/report.md)
+
 ### 安装与上手
 
-需要 DeepSeek Harness 0.2.2-rc.5（或兼容的 0.2.x）及 Node.js 24.9+。从 [v0.1.0 Release](https://github.com/ZhangjiaxinGZS/dsh-role-team/releases/tag/v0.1.0) 下载压缩包和校验文件，放在固定目录，在该目录执行下方命令。Desktop 与 Web 分别安装，选择你使用的端即可。
+需要 DeepSeek Harness 0.2.2-rc.5（或兼容的 0.2.x）及 Node.js 24.9+。从 [v0.2.0 Release](https://github.com/ZhangjiaxinGZS/dsh-role-team/releases/tag/v0.2.0) 下载压缩包和校验文件，放在固定目录，在该目录执行下方命令。Desktop 与 Web 分别安装，选择你使用的端即可。
 
 ```sh
 shasum -a 256 -c SHA256SUMS.txt
-dsh plugin --profile web add "$PWD/dsh-role-team-0.1.0.tgz"
+dsh plugin --profile web add "$PWD/dsh-role-team-0.2.0.tgz"
 # macOS Desktop
-"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop add "$PWD/dsh-role-team-0.1.0.tgz"
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop add "$PWD/dsh-role-team-0.2.0.tgz"
 ```
 
 1. 重启宿主，打开「角色团队 → 角色库与培养」，新建角色并填写职责。
 2. 在培养对话中让角色记住一条经验。在「角色设定」中查看保存的内容。
 3. 打开「团队工作台」，新建团队，选择队长、成员和工作目录。向队长发送任务，或用 `@` 指定成员。
 
-本次发布通过 GitHub 分发。以后若同版本发布至 npm，Web 可使用 `dsh plugin --profile web add dsh-role-team@0.1.0` 按包名安装。也可从源码运行 `npm ci` 和 `npm pack` 自行构建。
+本次发布通过 GitHub 分发。以后若同版本发布至 npm，Web 可使用 `dsh plugin --profile web add dsh-role-team@0.2.0` 按包名安装。也可从源码运行 `npm ci` 和 `npm pack` 自行构建。
 
 ## English
 
@@ -35,9 +41,15 @@ Train an AI team the way you would train a group of specialists. Coach each role
 - **Team workspace.** Follow conversations side by side or focus on one member. Assign work with @mentions and track it through the shared task board, schedules and member reports.
 - **Sessions and permissions.** Each team has its own conversations. Models and tools come from the host. A role’s first coaching chat starts with Full access, adjustable in the composer.
 
+### Team collaboration in v0.2.0
+
+The team panel has three tabs for the shared brief, task board and schedules. Brief updates travel in a message suffix so the system prompt prefix stays stable. The host resynchronizes the brief after compaction or seat replacement. Nested teams fold routine notifications according to the sender’s relationship to the recipient. Each team can use delegation-first, balanced or custom rules. The delegation-first policy asks the lead to clarify missing requirements before assigning work.
+
+[Design](docs/DESIGN-v0.2.0.md) · [Evaluation protocol](docs/EVALUATION.md) · [Reproduction guide](benchmarks/README.md) · [Flash baseline](benchmarks/results/live-deepseek-flash/report.md) · [Codex baseline](benchmarks/results/live-codex/report.md)
+
 ### Install and start
 
-Use DeepSeek Harness 0.2.2-rc.5 or a compatible 0.2.x host and Node.js 24.9+. Download the tarball and checksum from the [v0.1.0 release](https://github.com/ZhangjiaxinGZS/dsh-role-team/releases/tag/v0.1.0). Keep both in a stable directory. Run the checksum and profile-specific install commands above from that directory, then restart the host. For a source build, run `npm ci` and `npm pack`. Registry installation with `dsh plugin --profile web add dsh-role-team@0.1.0` requires a future npm publication.
+Use DeepSeek Harness 0.2.2-rc.5 or a compatible 0.2.x host and Node.js 24.9+. Download the tarball and checksum from the [v0.2.0 release](https://github.com/ZhangjiaxinGZS/dsh-role-team/releases/tag/v0.2.0). Keep both in a stable directory. Run the checksum and profile-specific install commands above from that directory, then restart the host. For a source build, run `npm ci` and `npm pack`. Registry installation with `dsh plugin --profile web add dsh-role-team@0.2.0` requires a future npm publication.
 
 1. Open **Role teams → Roles & training** and create a role with a short description.
 2. Ask the role to remember a lesson. Open **Role settings** to review what it saved.

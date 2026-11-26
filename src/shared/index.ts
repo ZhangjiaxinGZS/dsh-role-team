@@ -6,6 +6,7 @@ export const fileId = z
   .string()
   .regex(/^[a-z0-9][a-z0-9_-]{0,127}$/, 'Expected a lowercase file identifier')
   .refine((id) => !/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/.test(id), 'Reserved filename')
+export * from './briefs.js'
 export const hash = z.string().regex(/^[a-f0-9]{64}$/)
 export const revision = z.number().int().positive()
 const timestamp = z.iso.datetime({ offset: true })
@@ -101,6 +102,11 @@ const key = z.string().min(1)
 export const conversationLocale = z.enum(['zh', 'en'])
 export const modelChoice = z.strictObject({ provider: key, model: key, reasoningEffort: key.optional() })
 export type ModelChoice = z.infer<typeof modelChoice>
+export const leaderPolicy = z.strictObject({
+  mode: z.enum(['delegate', 'balanced', 'custom']),
+  customText: z.string().max(1200).optional(),
+})
+export type LeaderPolicy = z.infer<typeof leaderPolicy>
 export const indexRecords = {
   team_schedules: z.strictObject({ runId: key, scheduleId: key }),
   role_models: z.strictObject({ roleId: fileId, selection: modelChoice }),
@@ -111,6 +117,7 @@ export const indexRecords = {
     rootSessionId: key,
     permissionPreset: key.optional(),
     agentPreset: key.optional(),
+    leaderPolicy: leaderPolicy.optional(),
     leaderSeatId: key,
     workspaceCwd: key,
     status: z.enum(['creating', 'active', 'archived', 'deleting', 'failed']),
@@ -144,6 +151,8 @@ export const indexRecords = {
     sessionId: key,
     nativeAgentName: key,
     roleSnapshotHash: hash,
+    seenBriefHash: hash.nullable().optional(),
+    seenPolicyHash: hash.nullable().optional(),
     memoryIds: z.array(fileId),
     handoffNote: z.string().nullable(),
     archivedAt: timestamp.nullable(),

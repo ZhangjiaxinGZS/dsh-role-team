@@ -1,0 +1,4508 @@
+{
+  "mode": "live",
+  "arms": [
+    {
+      "model": "openai-codex:gpt-6.2-astra",
+      "preset": "standard",
+      "mode": "live",
+      "arm": "single-agent",
+      "trials": 18,
+      "passAt1": 0.2777777777777778,
+      "passPow3": 0.16666666666666666,
+      "milestoneKpi": 0.5518518518518518,
+      "cvr": 0,
+      "kvCacheHitRate": 1,
+      "providerUsage": {
+        "uncachedInput": 278362,
+        "cacheRead": 1903360,
+        "cacheWrite": 0,
+        "output": 16768,
+        "promptCacheReadShare": 0.8724117921531708
+      },
+      "tokensPerSolved": 439698,
+      "commF1": 0.5555555555555555,
+      "noiseRatio": 0,
+      "learningGain": -0.3333333333333333,
+      "intervals": {
+        "pass": {
+          "mean": 0.2777777777777778,
+          "median": 0,
+          "low": 0.1111111111111111,
+          "high": 0.5
+        },
+        "cvr": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "milestone": {
+          "mean": 0.5518518518518518,
+          "median": 0.5,
+          "low": 0.3925925925925926,
+          "high": 0.7111111111111111
+        },
+        "pooling": {
+          "mean": 0.6666666666666666,
+          "median": 1,
+          "low": 0,
+          "high": 1
+        },
+        "cache": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "tokens": {
+          "mean": 122138.33333333333,
+          "median": 100613,
+          "low": 89420.49583333333,
+          "high": 157091.7763888889
+        },
+        "latency": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "noise": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "commF1": {
+          "mean": 0.5555555555555555,
+          "median": 0.5,
+          "low": 0.5,
+          "high": 0.6666666666666666
+        },
+        "clarification": {
+          "mean": 0.8888888888888888,
+          "median": 1,
+          "low": 0.6666666666666666,
+          "high": 1
+        },
+        "coherence": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "fidelity": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "closedLoop": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "resync": null,
+        "learning": {
+          "mean": -0.3333333333333333,
+          "median": 0,
+          "low": -1,
+          "high": 0
+        }
+      },
+      "mast": {
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0
+      }
+    },
+    {
+      "model": "openai-codex:gpt-6.2-astra",
+      "preset": "standard",
+      "mode": "live",
+      "arm": "v0.1.0",
+      "trials": 18,
+      "passAt1": 0.5555555555555556,
+      "passPow3": 0.5,
+      "milestoneKpi": 0.7722222222222223,
+      "cvr": 0,
+      "kvCacheHitRate": 1,
+      "providerUsage": {
+        "uncachedInput": 1027928,
+        "cacheRead": 9804544,
+        "cacheWrite": 0,
+        "output": 55868,
+        "promptCacheReadShare": 0.9051067937216916
+      },
+      "tokensPerSolved": 1088834,
+      "commF1": 0.4166666666666667,
+      "noiseRatio": 0.5756535880367273,
+      "learningGain": 0,
+      "intervals": {
+        "pass": {
+          "mean": 0.5555555555555556,
+          "median": 1,
+          "low": 0.3333333333333333,
+          "high": 0.7777777777777778
+        },
+        "cvr": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "milestone": {
+          "mean": 0.7722222222222223,
+          "median": 1,
+          "low": 0.5944444444444444,
+          "high": 0.9194444444444447
+        },
+        "pooling": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "cache": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "tokens": {
+          "mean": 604907.7777777778,
+          "median": 437601,
+          "low": 437167.4875,
+          "high": 786771.3097222223
+        },
+        "latency": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "noise": {
+          "mean": 0.5756535880367273,
+          "median": 0.5746810521188505,
+          "low": 0.47444373691128633,
+          "high": 0.6730930958088509
+        },
+        "commF1": {
+          "mean": 0.4166666666666667,
+          "median": 0.5,
+          "low": 0.25,
+          "high": 0.5
+        },
+        "clarification": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "coherence": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "fidelity": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "closedLoop": {
+          "mean": 0.3333333333333333,
+          "median": 0,
+          "low": 0,
+          "high": 1
+        },
+        "resync": null,
+        "learning": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        }
+      },
+      "mast": {
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0
+      }
+    },
+    {
+      "model": "openai-codex:gpt-6.2-astra",
+      "preset": "standard",
+      "mode": "live",
+      "arm": "v0.2.0-full",
+      "trials": 18,
+      "passAt1": 0.5555555555555556,
+      "passPow3": 0.5,
+      "milestoneKpi": 0.6388888888888888,
+      "cvr": 0,
+      "kvCacheHitRate": 1,
+      "providerUsage": {
+        "uncachedInput": 1188454,
+        "cacheRead": 17275520,
+        "cacheWrite": 0,
+        "output": 84601,
+        "promptCacheReadShare": 0.9356338998310981
+      },
+      "tokensPerSolved": 1854857.5,
+      "commF1": 0,
+      "noiseRatio": 0.48056613510785406,
+      "learningGain": 0,
+      "intervals": {
+        "pass": {
+          "mean": 0.5555555555555556,
+          "median": 1,
+          "low": 0.3333333333333333,
+          "high": 0.7777777777777778
+        },
+        "cvr": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "milestone": {
+          "mean": 0.6388888888888888,
+          "median": 1,
+          "low": 0.4166666666666667,
+          "high": 0.8333333333333334
+        },
+        "pooling": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "cache": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "tokens": {
+          "mean": 1030476.3888888889,
+          "median": 612060.5,
+          "low": 534223.1222222223,
+          "high": 1690318.6791666667
+        },
+        "latency": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "noise": {
+          "mean": 0.48056613510785406,
+          "median": 0.44332898751811145,
+          "low": 0.4085779866384476,
+          "high": 0.5559191607717346
+        },
+        "commF1": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "clarification": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coherence": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "fidelity": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "closedLoop": {
+          "mean": 0.3333333333333333,
+          "median": 0,
+          "low": 0,
+          "high": 1
+        },
+        "resync": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "learning": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        }
+      },
+      "mast": {
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "model": "openai-codex:gpt-6.2-astra",
+      "preset": "standard",
+      "baseline": "single-agent",
+      "arm": "v0.1.0",
+      "pairs": 18,
+      "pass": {
+        "b": 2,
+        "c": 7,
+        "pValue": 0.1796875
+      },
+      "cvr": {
+        "b": 0,
+        "c": 0,
+        "pValue": 1
+      },
+      "continuous": {
+        "milestone": {
+          "wilcoxon": {
+            "w": 26,
+            "n": 13,
+            "pValue": 0.18248974934978884
+          },
+          "cliffs": {
+            "delta": 0.32407407407407407,
+            "magnitude": "small"
+          },
+          "difference": {
+            "mean": 0.22037037037037038,
+            "median": 0.33333333333333337,
+            "low": -0.037037037037037035,
+            "high": 0.4555787037037033
+          }
+        },
+        "pooling": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 2,
+            "pValue": 0.34577859648998643
+          },
+          "cliffs": {
+            "delta": -0.6666666666666666,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.6666666666666666,
+            "median": -1,
+            "low": -1,
+            "high": 0
+          }
+        },
+        "cache": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "tokens": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 18,
+            "pValue": 0.00000762939453125
+          },
+          "cliffs": {
+            "delta": 0.9135802469135802,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 482769.44444444444,
+            "median": 332072,
+            "low": 334123.84444444446,
+            "high": 642387.7541666667
+          }
+        },
+        "latency": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "noise": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 18,
+            "pValue": 0.00000762939453125
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 0.5756535880367273,
+            "median": 0.5746810521188505,
+            "low": 0.47444373691128633,
+            "high": 0.6730930958088509
+          }
+        },
+        "commF1": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 1,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": -0.5555555555555556,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.13888888888888887,
+            "median": 0,
+            "low": -0.4166666666666667,
+            "high": 0
+          }
+        },
+        "clarification": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 1,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0.3333333333333333,
+            "magnitude": "medium"
+          },
+          "difference": {
+            "mean": 0.11111111111111112,
+            "median": 0,
+            "low": 0,
+            "high": 0.3333333333333333
+          }
+        },
+        "coherence": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "retention": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 3,
+            "pValue": 0.14891467698513344
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          }
+        },
+        "fidelity": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 3,
+            "pValue": 0.14891467698513344
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          }
+        },
+        "closedLoop": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 1,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0.3333333333333333,
+            "magnitude": "medium"
+          },
+          "difference": {
+            "mean": 0.3333333333333333,
+            "median": 0,
+            "low": 0,
+            "high": 1
+          }
+        },
+        "resync": null,
+        "learning": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 1,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0.3333333333333333,
+            "magnitude": "medium"
+          },
+          "difference": {
+            "mean": 0.3333333333333333,
+            "median": 0,
+            "low": 0,
+            "high": 1
+          }
+        }
+      }
+    },
+    {
+      "model": "openai-codex:gpt-6.2-astra",
+      "preset": "standard",
+      "baseline": "single-agent",
+      "arm": "v0.2.0-full",
+      "pairs": 18,
+      "pass": {
+        "b": 2,
+        "c": 7,
+        "pValue": 0.1796875
+      },
+      "cvr": {
+        "b": 0,
+        "c": 0,
+        "pValue": 1
+      },
+      "continuous": {
+        "milestone": {
+          "wilcoxon": {
+            "w": 51,
+            "n": 14,
+            "pValue": 0.9497711373622699
+          },
+          "cliffs": {
+            "delta": 0.1111111111111111,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0.08703703703703705,
+            "median": 0.16666666666666669,
+            "low": -0.20092592592592584,
+            "high": 0.35555555555555557
+          }
+        },
+        "pooling": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 2,
+            "pValue": 0.34577859648998643
+          },
+          "cliffs": {
+            "delta": -0.6666666666666666,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.6666666666666666,
+            "median": -1,
+            "low": -1,
+            "high": 0
+          }
+        },
+        "cache": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "tokens": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 18,
+            "pValue": 0.00000762939453125
+          },
+          "cliffs": {
+            "delta": 0.9444444444444444,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 908338.0555555555,
+            "median": 493380.5,
+            "low": 438672.0444444445,
+            "high": 1541151.1222222222
+          }
+        },
+        "latency": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "noise": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 18,
+            "pValue": 0.00000762939453125
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 0.48056613510785406,
+            "median": 0.44332898751811145,
+            "low": 0.4085779866384476,
+            "high": 0.5559191607717346
+          }
+        },
+        "commF1": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 3,
+            "pValue": 0.17356817444421163
+          },
+          "cliffs": {
+            "delta": -1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.5555555555555555,
+            "median": -0.5,
+            "low": -0.6666666666666666,
+            "high": -0.5
+          }
+        },
+        "clarification": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 3,
+            "pValue": 0.17356817444421163
+          },
+          "cliffs": {
+            "delta": -1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.8888888888888888,
+            "median": -1,
+            "low": -1,
+            "high": -0.6666666666666666
+          }
+        },
+        "coherence": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "retention": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 3,
+            "pValue": 0.14891467698513344
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          }
+        },
+        "fidelity": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 3,
+            "pValue": 0.14891467698513344
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          }
+        },
+        "closedLoop": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 1,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0.3333333333333333,
+            "magnitude": "medium"
+          },
+          "difference": {
+            "mean": 0.3333333333333333,
+            "median": 0,
+            "low": 0,
+            "high": 1
+          }
+        },
+        "resync": null,
+        "learning": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 1,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0.3333333333333333,
+            "magnitude": "medium"
+          },
+          "difference": {
+            "mean": 0.3333333333333333,
+            "median": 0,
+            "low": 0,
+            "high": 1
+          }
+        }
+      }
+    }
+  ],
+  "trials": [
+    {
+      "arm": "single-agent",
+      "scenario": "S1",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.16666666666666666,
+        "details": {
+          "checks": {
+            "region": false,
+            "budget": false,
+            "retention": false,
+            "latency": false,
+            "export": false,
+            "feasibleOffer": true
+          }
+        },
+        "hiddenFactsPooled": 0,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 17600,
+        "outputTokens": 493,
+        "cacheReadTokens": 24448,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 42541,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 8,
+        "leaderAnswerChars": 398,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S1",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "region": true,
+            "budget": true,
+            "retention": true,
+            "latency": true,
+            "export": true,
+            "feasibleOffer": true
+          }
+        },
+        "hiddenFactsPooled": 5,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 9046,
+        "outputTokens": 421,
+        "cacheReadTokens": 32896,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 42363,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 8,
+        "leaderAnswerChars": 417,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S1",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "region": true,
+            "budget": true,
+            "retention": true,
+            "latency": true,
+            "export": true,
+            "feasibleOffer": true
+          }
+        },
+        "hiddenFactsPooled": 5,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 8942,
+        "outputTokens": 470,
+        "cacheReadTokens": 33024,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 42436,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 8,
+        "leaderAnswerChars": 417,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S1",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "region": false,
+            "budget": false,
+            "retention": false,
+            "latency": false,
+            "export": false,
+            "feasibleOffer": false
+          }
+        },
+        "hiddenFactsPooled": 0,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 59937,
+        "outputTokens": 1836,
+        "cacheReadTokens": 296320,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 358093,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 23,
+        "taskWorkSteps": 25,
+        "leaderAnswerChars": 478,
+        "rawTeammateReportChars": 1846,
+        "compactTeammateReportChars": 640,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.4791666666666667,
+        "defaultExpandedNoiseRatio": 0.7943201376936316,
+        "compactCollapsedNoiseRatio": 0.5724508050089445
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S1",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "region": false,
+            "budget": false,
+            "retention": false,
+            "latency": false,
+            "export": false,
+            "feasibleOffer": false
+          }
+        },
+        "hiddenFactsPooled": 0,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 54977,
+        "outputTokens": 2867,
+        "cacheReadTokens": 530688,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 588532,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 37,
+        "taskWorkSteps": 26,
+        "leaderAnswerChars": 883,
+        "rawTeammateReportChars": 2598,
+        "compactTeammateReportChars": 960,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.5873015873015873,
+        "defaultExpandedNoiseRatio": 0.746337259408216,
+        "compactCollapsedNoiseRatio": 0.5208898534997287
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S1",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "region": false,
+            "budget": false,
+            "retention": false,
+            "latency": false,
+            "export": false,
+            "feasibleOffer": false
+          }
+        },
+        "hiddenFactsPooled": 0,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 48739,
+        "outputTokens": 2224,
+        "cacheReadTokens": 336128,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 387091,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 29,
+        "taskWorkSteps": 23,
+        "leaderAnswerChars": 618,
+        "rawTeammateReportChars": 2436,
+        "compactTeammateReportChars": 880,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.5576923076923077,
+        "defaultExpandedNoiseRatio": 0.7976424361493124,
+        "compactCollapsedNoiseRatio": 0.5874499332443258
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S1",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "region": false,
+            "budget": false,
+            "retention": false,
+            "latency": false,
+            "export": false,
+            "feasibleOffer": false
+          }
+        },
+        "hiddenFactsPooled": 0,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 45139,
+        "outputTokens": 2622,
+        "cacheReadTokens": 414848,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 462609,
+        "briefSyncCount": 6,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 36,
+        "taskWorkSteps": 24,
+        "leaderAnswerChars": 1099,
+        "rawTeammateReportChars": 2296,
+        "compactTeammateReportChars": 880,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.6,
+        "defaultExpandedNoiseRatio": 0.6762886597938145,
+        "compactCollapsedNoiseRatio": 0.44466902475997977
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S1",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "region": false,
+            "budget": false,
+            "retention": false,
+            "latency": false,
+            "export": false,
+            "feasibleOffer": false
+          }
+        },
+        "hiddenFactsPooled": 0,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 96878,
+        "outputTokens": 2748,
+        "cacheReadTokens": 375936,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 475562,
+        "briefSyncCount": 4,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 40,
+        "taskWorkSteps": 28,
+        "leaderAnswerChars": 460,
+        "rawTeammateReportChars": 2282,
+        "compactTeammateReportChars": 800,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.5882352941176471,
+        "defaultExpandedNoiseRatio": 0.8322392414296135,
+        "compactCollapsedNoiseRatio": 0.6349206349206349
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S1",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "region": false,
+            "budget": false,
+            "retention": false,
+            "latency": false,
+            "export": false,
+            "feasibleOffer": false
+          }
+        },
+        "hiddenFactsPooled": 0,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 54902,
+        "outputTokens": 3121,
+        "cacheReadTokens": 474368,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 532391,
+        "briefSyncCount": 6,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 41,
+        "taskWorkSteps": 35,
+        "leaderAnswerChars": 725,
+        "rawTeammateReportChars": 3020,
+        "compactTeammateReportChars": 960,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.5394736842105263,
+        "defaultExpandedNoiseRatio": 0.8064085447263017,
+        "compactCollapsedNoiseRatio": 0.56973293768546
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S2",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "audience": false,
+            "budget": false,
+            "deadline": false,
+            "clarified": false,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 0.6666666666666666,
+        "commPrecision": 1,
+        "commRecall": 0.5
+      },
+      "metrics": {
+        "inputTokens": 8591,
+        "outputTokens": 258,
+        "cacheReadTokens": 31872,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 40721,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 2,
+        "leaderAnswerChars": 519,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S2",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.8,
+        "details": {
+          "checks": {
+            "audience": true,
+            "budget": true,
+            "deadline": true,
+            "clarified": true,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 1,
+        "commPrecision": 0.5,
+        "commRecall": 0.5
+      },
+      "metrics": {
+        "inputTokens": 17749,
+        "outputTokens": 703,
+        "cacheReadTokens": 48768,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 67220,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 5,
+        "leaderAnswerChars": 1695,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S2",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.8,
+        "details": {
+          "checks": {
+            "audience": true,
+            "budget": true,
+            "deadline": true,
+            "clarified": true,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 1,
+        "commPrecision": 0.5,
+        "commRecall": 0.5
+      },
+      "metrics": {
+        "inputTokens": 9428,
+        "outputTokens": 666,
+        "cacheReadTokens": 65664,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 75758,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 6,
+        "leaderAnswerChars": 1335,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S2",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.8,
+        "details": {
+          "checks": {
+            "audience": true,
+            "budget": true,
+            "deadline": true,
+            "clarified": true,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 1,
+        "commPrecision": 0.25,
+        "commRecall": 0.25
+      },
+      "metrics": {
+        "inputTokens": 20955,
+        "outputTokens": 889,
+        "cacheReadTokens": 135552,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 157396,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 5,
+        "taskWorkSteps": 10,
+        "leaderAnswerChars": 1136,
+        "rawTeammateReportChars": 282,
+        "compactTeammateReportChars": 160,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.3333333333333333,
+        "defaultExpandedNoiseRatio": 0.19887165021156558,
+        "compactCollapsedNoiseRatio": 0.12345679012345678
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S2",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.8,
+        "details": {
+          "checks": {
+            "audience": true,
+            "budget": true,
+            "deadline": true,
+            "clarified": true,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 1,
+        "commPrecision": 0.5,
+        "commRecall": 0.5
+      },
+      "metrics": {
+        "inputTokens": 32368,
+        "outputTokens": 968,
+        "cacheReadTokens": 126336,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 159672,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 6,
+        "taskWorkSteps": 10,
+        "leaderAnswerChars": 1233,
+        "rawTeammateReportChars": 282,
+        "compactTeammateReportChars": 160,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.375,
+        "defaultExpandedNoiseRatio": 0.18613861386138614,
+        "compactCollapsedNoiseRatio": 0.11486001435750179
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S2",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.8,
+        "details": {
+          "checks": {
+            "audience": true,
+            "budget": true,
+            "deadline": true,
+            "clarified": true,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 1,
+        "commPrecision": 0.5,
+        "commRecall": 0.5
+      },
+      "metrics": {
+        "inputTokens": 21181,
+        "outputTokens": 923,
+        "cacheReadTokens": 146304,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 168408,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 6,
+        "taskWorkSteps": 10,
+        "leaderAnswerChars": 1091,
+        "rawTeammateReportChars": 282,
+        "compactTeammateReportChars": 160,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.375,
+        "defaultExpandedNoiseRatio": 0.20538965768390385,
+        "compactCollapsedNoiseRatio": 0.1278976818545164
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S2",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "audience": false,
+            "budget": false,
+            "deadline": false,
+            "clarified": false,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 0,
+        "commPrecision": 0,
+        "commRecall": 0
+      },
+      "metrics": {
+        "inputTokens": 31569,
+        "outputTokens": 1002,
+        "cacheReadTokens": 151680,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 184251,
+        "briefSyncCount": 1,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 11,
+        "taskWorkSteps": 9,
+        "leaderAnswerChars": 562,
+        "rawTeammateReportChars": 831,
+        "compactTeammateReportChars": 320,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.55,
+        "defaultExpandedNoiseRatio": 0.5965541995692749,
+        "compactCollapsedNoiseRatio": 0.36281179138321995
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S2",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "audience": false,
+            "budget": false,
+            "deadline": false,
+            "clarified": false,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 0,
+        "commPrecision": 0,
+        "commRecall": 0
+      },
+      "metrics": {
+        "inputTokens": 33805,
+        "outputTokens": 952,
+        "cacheReadTokens": 158720,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 193477,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 10,
+        "taskWorkSteps": 10,
+        "leaderAnswerChars": 325,
+        "rawTeammateReportChars": 877,
+        "compactTeammateReportChars": 320,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.5,
+        "defaultExpandedNoiseRatio": 0.7296173044925125,
+        "compactCollapsedNoiseRatio": 0.49612403100775193
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S2",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "audience": false,
+            "budget": false,
+            "deadline": false,
+            "clarified": false,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 0,
+        "commPrecision": 0,
+        "commRecall": 0
+      },
+      "metrics": {
+        "inputTokens": 26250,
+        "outputTokens": 819,
+        "cacheReadTokens": 153856,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 180925,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 10,
+        "taskWorkSteps": 7,
+        "leaderAnswerChars": 488,
+        "rawTeammateReportChars": 876,
+        "compactTeammateReportChars": 320,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.5882352941176471,
+        "defaultExpandedNoiseRatio": 0.6422287390029325,
+        "compactCollapsedNoiseRatio": 0.39603960396039606
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S3",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 24599,
+        "outputTokens": 1722,
+        "cacheReadTokens": 236032,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 262353,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 35,
+        "leaderAnswerChars": 2275,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S3",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 24818,
+        "outputTokens": 1827,
+        "cacheReadTokens": 247552,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 274197,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 36,
+        "leaderAnswerChars": 2613,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S3",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 25764,
+        "outputTokens": 1750,
+        "cacheReadTokens": 237952,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 265466,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 37,
+        "leaderAnswerChars": 2258,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S3",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 108682,
+        "outputTokens": 8516,
+        "cacheReadTokens": 1445504,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1562702,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 84,
+        "taskWorkSteps": 92,
+        "leaderAnswerChars": 2997,
+        "rawTeammateReportChars": 3163,
+        "compactTeammateReportChars": 1280,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.4772727272727273,
+        "defaultExpandedNoiseRatio": 0.513474025974026,
+        "compactCollapsedNoiseRatio": 0.29927519289221416
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S3",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 53803,
+        "outputTokens": 5316,
+        "cacheReadTokens": 1076096,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1135215,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 51,
+        "taskWorkSteps": 75,
+        "leaderAnswerChars": 2674,
+        "rawTeammateReportChars": 2286,
+        "compactTeammateReportChars": 960,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.40476190476190477,
+        "defaultExpandedNoiseRatio": 0.46088709677419354,
+        "compactCollapsedNoiseRatio": 0.26417171161254815
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S3",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 74098,
+        "outputTokens": 6366,
+        "cacheReadTokens": 985984,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1066448,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 51,
+        "taskWorkSteps": 72,
+        "leaderAnswerChars": 2755,
+        "rawTeammateReportChars": 2298,
+        "compactTeammateReportChars": 960,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.4146341463414634,
+        "defaultExpandedNoiseRatio": 0.4547793390065308,
+        "compactCollapsedNoiseRatio": 0.25841184387617766
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S3",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 64110,
+        "outputTokens": 7469,
+        "cacheReadTokens": 1299072,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1370651,
+        "briefSyncCount": 10,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 85,
+        "taskWorkSteps": 86,
+        "leaderAnswerChars": 2857,
+        "rawTeammateReportChars": 2897,
+        "compactTeammateReportChars": 1280,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.49707602339181284,
+        "defaultExpandedNoiseRatio": 0.5034758428919013,
+        "compactCollapsedNoiseRatio": 0.3094029489968576
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S3",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 143015,
+        "outputTokens": 16444,
+        "cacheReadTokens": 4959360,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 5118819,
+        "briefSyncCount": 26,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 203,
+        "taskWorkSteps": 134,
+        "leaderAnswerChars": 3147,
+        "rawTeammateReportChars": 8333,
+        "compactTeammateReportChars": 3520,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.6023738872403561,
+        "defaultExpandedNoiseRatio": 0.7258710801393728,
+        "compactCollapsedNoiseRatio": 0.527973601319934
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S3",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 115373,
+        "outputTokens": 17138,
+        "cacheReadTokens": 3912064,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 4044575,
+        "briefSyncCount": 24,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 206,
+        "taskWorkSteps": 121,
+        "leaderAnswerChars": 2342,
+        "rawTeammateReportChars": 8223,
+        "compactTeammateReportChars": 3520,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.6299694189602446,
+        "defaultExpandedNoiseRatio": 0.7783246568859442,
+        "compactCollapsedNoiseRatio": 0.6004776526782668
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S4",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.25,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": false,
+            "resumed": false,
+            "retained": false
+          }
+        },
+        "postCompactionRetention": 0
+      },
+      "metrics": {
+        "inputTokens": 14915,
+        "outputTokens": 694,
+        "cacheReadTokens": 109568,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 125177,
+        "briefSyncCount": 0,
+        "compactionCount": 1,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 12,
+        "leaderAnswerChars": 739,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S4",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.25,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": false,
+            "resumed": false,
+            "retained": false
+          }
+        },
+        "postCompactionRetention": 0
+      },
+      "metrics": {
+        "inputTokens": 15343,
+        "outputTokens": 697,
+        "cacheReadTokens": 119168,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 135208,
+        "briefSyncCount": 0,
+        "compactionCount": 1,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 13,
+        "leaderAnswerChars": 691,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S4",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.25,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": false,
+            "resumed": false,
+            "retained": false
+          }
+        },
+        "postCompactionRetention": 0
+      },
+      "metrics": {
+        "inputTokens": 14353,
+        "outputTokens": 507,
+        "cacheReadTokens": 86784,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 101644,
+        "briefSyncCount": 0,
+        "compactionCount": 1,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 9,
+        "leaderAnswerChars": 637,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S4",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": true,
+            "resumed": true,
+            "retained": true
+          }
+        },
+        "postCompactionRetention": 1
+      },
+      "metrics": {
+        "inputTokens": 33992,
+        "outputTokens": 1745,
+        "cacheReadTokens": 354304,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 390041,
+        "briefSyncCount": 0,
+        "compactionCount": 1,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 15,
+        "taskWorkSteps": 18,
+        "leaderAnswerChars": 1101,
+        "rawTeammateReportChars": 1380,
+        "compactTeammateReportChars": 480,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.45454545454545453,
+        "defaultExpandedNoiseRatio": 0.5562273276904474,
+        "compactCollapsedNoiseRatio": 0.3036053130929791
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S4",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": true,
+            "resumed": true,
+            "retained": true
+          }
+        },
+        "postCompactionRetention": 1
+      },
+      "metrics": {
+        "inputTokens": 50117,
+        "outputTokens": 1812,
+        "cacheReadTokens": 303744,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 355673,
+        "briefSyncCount": 0,
+        "compactionCount": 1,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 15,
+        "taskWorkSteps": 18,
+        "leaderAnswerChars": 1083,
+        "rawTeammateReportChars": 1417,
+        "compactTeammateReportChars": 480,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.45454545454545453,
+        "defaultExpandedNoiseRatio": 0.5668,
+        "compactCollapsedNoiseRatio": 0.30710172744721687
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S4",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": true,
+            "resumed": true,
+            "retained": true
+          }
+        },
+        "postCompactionRetention": 1
+      },
+      "metrics": {
+        "inputTokens": 62031,
+        "outputTokens": 1854,
+        "cacheReadTokens": 357248,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 421133,
+        "briefSyncCount": 0,
+        "compactionCount": 1,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 22,
+        "taskWorkSteps": 20,
+        "leaderAnswerChars": 857,
+        "rawTeammateReportChars": 1196,
+        "compactTeammateReportChars": 480,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.5238095238095238,
+        "defaultExpandedNoiseRatio": 0.5825621042377009,
+        "compactCollapsedNoiseRatio": 0.35901271503365745
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S4",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": true,
+            "resumed": true,
+            "retained": true
+          }
+        },
+        "postCompactionRetention": 1
+      },
+      "metrics": {
+        "inputTokens": 48432,
+        "outputTokens": 3052,
+        "cacheReadTokens": 537472,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 588956,
+        "briefSyncCount": 6,
+        "compactionCount": 1,
+        "resyncEligible": 1,
+        "resynced": 1,
+        "coordinationSteps": 27,
+        "taskWorkSteps": 34,
+        "leaderAnswerChars": 1396,
+        "rawTeammateReportChars": 1504,
+        "compactTeammateReportChars": 480,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": 1,
+        "coordinationRatio": 0.4426229508196721,
+        "defaultExpandedNoiseRatio": 0.5186206896551724,
+        "compactCollapsedNoiseRatio": 0.255863539445629
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S4",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": true,
+            "resumed": true,
+            "retained": true
+          }
+        },
+        "postCompactionRetention": 1
+      },
+      "metrics": {
+        "inputTokens": 55893,
+        "outputTokens": 2699,
+        "cacheReadTokens": 423296,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 481888,
+        "briefSyncCount": 5,
+        "compactionCount": 1,
+        "resyncEligible": 1,
+        "resynced": 1,
+        "coordinationSteps": 27,
+        "taskWorkSteps": 32,
+        "leaderAnswerChars": 1110,
+        "rawTeammateReportChars": 1420,
+        "compactTeammateReportChars": 480,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": 1,
+        "coordinationRatio": 0.4576271186440678,
+        "defaultExpandedNoiseRatio": 0.5612648221343873,
+        "compactCollapsedNoiseRatio": 0.3018867924528302
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S4",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": true,
+            "resumed": true,
+            "retained": true
+          }
+        },
+        "postCompactionRetention": 1
+      },
+      "metrics": {
+        "inputTokens": 45568,
+        "outputTokens": 2561,
+        "cacheReadTokens": 505344,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 553473,
+        "briefSyncCount": 5,
+        "compactionCount": 1,
+        "resyncEligible": 1,
+        "resynced": 1,
+        "coordinationSteps": 29,
+        "taskWorkSteps": 28,
+        "leaderAnswerChars": 1237,
+        "rawTeammateReportChars": 1427,
+        "compactTeammateReportChars": 480,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": 1,
+        "coordinationRatio": 0.5087719298245614,
+        "defaultExpandedNoiseRatio": 0.5356606606606606,
+        "compactCollapsedNoiseRatio": 0.27955736750145604
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S5",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.25,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": false,
+            "handoffs": false,
+            "closed": false
+          }
+        },
+        "handoffFidelity": 0,
+        "closedLoopRate": 0
+      },
+      "metrics": {
+        "inputTokens": 14774,
+        "outputTokens": 1252,
+        "cacheReadTokens": 93568,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 109594,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 19,
+        "leaderAnswerChars": 473,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S5",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.25,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": false,
+            "handoffs": false,
+            "closed": false
+          }
+        },
+        "handoffFidelity": 0,
+        "closedLoopRate": 0
+      },
+      "metrics": {
+        "inputTokens": 9994,
+        "outputTokens": 994,
+        "cacheReadTokens": 78464,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 89452,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 16,
+        "leaderAnswerChars": 460,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S5",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.25,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": false,
+            "handoffs": false,
+            "closed": false
+          }
+        },
+        "handoffFidelity": 0,
+        "closedLoopRate": 0
+      },
+      "metrics": {
+        "inputTokens": 9887,
+        "outputTokens": 1239,
+        "cacheReadTokens": 71680,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 82806,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 20,
+        "leaderAnswerChars": 436,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S5",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.75,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": true,
+            "handoffs": true,
+            "closed": false
+          }
+        },
+        "handoffFidelity": 1,
+        "closedLoopRate": 0
+      },
+      "metrics": {
+        "inputTokens": 70646,
+        "outputTokens": 4409,
+        "cacheReadTokens": 800384,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 875439,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 59,
+        "taskWorkSteps": 43,
+        "leaderAnswerChars": 816,
+        "rawTeammateReportChars": 4056,
+        "compactTeammateReportChars": 1760,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.5784313725490197,
+        "defaultExpandedNoiseRatio": 0.8325123152709359,
+        "compactCollapsedNoiseRatio": 0.6832298136645962
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S5",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.75,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": true,
+            "handoffs": true,
+            "closed": false
+          }
+        },
+        "handoffFidelity": 1,
+        "closedLoopRate": 0
+      },
+      "metrics": {
+        "inputTokens": 89317,
+        "outputTokens": 4112,
+        "cacheReadTokens": 715520,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 808949,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 57,
+        "taskWorkSteps": 40,
+        "leaderAnswerChars": 608,
+        "rawTeammateReportChars": 4050,
+        "compactTeammateReportChars": 1840,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.5876288659793815,
+        "defaultExpandedNoiseRatio": 0.8694718763417776,
+        "compactCollapsedNoiseRatio": 0.7516339869281046
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S5",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": true,
+            "handoffs": true,
+            "closed": true
+          }
+        },
+        "handoffFidelity": 1,
+        "closedLoopRate": 1
+      },
+      "metrics": {
+        "inputTokens": 75411,
+        "outputTokens": 5634,
+        "cacheReadTokens": 1047552,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1128597,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 72,
+        "taskWorkSteps": 50,
+        "leaderAnswerChars": 893,
+        "rawTeammateReportChars": 5578,
+        "compactTeammateReportChars": 2240,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.5901639344262295,
+        "defaultExpandedNoiseRatio": 0.861999690928759,
+        "compactCollapsedNoiseRatio": 0.7149696776252793
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S5",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": true,
+            "handoffs": true,
+            "closed": true
+          }
+        },
+        "handoffFidelity": 1,
+        "closedLoopRate": 1
+      },
+      "metrics": {
+        "inputTokens": 113559,
+        "outputTokens": 5467,
+        "cacheReadTokens": 893824,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1012850,
+        "briefSyncCount": 12,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 81,
+        "taskWorkSteps": 49,
+        "leaderAnswerChars": 738,
+        "rawTeammateReportChars": 4355,
+        "compactTeammateReportChars": 1840,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.6230769230769231,
+        "defaultExpandedNoiseRatio": 0.8550952287453367,
+        "compactCollapsedNoiseRatio": 0.7137315748642359
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S5",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.75,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": true,
+            "handoffs": true,
+            "closed": false
+          }
+        },
+        "handoffFidelity": 1,
+        "closedLoopRate": 0
+      },
+      "metrics": {
+        "inputTokens": 59970,
+        "outputTokens": 3803,
+        "cacheReadTokens": 571392,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 635165,
+        "briefSyncCount": 5,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 51,
+        "taskWorkSteps": 35,
+        "leaderAnswerChars": 551,
+        "rawTeammateReportChars": 3979,
+        "compactTeammateReportChars": 1600,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.5930232558139535,
+        "defaultExpandedNoiseRatio": 0.8783664459161148,
+        "compactCollapsedNoiseRatio": 0.7438400743840075
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S5",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.75,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": true,
+            "handoffs": true,
+            "closed": false
+          }
+        },
+        "handoffFidelity": 1,
+        "closedLoopRate": 0
+      },
+      "metrics": {
+        "inputTokens": 66741,
+        "outputTokens": 3776,
+        "cacheReadTokens": 585600,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 656117,
+        "briefSyncCount": 4,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 53,
+        "taskWorkSteps": 37,
+        "leaderAnswerChars": 375,
+        "rawTeammateReportChars": 3422,
+        "compactTeammateReportChars": 1440,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.5888888888888889,
+        "defaultExpandedNoiseRatio": 0.9012378193310508,
+        "compactCollapsedNoiseRatio": 0.7933884297520661
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S6",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.3333333333333333,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": false,
+            "stage2": false
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": false
+      },
+      "metrics": {
+        "inputTokens": 13880,
+        "outputTokens": 838,
+        "cacheReadTokens": 84864,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 99582,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 13,
+        "leaderAnswerChars": 532,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S6",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.6666666666666666,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": false,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 19268,
+        "outputTokens": 1207,
+        "cacheReadTokens": 146816,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 167291,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 20,
+        "leaderAnswerChars": 598,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S6",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.6666666666666666,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": false,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 19411,
+        "outputTokens": 1030,
+        "cacheReadTokens": 154240,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 174681,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 21,
+        "leaderAnswerChars": 664,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S6",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": true,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 56734,
+        "outputTokens": 2199,
+        "cacheReadTokens": 395136,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 454069,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 18,
+        "taskWorkSteps": 30,
+        "leaderAnswerChars": 997,
+        "rawTeammateReportChars": 1102,
+        "compactTeammateReportChars": 480,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.375,
+        "defaultExpandedNoiseRatio": 0.5250119104335398,
+        "compactCollapsedNoiseRatio": 0.32498307379823965
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S6",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": true,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 82023,
+        "outputTokens": 2226,
+        "cacheReadTokens": 378880,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 463129,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 19,
+        "taskWorkSteps": 28,
+        "leaderAnswerChars": 774,
+        "rawTeammateReportChars": 1287,
+        "compactTeammateReportChars": 560,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.40425531914893614,
+        "defaultExpandedNoiseRatio": 0.6244541484716157,
+        "compactCollapsedNoiseRatio": 0.4197901049475262
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S6",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": true,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 32917,
+        "outputTokens": 1972,
+        "cacheReadTokens": 372864,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 407753,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 21,
+        "taskWorkSteps": 24,
+        "leaderAnswerChars": 758,
+        "rawTeammateReportChars": 1068,
+        "compactTeammateReportChars": 480,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.4666666666666667,
+        "defaultExpandedNoiseRatio": 0.5848849945235487,
+        "compactCollapsedNoiseRatio": 0.3877221324717286
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S6",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": true,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 78766,
+        "outputTokens": 3830,
+        "cacheReadTokens": 584448,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 667044,
+        "briefSyncCount": 2,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 44,
+        "taskWorkSteps": 44,
+        "leaderAnswerChars": 1321,
+        "rawTeammateReportChars": 1990,
+        "compactTeammateReportChars": 800,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.5,
+        "defaultExpandedNoiseRatio": 0.6010268800966475,
+        "compactCollapsedNoiseRatio": 0.3771805752003772
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S6",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": true,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 59692,
+        "outputTokens": 3539,
+        "cacheReadTokens": 655104,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 718335,
+        "briefSyncCount": 3,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 37,
+        "taskWorkSteps": 38,
+        "leaderAnswerChars": 1010,
+        "rawTeammateReportChars": 1837,
+        "compactTeammateReportChars": 800,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.49333333333333335,
+        "defaultExpandedNoiseRatio": 0.6452406041447137,
+        "compactCollapsedNoiseRatio": 0.4419889502762431
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S6",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "openai-codex:gpt-6.2-astra",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": true,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 48792,
+        "outputTokens": 3559,
+        "cacheReadTokens": 619136,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 671487,
+        "briefSyncCount": 3,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 37,
+        "taskWorkSteps": 38,
+        "leaderAnswerChars": 1197,
+        "rawTeammateReportChars": 1938,
+        "compactTeammateReportChars": 800,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.49333333333333335,
+        "defaultExpandedNoiseRatio": 0.6181818181818182,
+        "compactCollapsedNoiseRatio": 0.400600901352028
+      }
+    }
+  ],
+  "coverage": {
+    "measured": 54,
+    "planned": 54,
+    "complete": true
+  },
+  "interruptedAttempts": 0,
+  "cacheAblation": {
+    "mode": "live",
+    "arms": [
+      {
+        "model": "openai-codex:gpt-6.2-astra",
+        "preset": "standard",
+        "mode": "live",
+        "arm": "v0.2.0-full",
+        "trials": 3,
+        "passAt1": 1,
+        "passPow3": 1,
+        "milestoneKpi": 1,
+        "cvr": 0,
+        "kvCacheHitRate": 1,
+        "providerUsage": {
+          "uncachedInput": 149893,
+          "cacheRead": 1466112,
+          "cacheWrite": 0,
+          "output": 8312,
+          "promptCacheReadShare": 0.907244717683423
+        },
+        "tokensPerSolved": 541439,
+        "commF1": null,
+        "noiseRatio": 0.2791025664666384,
+        "learningGain": null,
+        "intervals": {
+          "pass": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "cvr": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          },
+          "milestone": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "pooling": null,
+          "cache": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "tokens": {
+            "mean": 541439,
+            "median": 553473,
+            "low": 481888,
+            "high": 588956
+          },
+          "latency": null,
+          "noise": {
+            "mean": 0.2791025664666384,
+            "median": 0.27955736750145604,
+            "low": 0.255863539445629,
+            "high": 0.3018867924528302
+          },
+          "commF1": null,
+          "clarification": null,
+          "coherence": null,
+          "retention": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "fidelity": null,
+          "closedLoop": null,
+          "resync": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "learning": null
+        },
+        "mast": {
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0
+        }
+      },
+      {
+        "model": "openai-codex:gpt-6.2-astra",
+        "preset": "standard",
+        "mode": "live",
+        "arm": "v0.2.0-prefix-brief",
+        "trials": 3,
+        "passAt1": 1,
+        "passPow3": 1,
+        "milestoneKpi": 1,
+        "cvr": 0,
+        "kvCacheHitRate": 1,
+        "providerUsage": {
+          "uncachedInput": 148810,
+          "cacheRead": 1626240,
+          "cacheWrite": 0,
+          "output": 7688,
+          "promptCacheReadShare": 0.9161657418100898
+        },
+        "tokensPerSolved": 594246,
+        "commF1": null,
+        "noiseRatio": 0.34782195079221534,
+        "learningGain": null,
+        "intervals": {
+          "pass": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "cvr": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          },
+          "milestone": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "pooling": null,
+          "cache": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "tokens": {
+            "mean": 594246,
+            "median": 617726,
+            "low": 453163,
+            "high": 711849
+          },
+          "latency": null,
+          "noise": {
+            "mean": 0.34782195079221534,
+            "median": 0.3470715835140998,
+            "low": 0.2981366459627329,
+            "high": 0.3982576228998133
+          },
+          "commF1": null,
+          "clarification": null,
+          "coherence": null,
+          "retention": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "fidelity": null,
+          "closedLoop": null,
+          "resync": null,
+          "learning": null
+        },
+        "mast": {
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 1
+        }
+      }
+    ],
+    "comparisons": [
+      {
+        "model": "openai-codex:gpt-6.2-astra",
+        "preset": "standard",
+        "baseline": "v0.2.0-prefix-brief",
+        "arm": "v0.2.0-full",
+        "pairs": 3,
+        "pass": {
+          "b": 0,
+          "c": 0,
+          "pValue": 1
+        },
+        "cvr": {
+          "b": 0,
+          "c": 0,
+          "pValue": 1
+        },
+        "continuous": {
+          "milestone": {
+            "wilcoxon": {
+              "w": 0,
+              "n": 0,
+              "pValue": 1
+            },
+            "cliffs": {
+              "delta": 0,
+              "magnitude": "negligible"
+            },
+            "difference": {
+              "mean": 0,
+              "median": 0,
+              "low": 0,
+              "high": 0
+            }
+          },
+          "pooling": null,
+          "cache": {
+            "wilcoxon": {
+              "w": 0,
+              "n": 0,
+              "pValue": 1
+            },
+            "cliffs": {
+              "delta": 0,
+              "magnitude": "negligible"
+            },
+            "difference": {
+              "mean": 0,
+              "median": 0,
+              "low": 0,
+              "high": 0
+            }
+          },
+          "tokens": {
+            "wilcoxon": {
+              "w": 1,
+              "n": 3,
+              "pValue": 0.5
+            },
+            "cliffs": {
+              "delta": -0.3333333333333333,
+              "magnitude": "medium"
+            },
+            "difference": {
+              "mean": -52807,
+              "median": -64253,
+              "low": -122893,
+              "high": 28725
+            }
+          },
+          "latency": null,
+          "noise": {
+            "wilcoxon": {
+              "w": 0,
+              "n": 3,
+              "pValue": 0.25
+            },
+            "cliffs": {
+              "delta": -0.7777777777777778,
+              "magnitude": "large"
+            },
+            "difference": {
+              "mean": -0.06871938432557693,
+              "median": -0.0451847910612696,
+              "low": -0.11870025539835727,
+              "high": -0.04227310651710392
+            }
+          },
+          "commF1": null,
+          "clarification": null,
+          "coherence": null,
+          "retention": {
+            "wilcoxon": {
+              "w": 0,
+              "n": 0,
+              "pValue": 1
+            },
+            "cliffs": {
+              "delta": 0,
+              "magnitude": "negligible"
+            },
+            "difference": {
+              "mean": 0,
+              "median": 0,
+              "low": 0,
+              "high": 0
+            }
+          },
+          "fidelity": null,
+          "closedLoop": null,
+          "resync": null,
+          "learning": null
+        }
+      }
+    ],
+    "trials": [
+      {
+        "arm": "v0.2.0-full",
+        "scenario": "S4",
+        "repeat": 1,
+        "preset": "standard",
+        "model": "openai-codex:gpt-6.2-astra",
+        "reasoningEfforts": [
+          "high"
+        ],
+        "mode": "live",
+        "verification": {
+          "passed": true,
+          "constraintViolations": 0,
+          "milestoneKpi": 1,
+          "details": {
+            "checks": {
+              "compacted": true,
+              "replaced": true,
+              "resumed": true,
+              "retained": true
+            }
+          },
+          "postCompactionRetention": 1
+        },
+        "metrics": {
+          "inputTokens": 48432,
+          "outputTokens": 3052,
+          "cacheReadTokens": 537472,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "totalTokens": 588956,
+          "briefSyncCount": 6,
+          "compactionCount": 1,
+          "resyncEligible": 1,
+          "resynced": 1,
+          "coordinationSteps": 27,
+          "taskWorkSteps": 34,
+          "leaderAnswerChars": 1396,
+          "rawTeammateReportChars": 1504,
+          "compactTeammateReportChars": 480,
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0,
+          "kvCacheHitRate": 1,
+          "postCompactionResyncRate": 1,
+          "coordinationRatio": 0.4426229508196721,
+          "defaultExpandedNoiseRatio": 0.5186206896551724,
+          "compactCollapsedNoiseRatio": 0.255863539445629
+        }
+      },
+      {
+        "arm": "v0.2.0-full",
+        "scenario": "S4",
+        "repeat": 2,
+        "preset": "standard",
+        "model": "openai-codex:gpt-6.2-astra",
+        "reasoningEfforts": [
+          "high"
+        ],
+        "mode": "live",
+        "verification": {
+          "passed": true,
+          "constraintViolations": 0,
+          "milestoneKpi": 1,
+          "details": {
+            "checks": {
+              "compacted": true,
+              "replaced": true,
+              "resumed": true,
+              "retained": true
+            }
+          },
+          "postCompactionRetention": 1
+        },
+        "metrics": {
+          "inputTokens": 55893,
+          "outputTokens": 2699,
+          "cacheReadTokens": 423296,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "totalTokens": 481888,
+          "briefSyncCount": 5,
+          "compactionCount": 1,
+          "resyncEligible": 1,
+          "resynced": 1,
+          "coordinationSteps": 27,
+          "taskWorkSteps": 32,
+          "leaderAnswerChars": 1110,
+          "rawTeammateReportChars": 1420,
+          "compactTeammateReportChars": 480,
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0,
+          "kvCacheHitRate": 1,
+          "postCompactionResyncRate": 1,
+          "coordinationRatio": 0.4576271186440678,
+          "defaultExpandedNoiseRatio": 0.5612648221343873,
+          "compactCollapsedNoiseRatio": 0.3018867924528302
+        }
+      },
+      {
+        "arm": "v0.2.0-full",
+        "scenario": "S4",
+        "repeat": 3,
+        "preset": "standard",
+        "model": "openai-codex:gpt-6.2-astra",
+        "reasoningEfforts": [
+          "high"
+        ],
+        "mode": "live",
+        "verification": {
+          "passed": true,
+          "constraintViolations": 0,
+          "milestoneKpi": 1,
+          "details": {
+            "checks": {
+              "compacted": true,
+              "replaced": true,
+              "resumed": true,
+              "retained": true
+            }
+          },
+          "postCompactionRetention": 1
+        },
+        "metrics": {
+          "inputTokens": 45568,
+          "outputTokens": 2561,
+          "cacheReadTokens": 505344,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "totalTokens": 553473,
+          "briefSyncCount": 5,
+          "compactionCount": 1,
+          "resyncEligible": 1,
+          "resynced": 1,
+          "coordinationSteps": 29,
+          "taskWorkSteps": 28,
+          "leaderAnswerChars": 1237,
+          "rawTeammateReportChars": 1427,
+          "compactTeammateReportChars": 480,
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0,
+          "kvCacheHitRate": 1,
+          "postCompactionResyncRate": 1,
+          "coordinationRatio": 0.5087719298245614,
+          "defaultExpandedNoiseRatio": 0.5356606606606606,
+          "compactCollapsedNoiseRatio": 0.27955736750145604
+        }
+      },
+      {
+        "arm": "v0.2.0-prefix-brief",
+        "scenario": "S4",
+        "repeat": 1,
+        "preset": "standard",
+        "model": "openai-codex:gpt-6.2-astra",
+        "reasoningEfforts": [
+          "high"
+        ],
+        "mode": "live",
+        "verification": {
+          "passed": true,
+          "constraintViolations": 0,
+          "milestoneKpi": 1,
+          "details": {
+            "checks": {
+              "compacted": true,
+              "replaced": true,
+              "resumed": true,
+              "retained": true
+            }
+          },
+          "postCompactionRetention": 1
+        },
+        "metrics": {
+          "inputTokens": 53574,
+          "outputTokens": 2531,
+          "cacheReadTokens": 655744,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "totalTokens": 711849,
+          "briefSyncCount": 0,
+          "compactionCount": 1,
+          "resyncEligible": 0,
+          "resynced": 0,
+          "coordinationSteps": 32,
+          "taskWorkSteps": 33,
+          "leaderAnswerChars": 1130,
+          "rawTeammateReportChars": 1514,
+          "compactTeammateReportChars": 480,
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 1,
+          "kvCacheHitRate": 1,
+          "postCompactionResyncRate": null,
+          "coordinationRatio": 0.49230769230769234,
+          "defaultExpandedNoiseRatio": 0.5726172465960666,
+          "compactCollapsedNoiseRatio": 0.2981366459627329
+        }
+      },
+      {
+        "arm": "v0.2.0-prefix-brief",
+        "scenario": "S4",
+        "repeat": 2,
+        "preset": "standard",
+        "model": "openai-codex:gpt-6.2-astra",
+        "reasoningEfforts": [
+          "high"
+        ],
+        "mode": "live",
+        "verification": {
+          "passed": true,
+          "constraintViolations": 0,
+          "milestoneKpi": 1,
+          "details": {
+            "checks": {
+              "compacted": true,
+              "replaced": true,
+              "resumed": true,
+              "retained": true
+            }
+          },
+          "postCompactionRetention": 1
+        },
+        "metrics": {
+          "inputTokens": 55492,
+          "outputTokens": 2407,
+          "cacheReadTokens": 395264,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "totalTokens": 453163,
+          "briefSyncCount": 0,
+          "compactionCount": 1,
+          "resyncEligible": 0,
+          "resynced": 0,
+          "coordinationSteps": 30,
+          "taskWorkSteps": 26,
+          "leaderAnswerChars": 903,
+          "rawTeammateReportChars": 1207,
+          "compactTeammateReportChars": 480,
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0,
+          "kvCacheHitRate": 1,
+          "postCompactionResyncRate": null,
+          "coordinationRatio": 0.5357142857142857,
+          "defaultExpandedNoiseRatio": 0.5720379146919431,
+          "compactCollapsedNoiseRatio": 0.3470715835140998
+        }
+      },
+      {
+        "arm": "v0.2.0-prefix-brief",
+        "scenario": "S4",
+        "repeat": 3,
+        "preset": "standard",
+        "model": "openai-codex:gpt-6.2-astra",
+        "reasoningEfforts": [
+          "high"
+        ],
+        "mode": "live",
+        "verification": {
+          "passed": true,
+          "constraintViolations": 0,
+          "milestoneKpi": 1,
+          "details": {
+            "checks": {
+              "compacted": true,
+              "replaced": true,
+              "resumed": true,
+              "retained": true
+            }
+          },
+          "postCompactionRetention": 1
+        },
+        "metrics": {
+          "inputTokens": 39744,
+          "outputTokens": 2750,
+          "cacheReadTokens": 575232,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "totalTokens": 617726,
+          "briefSyncCount": 0,
+          "compactionCount": 1,
+          "resyncEligible": 0,
+          "resynced": 0,
+          "coordinationSteps": 30,
+          "taskWorkSteps": 30,
+          "leaderAnswerChars": 967,
+          "rawTeammateReportChars": 1873,
+          "compactTeammateReportChars": 640,
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0,
+          "kvCacheHitRate": 1,
+          "postCompactionResyncRate": null,
+          "coordinationRatio": 0.5,
+          "defaultExpandedNoiseRatio": 0.6595070422535211,
+          "compactCollapsedNoiseRatio": 0.3982576228998133
+        }
+      }
+    ]
+  },
+  "versionComparisons": [
+    {
+      "model": "openai-codex:gpt-6.2-astra",
+      "preset": "standard",
+      "baseline": "v0.1.0",
+      "arm": "v0.2.0-full",
+      "pairs": 18,
+      "pass": {
+        "b": 1,
+        "c": 1,
+        "pValue": 1
+      },
+      "cvr": {
+        "b": 0,
+        "c": 0,
+        "pValue": 1
+      },
+      "continuous": {
+        "milestone": {
+          "wilcoxon": {
+            "w": 1.5,
+            "n": 5,
+            "pValue": 0.12897804367822358
+          },
+          "cliffs": {
+            "delta": -0.09259259259259259,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": -0.13333333333333336,
+            "median": 0,
+            "low": -0.2833333333333333,
+            "high": 0
+          }
+        },
+        "pooling": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "cache": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "tokens": {
+          "wilcoxon": {
+            "w": 42,
+            "n": 18,
+            "pValue": 0.0599365234375
+          },
+          "cliffs": {
+            "delta": 0.24691358024691357,
+            "magnitude": "small"
+          },
+          "difference": {
+            "mean": 425568.6111111111,
+            "median": 129277.5,
+            "low": 8718.987500000001,
+            "high": 996692.7583333333
+          }
+        },
+        "latency": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "noise": {
+          "wilcoxon": {
+            "w": 43,
+            "n": 18,
+            "pValue": 0.06653594970703125
+          },
+          "cliffs": {
+            "delta": -0.3148148148148148,
+            "magnitude": "small"
+          },
+          "difference": {
+            "mean": -0.09508745292887316,
+            "median": -0.13673156859546637,
+            "low": -0.17738616471973798,
+            "high": -0.00624896609752927
+          }
+        },
+        "commF1": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 3,
+            "pValue": 0.17356817444421163
+          },
+          "cliffs": {
+            "delta": -1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.4166666666666667,
+            "median": -0.5,
+            "low": -0.5,
+            "high": -0.25
+          }
+        },
+        "clarification": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 3,
+            "pValue": 0.14891467698513344
+          },
+          "cliffs": {
+            "delta": -1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -1,
+            "median": -1,
+            "low": -1,
+            "high": -1
+          }
+        },
+        "coherence": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "retention": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "fidelity": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "closedLoop": {
+          "wilcoxon": {
+            "w": 1.5,
+            "n": 2,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": -1,
+            "high": 1
+          }
+        },
+        "resync": null,
+        "learning": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        }
+      }
+    }
+  ],
+  "environment": {
+    "host": "DSH Desktop runtime 0.2.2-rc.5",
+    "node": "v26.6.0",
+    "baselineTag": "v0.1.0",
+    "baselineCommit": "f3e0b353fe894adbc36784c496c1fefc9ca31ec5",
+    "subscription": "dsh-codex-subscription 3.2.30",
+    "sha256": {
+      "v0.1.0/dist/host.js": "bd2d0554ca5f4d75bff94b1bb0da0b9a9083bf67e77e8795549a19484d19dcf8",
+      "v0.1.0/dist/remote.js": "34723297de625edec6f35431f244e88fdb82416500193a5a5b77df0b403e6b37",
+      "v0.1.0/dist/schedules-CdtW7Gnc.js": "32597c14fc1cd08504d03e06f3c0ad41e15de54dbfcf7ee1ee95badf5d0fbdda",
+      "v0.1.0/dist/shared-DrX8sV4W.js": "2e9f9e1f3bb65f430748b15a9de141a16f32bfe7b6aaa4f9d9179f7b96bc46a2",
+      "v0.1.0/dist/shared.js": "3249c46e1c646914b0796f516d5eaca70e7a73cbdca9e1b9a53ae7569603b5ca",
+      "v0.2.0/dist/host.js": "fc72cde677f0b00463ce09d4644f5357d69052e615ac128f811c6dbc0f3860d1",
+      "v0.2.0/dist/remote.js": "163141b0fb425c63fc371b45fbede55d2426f9dad5f0d72496e2f3fde7ccb4c3",
+      "v0.2.0/dist/runtime-KlI7kjYl.js": "349e87e8cc81edcbed1b052aae373a81cd6260e82ff4d2430e398db87c81ad01",
+      "v0.2.0/dist/shared-uN6t1-Qi.js": "5aa8b53955fe4879be0160cb846ebee2fbd78912b99378dad3f59a1abbc96826",
+      "v0.2.0/dist/shared.js": "2b404194b5984a6590de1dc5f430dcaa6f1c318a22163fec76281ea094c3416f",
+      "dsh-codex-subscription-3.2.30.tgz": "9ae3f74b83b0a378ed82c0062af35ea00a16fecdcb6c7fd2ca44b0cdde36d587",
+      "dsh-desktop-runtime/package.json": "fa342021105009d1facf56958989dd9ddb26357b090808f9523b1bf924fed150"
+    }
+  }
+}

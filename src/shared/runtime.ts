@@ -1,11 +1,14 @@
 import { z } from 'zod'
 import {
   fileId,
+  teamBrief,
+  briefSaveResult,
   indexRecords,
   editResult,
   revision,
   conversationLocale,
   modelChoice,
+  leaderPolicy,
   snapshotSchema,
   hash,
 } from './index.js'
@@ -45,7 +48,12 @@ export const runtimeMethods = {
   createTeamSchedule: [scheduleDraft.extend({ runId: id }), scheduleRow],
   changeTeamSchedule: [scheduleChange.extend({ runId: id }), z.boolean()],
   teamScheduleHistory: [run.extend({ id, before: id.optional() }), scheduleHistory],
-  getTeam: [run, team.extend({ formalSessionIds: z.array(id).optional() })],
+  updateLeaderPolicy: [run.extend({ policy: leaderPolicy.refine(
+    p => p.mode !== 'custom' || !!p.customText?.trim(), 'Custom policy text is required',
+  ) }), indexRecords.team_runs],
+  getTeamBrief: [run, teamBrief.nullable()],
+  saveTeamBrief: [run.extend({ text: z.string().max(4000), expectedHash: hash.nullable() }), briefSaveResult],
+  getTeam: [run, team.extend({ capabilities: z.strictObject({ schedules: z.boolean() }).optional(), formalSessionIds: z.array(id).optional() })],
   teamMentionRoster: [
     z.strictObject({ sessionId: id }),
     z.strictObject({
@@ -55,7 +63,7 @@ export const runtimeMethods = {
   ],
   teamMessageSender: [
     z.strictObject({ sessionId: id, senderId: id.optional(), senderName: id.optional() }),
-    z.strictObject({ name: title.nullable() }).nullable(),
+    z.strictObject({ name: title.nullable(), fromParent: z.boolean().optional() }).nullable(),
   ],
   renameTeam: [run.extend({ title }), indexRecords.team_runs],
   teamArchiveImpact: [run, z.int().nonnegative()],

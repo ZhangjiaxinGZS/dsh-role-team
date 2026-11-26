@@ -111,7 +111,7 @@ export class NativeTeam {
     return result.agent
   }
   async enable(id: string) {
-    await this.ctx.agentTeams.setEnabled(await this.root(id), true)
+    await this.ctx.get('agentTeams')?.setEnabled(await this.root(id), true)
   }
   async prompt(id: string, child: boolean, input: Input<'promptSeat'>) {
     const requestId = input.requestId as SessionPromptRequest['requestId']
@@ -200,22 +200,24 @@ export class NativeTeam {
     void activation.result.catch((error) => this.ctx.logger.warn(String(error)))
   }
   async transfer(rootId: string, oldId: string, newId: string) {
+    const teams = this.ctx.get('agentTeams')
+    if (!teams) return
     const root = await this.root(rootId)
     for (let attempt = 0; attempt < 16; attempt++) {
-      const tasks = this.ctx.agentTeams
+      const tasks = teams
         .listTasks(root)
         .filter((t) => t.ownerId === oldId && (t.status === 'pending' || t.status === 'in_progress'))
       if (!tasks.length) return
       for (const task of tasks) {
         try {
-          await this.ctx.agentTeams.updateTask(root, {
+          await teams.updateTask(root, {
             action: 'reassign',
             taskId: task.id,
             expectedRevision: task.revision,
             owner: newId as SessionId,
           })
         } catch (error) {
-          const current = this.ctx.agentTeams.listTasks(root).find((t) => t.id === task.id)
+          const current = teams.listTasks(root).find((t) => t.id === task.id)
           if (current?.revision === task.revision) throw error
         }
       }

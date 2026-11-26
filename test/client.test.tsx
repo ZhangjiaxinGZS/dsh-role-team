@@ -6,6 +6,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import en from '../locales/en-US.json' with { type: 'json' }
 import { Client, type Seat, type Ui } from '../src/client/ui.js'
+import { TeamPreview } from '../src/client/workbench/TaskBoard.js'
 import { Workbench } from '../src/client/workbench/Workbench.js'
 import {
   type MemberPickerBinding,
@@ -27,6 +28,7 @@ import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/c
 // The browser supplies the shared menu. Exercise the catalog and selection callbacks here.
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
   HoverCard: ({ anchor }: { anchor: ReactNode }) => <span>{anchor}</span>,
+  extractMarkdownPlainText: (markdown: string) => markdown.split('\n')[0].replaceAll('**', ''),
   MarkdownText: ({ text }: { text: string }) => <div data-testid="native-markdown">{text}</div>,
   IconSettingsOutlineRegular: () => null,
   IconEllipsisOutlineRegular: () => null,
@@ -1085,7 +1087,7 @@ it('resizes the role list and profile independently, clamps both and restores de
 
 it('stores team list and adjacent member widths, scoped to team and seats across remounts', async () => {
   installWidthStorage()
-  const runs = ['width-a', 'width-b'].map(runId => ({ runId, title: runId, leaderSeatId: 'lead', status: 'active' }))
+  const runs = ['width-a', 'width-b'].map(runId => ({ runId, title: runId, rootSessionId: runId + '-root', leaderSeatId: 'lead', status: 'active' }))
   const h = harness(vi.fn(async (method: string, input: { runId: string }) => {
     if (method === 'listTeams') return runs
     if (method === 'getTeam') return { run: runs.find(r => r.runId === input.runId), seats: [seat('lead', null), seat('other', 'lead')] }
@@ -1200,7 +1202,7 @@ it('renders team turn triggers expanded with Markdown, sender and timestamp, and
     register: (opts: {key: string}, component: typeof Route) => { if (opts.key === 'turn-trigger') Route = component },
     entries: () => [{ options: { key: 'turn-trigger' }, locale:'chat', component: () => <button aria-expanded="false">native trigger</button> }],
   } }
-  const lookup = vi.fn().mockResolvedValue({ name: '程序员' })
+  const lookup = vi.fn().mockResolvedValue({ name: '程序员', fromParent: true })
   registerTeamTrigger(ctx as unknown as Context, lookup as Ui['call'], k => en.ui[k])
   const node = { data: { source, content, time: Date.UTC(2026,0,1) } }
   const view = render(<Route sessionId="rt-root-test" node={node} />)
@@ -1223,15 +1225,15 @@ it('renders team turn triggers expanded with Markdown, sender and timestamp, and
 
 it('shows mid-turn team reports beside the native disclosure and keeps ordinary process rows native', async () => {
   const { registerTeamTrigger } = await import('../src/client/workbench/TeamTrigger.js')
-  const notice = (seq: number, kind: string, body: string) => ({
-    seq, time: seq, source: { kind, senderSessionId: 'member' }, content: [{ type: 'text', text: body }],
+  const notice = (seq: number, kind: string, body: string, senderSessionId: string | null = 'member', stopReason?: string) => ({
+    seq, time: seq, source: { kind, senderSessionId, stopReason }, content: [{ type: 'text', text: body }],
   })
   const sent = notice(3, 'agent-message', 'Agent editor sent a message: **Reviewed**')
   const prefix = 'Background subagent editor finished and will do no further work unless you send it more.'
   const receipt = notice(4, 'subagent-settled', prefix + ' It sent you a message just before finishing, so its closing message is omitted.')
-  const auto = notice(5, 'subagent-settled', prefix + ' Its closing message: Automatic answer')
+  const auto = notice(5, 'subagent-settled', prefix + ' Its closing message: Automatic answer', 'other-member')
   const schedule = notice(6, 'schedule', 'Unrelated')
-  const outside = notice(9, 'team-message', 'Outside the fold')
+  const outside = notice(90, 'team-message', 'Outside the fold')
   // Simulate new contexts arriving after the controller was mounted.
   let rows = [sent, receipt, schedule, outside]
   const listeners = new Set<() => void>()
@@ -1240,7 +1242,7 @@ it('shows mid-turn team reports beside the native disclosure and keeps ordinary 
     expect([turn, kind]).toEqual([1, 'context'])
     return source
   } } }
-  const turnProcess = { spec: { processStartSeq: 2, answerAnchorSeq: 8 }, open: false }
+  const turnProcess = { spec: { processStartSeq: 2, answerAnchorSeq: 80 }, open: false }
   const props = {
     sessionId: 'rt-child-reader', turnProcess,
     useChat: (select: (snap: typeof snapshot) => unknown) => select(snapshot),
@@ -1266,7 +1268,7 @@ it('shows mid-turn team reports beside the native disclosure and keeps ordinary 
       {rows.map(data => <ContextRow key={data.seq} {...common} node={{kind:'context', location, data}} />)}</>
   }
   const view = render(flow(props.sessionId, false))
-  expect(await screen.findByText('**Reviewed**')).toBeTruthy()
+  expect(await screen.findByText('Reviewed')).toBeTruthy()
   await waitFor(() => expect(screen.getAllByTestId('native-context')).toHaveLength(1))
   expect(screen.getByText('Outside the fold')).toBeTruthy()
   expect(screen.getAllByRole('button', {name:/From Editor/})).toHaveLength(2)
@@ -1277,6 +1279,18 @@ it('shows mid-turn team reports beside the native disclosure and keeps ordinary 
   expect(screen.getAllByRole('button', {name:/From Editor/})).toHaveLength(3)
   expect(screen.getByTestId('native-turn-process').textContent).toBe('true')
   expect(screen.queryByText(en.ui.reportAlreadySent)).toBeNull()
+  const earlier = notice(7, 'team-message', 'Agent reviewer sent a message: First update', null)
+  const latest = notice(8, 'agent-message', 'Agent reviewer sent a message: Final update', null)
+  const finish = notice(9, 'subagent-settled', prefix.replace('editor', 'reviewer') + ' Its closing message: Duplicate conclusion', null)
+  const exceptions = ['error', 'aborted', 'refusal', 'max-tokens'].map((reason,i) =>
+    notice(10+i, 'subagent-settled', 'Must retain '+reason, 'member', reason))
+  act(() => { rows = [sent, receipt, auto, schedule, earlier, latest, finish, ...exceptions, outside]; listeners.forEach(f => f()) })
+  const latestCard = (await screen.findByText('Final update')).closest('button')!
+  expect(latestCard.textContent?.includes(en.ui.reportCompleted)).toBeTruthy()
+  expect(screen.getByText('First update').closest('button')?.textContent).not.toContain(en.ui.reportCompleted)
+  expect(screen.queryByText('Duplicate conclusion')).toBeNull()
+  expect(screen.getByText('Reviewed').closest('button')?.textContent).toContain(en.ui.reportCompleted)
+  for (const reason of ['error','aborted','refusal','max-tokens']) expect(await screen.findByText('Must retain '+reason)).toBeTruthy()
   for (const sessionId of ['ordinary', 'rt-root-unregistered']) {
     view.rerender(flow(sessionId, false))
     await waitFor(() => expect(screen.getAllByTestId('native-context')).toHaveLength(rows.length))
@@ -1329,8 +1343,9 @@ it('submits a weekly schedule to the selected team and shows the archive impact 
     throw Error(method)
   })
   harness(call).mount(<Workbench roles={[]} />)
-  fireEvent.click(await screen.findByRole('button', { name: en.ui.teamTimers }))
-  let panel = within(await screen.findByRole('dialog'))
+  fireEvent.click(await screen.findByRole('button', { name: en.ui.teamPanel }))
+  fireEvent.click(screen.getByRole('tab', { name: en.ui.schedulesTab }))
+  let panel = within(screen.getByRole('complementary', { name: en.ui.teamPanel }))
   fireEvent.click(panel.getByRole('button', { name: en.ui.newTimer }))
   fireEvent.change(panel.getByLabelText(en.ui.timerTitle), { target: { value: 'Weekly check' } })
   fireEvent.change(panel.getByLabelText(en.ui.timerPrompt), { target: { value: 'Collect status' } })
@@ -1421,7 +1436,7 @@ it('renders settlement outcomes, removes only the notice wrapper and toggles ove
   style.textContent = readFileSync('src/client/ui.css', 'utf8')
   document.head.append(style)
   try {
-    const card = (m: typeof message) => <TeamMessageCard message={m} name="研究员" time={0} t={t} />
+    const card = (m: typeof message) => <TeamMessageCard message={m} fromParent name="研究员" time={0} t={t} />
     const view = render(card(message))
     const preview = document.querySelector('.rt-report-window')!
     expect(getComputedStyle(preview).overflow).toBe('hidden')
@@ -1439,7 +1454,7 @@ it('renders settlement outcomes, removes only the notice wrapper and toggles ove
       ['ended abnormally (other) before it finished.', 'other', en.ui.reportEnded],
     ] as const) {
       view.rerender(card(notice(ending, reason)))
-      expect(screen.getByText('From 研究员 · ' + label)).toBeTruthy()
+      expect(screen.getByRole('button', { name: new RegExp('From 研究员 · ' + label) })).toBeTruthy()
       expect(screen.queryByRole('button', { name: en.ui.reportExpand })).toBeNull()
     }
   } finally { sized.mockRestore(); style.remove() }
@@ -1502,6 +1517,32 @@ it('prioritizes approvals across teams and acknowledges only the member being vi
   stop()
 })
 
+it('limits team previews to three active tasks or the two latest completions', async () => {
+  const run = { runId:'peek',title:'Preview',status:'active' as const,leaderSeatId:'lead',rootSessionId:'lead-session',workspaceCwd:'/tmp',createdAt:'',locale:'en' as const }
+  const h = harness(vi.fn(async () => ({run,seats:[]})))
+  const retain = h.ui.retain
+  const task = (subject: string, status: string) => ({id:subject, subject, status, blockedBy:[]})
+  const done = [0,1,2,3].map(i => task('Done '+i, 'completed'))
+  let projection = {tasks:[...done,task('Next','pending'), ...[0,1,2].map(i => task('Active '+i,'in_progress'))]}
+  h.ui.retain = target => {
+    const ref = retain(target)
+    ref.binding.session.projections.faceOf = () => ({getSnapshot:()=>projection, subscribe:()=>()=>{}})
+    return ref
+  }
+  const view = h.mount(<TeamPreview run={run}/>)
+  const pane = within(screen.getByRole('region',{name:en.ui.taskBoard}))
+  expect(await pane.findByText(en.ui.previewMoreActive.replace('{n}','1'))).toBeTruthy()
+  expect(pane.getAllByRole('article').map(a=>a.querySelector('strong')?.textContent)).toEqual(['Active 0','Active 1','Active 2'])
+  projection = {tasks:[...done,task('Next','pending')]}
+  view.rerender(<Client.Provider value={h.ui}><TeamPreview run={run}/></Client.Provider>)
+  expect(pane.getAllByRole('article')).toHaveLength(1)
+  expect(pane.getByText('Next')).toBeTruthy()
+  projection = {tasks:done}
+  view.rerender(<Client.Provider value={h.ui}><TeamPreview run={run}/></Client.Provider>)
+  expect(pane.getByText(en.ui.previewCompletedTotal.replace('{n}','4'))).toBeTruthy()
+  expect(pane.getAllByRole('article').map(a=>a.querySelector('strong')?.textContent)).toEqual(['Done 3','Done 2'])
+})
+
 it('shows native projected tasks with blockers and opens their owner in single chat', async () => {
   const run = { runId: 'tasks', title: 'Project', status: 'active', leaderSeatId: 'lead', rootSessionId: 'lead-session' }
   const seats = [seat('lead', null), seat('worker', 'lead')]
@@ -1519,10 +1560,16 @@ it('shows native projected tasks with blockers and opens their owner in single c
     return ref
   }
   h.mount(<Workbench roles={[]} />)
-  const opener = await screen.findByRole('button', { name:en.ui.taskBoard })
+  const opener = await screen.findByRole('button', { name:en.ui.teamPanel })
+  expect(opener.querySelector('.rt-drawer-label')?.textContent).toBe(en.ui.teamPanel)
+  expect(opener.querySelector('.rt-badge')?.textContent).toBe('2')
+  expect(screen.getByTitle(en.ui.teamPanelHint).contains(opener)).toBe(true)
+  expect(opener.getAttribute('aria-expanded')).toBe('false')
   expect(document.querySelectorAll('.rt-team-navigation .rt-segment button')).toHaveLength(2)
   const chat = document.querySelector('.rt-column')
   fireEvent.click(opener)
+  expect(opener.getAttribute('aria-expanded')).toBe('true')
+  fireEvent.click(screen.getByRole('tab', { name: /^Tasks/ }))
   const board = within(await screen.findByRole('region', {name:en.ui.taskBoard}))
   const evidence = await board.findByTitle('Collect evidence')
   expect(document.querySelector('.rt-column')).toBe(chat)
@@ -1569,4 +1616,164 @@ it('lists only direct temporary children, opens an addressed one-shot transcript
   fireEvent.click(screen.getAllByRole('tab',{name:'Chat'})[0])
   expect(h.releases.get('tmp')).toHaveBeenCalledOnce()
   expect(screen.queryByText('stream:tmp')).toBeNull()
+})
+
+it('keeps reports from peers and descendants compact, expands them fully in one click, and flags abnormal endings', async () => {
+  const { TeamMessageCard, teamMessage } = await import('../src/client/workbench/TeamTrigger.js')
+  const message = teamMessage({ source: { kind:'subagent-settled', stopReason:'error' },
+    content:[{ type:'text', text:'**Build failed**\n\n' + '- See [results](project.md)\n'.repeat(150) }] })!
+  const view = render(<TeamMessageCard name="Dev" message={message} time={0} t={key => en.ui[key]}/>)
+  const header = screen.getByRole('button', {name:/From Dev/})
+  expect(header.getAttribute('aria-expanded')).toBe('false')
+  expect(view.container.querySelector('[data-alert=true]')).toBeTruthy()
+  expect(view.container.querySelector('.rt-report-summary')?.textContent).toBe('Build failed')
+  expect(screen.queryByTestId('native-markdown')).toBeNull()
+  fireEvent.click(header)
+  expect(view.container.querySelector('.rt-report-window[data-full]')).toBeTruthy()
+  expect(screen.getByTestId('native-markdown').textContent).toContain('**Build failed**')
+  expect(screen.queryByRole('button', { name: en.ui.reportExpand })).toBeNull()
+  fireEvent.click(header)
+  expect(header.getAttribute('aria-expanded')).toBe('false')
+})
+
+it.each([
+  { kind:'team-brief', source:{kind:'team-brief', updatedBy:'leader'}, title:/Team brief synced · Updated by lead/,
+    envelope:'team-brief-update', text:'<team-brief-update updated_by="leader">\nNote: The user’s latest direct instruction always overrides this brief.\n**Pinned**\n</team-brief-update>' },
+  { kind:'team-policy', source:{kind:'team-policy', mode:'custom'}, title:/Leader collaboration policy synced · Custom rules/,
+    envelope:'team-leader-policy', text:'<team-leader-policy mode="custom">\n**Pinned**\n</team-leader-policy>' },
+])('uses a single silent $kind snapshot for wake, context and folded process nodes', async (fixture) => {
+  const { registerTeamTrigger } = await import('../src/client/workbench/TeamTrigger.js')
+  type Route = React.ComponentType<Record<string, unknown>>
+  const routes = new Map<string, Route>()
+  const native = ['turn-trigger','context','turn-process'].map(key => ({ options:{key}, locale:'chat', component:() => <span>native {key}</span> }))
+  registerTeamTrigger({ slots:{ inject:(_:string, cb:()=>void)=>cb(), entries:()=>native,
+    register:({ key }:{key:string}, c:Route)=>routes.set(key,c) } } as unknown as Context, vi.fn() as Ui['call'], k=>en.ui[k])
+  const data = { source:fixture.source, seq:5, time:0, content:[{ type:'text', text:fixture.text }] }
+  const Wake = routes.get('turn-trigger')!, Row = routes.get('context')!, Process = routes.get('turn-process')!
+  const location = { kind:'turn',turn:{start:1,end:9,status:'closed'} }
+  const shared = { sessionId:'rt-child-test',turnProcess:{spec:{processStartSeq:2,answerAnchorSeq:8}} }
+  const rows = [data], source = { subscribe:()=>()=>{},getSnapshot:()=>rows }
+  const view = render(<Wake {...shared} node={{data}}/>)
+  const check = () => {
+    const header = screen.getByRole('button',{ name:fixture.title })
+    expect(header.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByTestId('native-markdown')).toBeNull()
+    fireEvent.click(header)
+    expect(screen.getByTestId('native-markdown').textContent).toBe('**Pinned**')
+    expect(view.container.textContent).not.toContain(fixture.envelope)
+    fireEvent.click(header)
+  }
+  check()
+  view.rerender(<Row {...shared} node={{kind:'context', location:{kind:'outside'},data}}/>)
+  check()
+  view.rerender(<><Process {...shared} useChat={()=>source} node={{kind:'turn-process',location,data:{turn:1}}}/>
+    <Row {...shared} node={{kind:'context',location,data}}/></>)
+  check()
+  expect(view.container.querySelectorAll('[data-brief-notice], [data-policy-notice]')).toHaveLength(1)
+})
+
+it('guards drawer drafts and CAS conflicts, remembers tabs, restores focus and skips unavailable schedules', async () => {
+  installWidthStorage()
+  localStorage.setItem('dsh-role-team:drawer-tab','obsolete')
+  const run = { runId:'drawer',title:'Drawer',status:'active',rootSessionId:'chief-session',leaderSeatId:'chief',locale:'en' }
+  const snapshot = (text:string, hash:string) => ({text,hash,updatedBy:'user',updatedAt:'2026-10-01T00:00:00Z'})
+  let brief: ReturnType<typeof snapshot> | null = null
+  const call = vi.fn(async (method:string, input:{text:string;expectedHash:string|null}) => {
+    if (method === 'listTeams') return [run]
+    if (method === 'getTeam') return {run,seats:[seat('chief',null)],capabilities:{ schedules:false }}
+    if (method === 'getTeamBrief') return brief
+    if (method === 'saveTeamBrief') {
+      if (input.expectedHash !== (brief?.hash ?? null)) return {ok:false,code:'conflict',current:brief}
+      brief = snapshot(input.text, 'c'.repeat(64))
+      return {ok:true,brief}
+    }
+    throw Error(method)
+  })
+  const h = harness(call)
+  let view = h.mount(<Workbench roles={[]}/>)
+  const opener = () => screen.findByRole('button',{name:en.ui.teamPanel})
+  fireEvent.click(await opener())
+  const controls = view.container.querySelector<HTMLElement>('.rt-controls')!
+  expect(within(controls).getAllByRole('button').filter(b => !b.closest('.rt-team-navigation'))).toHaveLength(3)
+  const tabs = () => within(screen.getByRole('tablist', {name:en.ui.teamPanel})).getAllByRole('tab')
+  expect(tabs().map(t=>t.textContent)).toEqual(['Brief','Tasks','Schedules'])
+  fireEvent.click(await screen.findByRole('button',{name:en.ui.createBrief}))
+  const draft = screen.getByRole('textbox',{name:en.ui.teamBrief})
+  expect(draft.getAttribute('maxlength')).toBe('4000')
+  fireEvent.change(draft,{target:{value:'x'.repeat(1501)}})
+  expect(screen.getByText(en.ui.briefLengthHint)).toBeTruthy()
+  fireEvent.click(tabs()[1])
+  fireEvent.click(screen.getByRole('button',{name:en.ui.keepEditing}))
+  expect((draft as HTMLTextAreaElement).value.length).toBe(1501)
+  brief = snapshot('edited elsewhere','a'.repeat(64))
+  fireEvent.keyDown(draft,{key:'Escape'})
+  fireEvent.click(screen.getByRole('button',{name:en.ui.briefSaveAndLeave}))
+  expect(await screen.findByRole('button',{name:en.ui.briefUseLatest})).toBeTruthy()
+  expect(tabs()[0].getAttribute('aria-selected')).toBe('true')
+  fireEvent.click(screen.getByRole('button',{name:en.ui.briefUseLatest}))
+  expect((draft as HTMLTextAreaElement).value).toBe('edited elsewhere')
+  fireEvent.change(draft,{target:{value:'revised'}})
+  brief = snapshot('second competing edit','b'.repeat(64))
+  fireEvent.click(screen.getByRole('button',{name:en.ui.save}))
+  fireEvent.click(await screen.findByRole('button',{name:en.ui.briefOverwrite}))
+  expect(await screen.findByText('revised')).toBeTruthy()
+  expect(call).toHaveBeenCalledWith('saveTeamBrief',{ runId:run.runId, expectedHash:'b'.repeat(64),text:'revised' })
+  fireEvent.click(screen.getByRole('button',{name:en.ui.edit}))
+  fireEvent.change(screen.getByRole('textbox',{name:en.ui.teamBrief}),{target:{value:'discard me'}})
+  fireEvent.click(await opener())
+  fireEvent.click(screen.getByRole('button',{name:en.ui.briefDiscard}))
+  expect(document.activeElement).toBe(await opener())
+  fireEvent.click(await opener())
+  fireEvent.click(tabs()[2])
+  expect(screen.getByText(en.ui.schedulesUnavailable)).toBeTruthy()
+  expect(localStorage.getItem('dsh-role-team:drawer-tab')).toBe('schedules')
+  fireEvent.keyDown(document.activeElement!,{key:'Escape'})
+  expect(screen.queryByRole('tablist', {name:en.ui.teamPanel})).toBeNull()
+  view.unmount()
+  view = h.mount(<Workbench roles={[]}/>)
+  fireEvent.click(await opener())
+  expect(tabs()[2].getAttribute('aria-selected')).toBe('true')
+  fireEvent.click(tabs()[0])
+  fireEvent.click(await screen.findByRole('button',{name:en.ui.edit}))
+  fireEvent.change(screen.getByRole('textbox',{name:en.ui.teamBrief}),{target:{value:'saved before switching'}})
+  fireEvent.click(tabs()[1])
+  fireEvent.click(screen.getByRole('button',{name:en.ui.briefSaveAndLeave}))
+  await waitFor(() => expect(tabs()[1].getAttribute('aria-selected')).toBe('true'))
+  expect(brief?.text).toBe('saved before switching')
+  expect(call.mock.calls.some(([m])=>m==='teamSchedules')).toBe(false)
+})
+
+it('explains each leader policy, validates custom rules, and restores the saved choice on reopen', async () => {
+  const run = { runId: 'policy', title: 'Policy', status:'active', leaderSeatId:'lead', rootSessionId:'lead-session', locale:'en',
+    leaderPolicy: undefined as import('../src/shared/index.js').LeaderPolicy | undefined }
+  const call = vi.fn(async (method: string, input?: { policy: typeof run.leaderPolicy }) => {
+    if (method === 'listTeams') return [run]
+    if (method === 'getTeam') return { run, seats:[seat('lead', null)] }
+    if (method === 'updateLeaderPolicy') { run.leaderPolicy = input!.policy; return { ...run } }
+    return []
+  })
+  harness(call).mount(<Workbench roles={[]}/>)
+  fireEvent.click(await screen.findByTitle(en.ui.boardSettings))
+  const group = screen.getByRole('radiogroup', { name:en.ui.policyTitle })
+  expect(within(group).getAllByRole('radio')).toHaveLength(3)
+  for (const hint of [en.ui.policyDelegateHint, en.ui.policyBalancedHint, en.ui.policyCustomHint]) expect(within(group).getByText(hint)).toBeTruthy()
+  const save = () => screen.getByRole<HTMLButtonElement>('button', {name:en.ui.policySave})
+  expect(save().disabled).toBe(true)
+  fireEvent.click(within(group).getByRole('radio', {name:/Custom rules/}))
+  expect(save().disabled).toBe(true)
+  const input = screen.getByRole<HTMLTextAreaElement>('textbox', {name:en.ui.policyInstructions})
+  expect(input.maxLength).toBe(1200)
+  fireEvent.click(screen.getByText(en.ui.policyFill))
+  expect(input.value).toMatch(/^If the user’s request is missing .*wait for confirmation before delegating\. Once requirements are clear, check roster duties/)
+  expect(screen.getByText(input.value.length + ' / 1200')).toBeTruthy()
+  fireEvent.click(save())
+  await screen.findByText(en.ui.saved)
+  expect(call).toHaveBeenCalledWith('updateLeaderPolicy', {runId:run.runId, policy:{ mode:'custom', customText:input.value }})
+  expect(save().disabled).toBe(true)
+  fireEvent.click(within(screen.getByRole('dialog')).getByLabelText(en.ui.close))
+  run.status = 'archived'
+  fireEvent.click(screen.getByTitle(en.ui.boardSettings))
+  expect(screen.getByText(en.ui.policyArchived)).toBeTruthy()
+  expect(screen.getByRole<HTMLTextAreaElement>('textbox', {name:en.ui.policyInstructions}).disabled).toBe(true)
+  expect(save().disabled).toBe(true)
 })

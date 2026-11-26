@@ -1,3 +1,4 @@
+import type {} from '@deepseek-ai/dsh-compaction'
 import { randomUUID } from 'node:crypto'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SessionId } from '@deepseek-ai/dsh-session'
@@ -10,10 +11,13 @@ import { TrainingRuntime } from '../training/index.js'
 import { replaceSeat } from '../seat-reset/index.js'
 import { NativeTeam } from './native.js'
 
+import { policyNotice } from './policy.js'
+import { TeamBriefs, briefNotice } from './briefs.js'
 import { TeamSchedules } from './schedules.js'
 
 export type Seat = IndexRecord<'team_seats'>
 export class TeamRuntime {
+  readonly briefs = new TeamBriefs(this)
   readonly schedules = new TeamSchedules(this)
   readonly training: TrainingRuntime
   private readonly queue = new Map<string, Promise<unknown>>()
@@ -155,6 +159,17 @@ export class TeamRuntime {
     const { ctx } = this.native
     ctx.on('session/event', (session, event) => {
       if (!session.id.startsWith('rt-')) return
+      const source = event.type === 'user/message' ? event.data.source : undefined
+      if (event.type === 'compaction/summary' || source?.kind === 'team-brief' || source?.kind === 'team-policy') {
+        const seen = source?.kind === 'team-brief' ? { seenBriefHash: source.briefHash }
+          : source?.kind === 'team-policy' ? { seenPolicyHash: source.policyHash }
+          : { seenBriefHash: null, seenPolicyHash: null }
+        const g = this.index.generations.list().find(g => g.sessionId === session.id)
+        if (g) void this.ordered('seen/' + session.id, () => this.index.generations.update(
+          generationKey(g.seatId, g.generation), row => ({ ...row, ...seen }),
+        )).catch(e => ctx.logger.warn(String(e)))
+        return
+      }
       if (event.type === 'model/selection' || event.type === 'request/header') {
         if (this.restoringModel.has(session.id)) return
         const roleId =
@@ -228,6 +243,8 @@ export class TeamRuntime {
       nativeAgentName: seat.nativeAgentName,
       roleSnapshotHash: snap.sourceHash,
       memoryIds: snap.memories.map((m) => m.meta.id),
+      seenBriefHash: null,
+      seenPolicyHash: null,
       handoffNote: null,
       archivedAt: null,
     })
@@ -382,6 +399,7 @@ export class TeamRuntime {
       for (const link of this.index.schedules.list()) {
         if (link.runId === runId) await this.index.schedules.delete(link.scheduleId)
       }
+      await this.briefs.remove(runId)
       return this.index.runs.delete(runId)
     })
   }
@@ -403,7 +421,8 @@ export class TeamRuntime {
         await this.native.archive(run.rootSessionId)
       for (const s of seats)
         await this.index.seats.update(s.seatId, (value) => ({ ...value, status: 'archived' }))
-      return this.index.runs.update(runId, (r) => ({ ...r, status: 'archived' }))
+      // Wait for an admitted brief save only after native activity has stopped.
+      return this.ordered('brief/' + runId, () => this.index.runs.update(runId, (r) => ({ ...r, status: 'archived' })))
     })
   }
   async versionDecision(input: Input<'versionDecision'>) {
@@ -503,6 +522,7 @@ export class TeamRuntime {
         this.getTeam(seat.runId).run.permissionPreset,
       )
     isolate(agent, this.roles.root, active, run.locale, seat.parentSeatId ? 'member' : 'leader')
+    this.briefs.install(agent, seat.runId, !seat.parentSeatId, agent.ctx)
     if (!seat.parentSeatId) agent.ctx.inject(['schedule'], scope => this.schedules.install(agent, seat.runId, scope))
     agent.ctx.on('tools/pre-execute', async (exec, next) => {
       if (exec.agent !== agent) return next()
@@ -593,6 +613,9 @@ export class TeamRuntime {
         run.locale === 'en'
           ? 'Before ending assigned work, update both the shared board and your personal todo_write list. Read the latest revision and use team_task_update complete for finished work or release when blocked. Mark the corresponding todos completed or pending and keep unrelated todos. Report the result or blocker and next step to the leader. Stopped work must never remain in_progress. As leader, read the latest member reports and completion notices first, then reconcile stale board entries or reassign the next step before waiting.'
           : '成员完成任务或因卡点暂停时，结束回合前同步更新共享任务板和个人 todo_write。读取最新修订号，用 team_task_update 的 complete 完成任务，遇阻停工用 release 释放任务。个人清单对应项标为 completed 或 pending，保留其余条目。向队长汇报结果或卡点及下一步，已停工的条目不能留在 in_progress。队长先核对最新成员汇报与结束通知，再核实滞后的任务板记录，按需重新分派，避免空等。',
+        run.locale === 'en'
+          ? "Team brief: this team shares a concise brief. Any member may call read_team_brief; only the leader (and user) may call update_team_brief (max 1500 chars: current goal, locked decisions/guardrails, current stage and artifact paths—never paste long reports). Updates sync incrementally. The user's latest direct instruction always overrides the brief."
+          : '团队简报：本队共享一份简短主线简报。成员可用 read_team_brief 查看；仅队长（和用户）可用 update_team_brief 更新（限 1500 字，只写主线目标、已拍板决定与红线、当前阶段与产物路径，不粘贴长报告）。简报变更时系统会自动增量同步。用户最新直接指令始终高于简报。',
         JSON.stringify({ ...this.mentionRoster(run.runId), selfSeatId: seat.seatId }),
       ].join('\n'),
     )
@@ -628,6 +651,21 @@ export class TeamRuntime {
               }
             : s,
         )
+      if (decision.kind === 'enter') {
+        await this.queue.get('seen/' + agent.id)
+        const brief = await this.briefs.read(seat.runId)
+        const gen = index.generations.get(generationKey(seat.seatId, generation))
+        const notices = []
+        if (brief?.text.trim() && brief.hash !== gen?.seenBriefHash)
+          notices.push(briefNotice(brief, run.locale === 'en'))
+        const team = this.getTeam(seat.runId)
+        if (team.run.status === 'active' && team.seats.some(other => other.status === 'active' &&
+          other.seatId !== seat.seatId && (!row.parentSeatId || other.parentSeatId === seat.seatId))) {
+          const notice = policyNotice(team.run, gen?.seenPolicyHash)
+          if (notice) notices.push(notice)
+        }
+        if (notices.length) return { ...decision, messages: [...decision.messages, ...notices] }
+      }
       return decision
     })
   }

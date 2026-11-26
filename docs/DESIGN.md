@@ -3,7 +3,7 @@
 > **项目定位**：面向 DeepSeek Harness (`0.2.2-rc.5+`) 的独立外部插件包，实现「对话培养 AI 角色 + 共享长期记忆 + 团队会话严格隔离 + 按需组队协作 + AionUi 风格多栏分屏工作台」。
 >
 > - **GitHub 公开仓库**：`https://github.com/ZhangjiaxinGZS/dsh-role-team`
-> - **本地开发目录**：`/Users/zjx/Desktop/code/dsh-插件开发/dsh-role-team/`
+> - **本地开发目录**：`dsh-role-team/`
 > - **宿主边界**：纯外部 DSH bundle，按规范安装加载，**不修改 `deepseek-harness` 源码**
 > - **默认纯文本角色库**：`~/.dsh-role-team/roles/`（可在插件设置中修改）
 > - **手改发布策略**：外部编辑器保存 `role.md` / `memories/*.md` 后，**自动发布给后续新建团队**；并行进行中的团队仍由用户显式决定何时生效

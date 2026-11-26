@@ -17,6 +17,21 @@ import {
 } from '../../shared/schedules.js'
 import type { TeamRuntime } from './index.js'
 
+// Agent executors share a flat schema. The scheduler RPC keeps its native timing union.
+const timingFields = {
+  kind: z.enum(['after', 'at', 'daily', 'weekly', 'cron', 'every', 'rrule']),
+  after_seconds: z.number().optional(), at: z.string().optional(),
+  time: z.string().optional(), time_zone: z.string().optional(),
+  weekdays: z.array(z.number()).optional(), expression: z.string().optional(),
+  every_seconds: z.number().optional(), rrule: z.string().optional(),
+}
+const toolTiming = z.strictObject(timingFields)
+function scheduleTiming(input: Partial<z.infer<typeof toolTiming>>) {
+  const { kind, ...fields } = input
+  if (kind === 'daily' || kind === 'weekly' || kind === 'cron') return { kind, [kind]: fields }
+  if (!kind && !Object.keys(fields).length) return undefined
+  return { kind, ...fields }
+}
 function rule(task: ScheduleCatalogEntry): Timing {
   switch (task.kind) {
     case 'after':
@@ -223,14 +238,18 @@ export class TeamSchedules {
     add(
       'team_schedule_create',
       'After explicit user confirmation of time, frequency and instructions, schedule delivery to this team leader.',
-      scheduleDraft,
-      (args) => this.create({ ...args, runId }),
+      scheduleDraft.omit({ timing: true }).extend(timingFields),
+      ({ title, prompt, ...fields }) => this.create({ runId, ...scheduleDraft.parse({ title, prompt, timing: scheduleTiming(fields) }) }),
     )
     add(
       'team_schedule_change',
       'Manage one task from team_schedule_list using its latest updatedAt as expectedUpdatedAt.',
-      scheduleChange,
-      (args) => this.change({ ...args, runId }),
+      scheduleChange.omit({ timing: true, expectedUpdatedAt: true }).extend({
+        ...toolTiming.partial().shape, expectedUpdatedAt: z.string().optional(),
+      }),
+      ({ id, action, title, prompt, expectedUpdatedAt, ...fields }) => this.change({
+        runId, ...scheduleChange.parse({ id, action, title, prompt, expectedUpdatedAt: expectedUpdatedAt ?? null, timing: scheduleTiming(fields) }),
+      }),
     )
   }
 }

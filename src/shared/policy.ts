@@ -1,0 +1,4 @@
+export const delegationTemplate = {
+  zh: '若用户需求缺少关键目标、约束、预算、时间或验收边界，必须先向用户一次性澄清对齐，获得确认后再派发给成员。需求明确后，动手前先核对团队花名册中的职责简介。专业执行、调研、代码修改、评审或跨专业规划决策落入成员职责时，优先通过 send_message 并行派发或请相关成员会诊。队长负责拆解任务、汇总裁决、维护简报和验收交付。纯事实快问、单步确认、没有对应专职成员或用户明确要求队长处理时，直接答复。',
+  en: 'If the user’s request is missing key goals, constraints, budget, timeline, or acceptance criteria, ask the user concise clarifying questions first and wait for confirmation before delegating. Once requirements are clear, check roster duties before starting. For specialist work, research, code changes, reviews, or planning decisions spanning specialties, use send_message to delegate or consult the relevant members in parallel. The leader breaks down work, reconciles findings, maintains the brief, and verifies delivery. Answer directly for quick factual questions, single-step confirmations, work without a matching specialist, or when the user asks you to handle it personally.',
+}

@@ -1,0 +1,4505 @@
+{
+  "mode": "live",
+  "arms": [
+    {
+      "model": "deepseek-account:deepseek-flash",
+      "preset": "standard",
+      "mode": "live",
+      "arm": "single-agent",
+      "trials": 18,
+      "passAt1": 0.2777777777777778,
+      "passPow3": 0.16666666666666666,
+      "milestoneKpi": 0.598148148148148,
+      "cvr": 0,
+      "kvCacheHitRate": 1,
+      "providerUsage": {
+        "uncachedInput": 117674,
+        "cacheRead": 5611392,
+        "cacheWrite": 0,
+        "output": 181744,
+        "promptCacheReadShare": 0.9794601772784604
+      },
+      "tokensPerSolved": 1182162,
+      "commF1": 0.21645021645021645,
+      "noiseRatio": 0,
+      "learningGain": 0,
+      "intervals": {
+        "pass": {
+          "mean": 0.2777777777777778,
+          "median": 0,
+          "low": 0.1111111111111111,
+          "high": 0.5
+        },
+        "cvr": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "milestone": {
+          "mean": 0.598148148148148,
+          "median": 0.6666666666666666,
+          "low": 0.4425925925925926,
+          "high": 0.749074074074074
+        },
+        "pooling": {
+          "mean": 0.8666666666666667,
+          "median": 1,
+          "low": 0.6,
+          "high": 1
+        },
+        "cache": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "tokens": {
+          "mean": 328378.3333333333,
+          "median": 212122,
+          "low": 159974.47083333333,
+          "high": 570106.3055555555
+        },
+        "latency": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "noise": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "commF1": {
+          "mean": 0.21645021645021645,
+          "median": 0.28571428571428575,
+          "low": 0,
+          "high": 0.3636363636363636
+        },
+        "clarification": {
+          "mean": 0.6666666666666666,
+          "median": 1,
+          "low": 0,
+          "high": 1
+        },
+        "coherence": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "fidelity": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "closedLoop": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "resync": null,
+        "learning": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        }
+      },
+      "mast": {
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0
+      }
+    },
+    {
+      "model": "deepseek-account:deepseek-flash",
+      "preset": "standard",
+      "mode": "live",
+      "arm": "v0.1.0",
+      "trials": 18,
+      "passAt1": 0.5555555555555556,
+      "passPow3": 0.16666666666666666,
+      "milestoneKpi": 0.7601851851851851,
+      "cvr": 0,
+      "kvCacheHitRate": 1,
+      "providerUsage": {
+        "uncachedInput": 1380209,
+        "cacheRead": 73088256,
+        "cacheWrite": 0,
+        "output": 1056363,
+        "promptCacheReadShare": 0.9814658594077372
+      },
+      "tokensPerSolved": 7552482.8,
+      "commF1": 0.11574074074074074,
+      "noiseRatio": 0.5574927251960422,
+      "learningGain": -0.3333333333333333,
+      "intervals": {
+        "pass": {
+          "mean": 0.5555555555555556,
+          "median": 1,
+          "low": 0.3333333333333333,
+          "high": 0.7777777777777778
+        },
+        "cvr": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "milestone": {
+          "mean": 0.7601851851851851,
+          "median": 1,
+          "low": 0.6018518518518519,
+          "high": 0.8981481481481483
+        },
+        "pooling": {
+          "mean": 0.6666666666666666,
+          "median": 1,
+          "low": 0,
+          "high": 1
+        },
+        "cache": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "tokens": {
+          "mean": 4195823.777777778,
+          "median": 1293450.5,
+          "low": 1146272.6402777778,
+          "high": 9011008.855555553
+        },
+        "latency": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "noise": {
+          "mean": 0.5574927251960422,
+          "median": 0.5496217107237308,
+          "low": 0.46165621377634836,
+          "high": 0.6514133229316382
+        },
+        "commF1": {
+          "mean": 0.11574074074074074,
+          "median": 0.125,
+          "low": 0,
+          "high": 0.22222222222222224
+        },
+        "clarification": {
+          "mean": 0.6666666666666666,
+          "median": 1,
+          "low": 0,
+          "high": 1
+        },
+        "coherence": {
+          "mean": 0.3333333333333333,
+          "median": 0,
+          "low": 0,
+          "high": 1
+        },
+        "retention": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "fidelity": {
+          "mean": 0.6666666666666666,
+          "median": 1,
+          "low": 0,
+          "high": 1
+        },
+        "closedLoop": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "resync": null,
+        "learning": {
+          "mean": -0.3333333333333333,
+          "median": 0,
+          "low": -1,
+          "high": 0
+        }
+      },
+      "mast": {
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0
+      }
+    },
+    {
+      "model": "deepseek-account:deepseek-flash",
+      "preset": "standard",
+      "mode": "live",
+      "arm": "v0.2.0-full",
+      "trials": 18,
+      "passAt1": 0.3888888888888889,
+      "passPow3": 0.16666666666666666,
+      "milestoneKpi": 0.6249999999999999,
+      "cvr": 0,
+      "kvCacheHitRate": 1,
+      "providerUsage": {
+        "uncachedInput": 1571075,
+        "cacheRead": 96602112,
+        "cacheWrite": 0,
+        "output": 1047235,
+        "promptCacheReadShare": 0.9839969033499951
+      },
+      "tokensPerSolved": 14174346,
+      "commF1": 0,
+      "noiseRatio": 0.12718395390403336,
+      "learningGain": -0.6666666666666666,
+      "intervals": {
+        "pass": {
+          "mean": 0.3888888888888889,
+          "median": 0,
+          "low": 0.16666666666666666,
+          "high": 0.6111111111111112
+        },
+        "cvr": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "milestone": {
+          "mean": 0.6249999999999999,
+          "median": 0.6666666666666666,
+          "low": 0.449074074074074,
+          "high": 0.7870370370370371
+        },
+        "pooling": {
+          "mean": 0.6666666666666666,
+          "median": 1,
+          "low": 0,
+          "high": 1
+        },
+        "cache": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "tokens": {
+          "mean": 5512245.666666667,
+          "median": 1253016,
+          "low": 1091019.0430555556,
+          "high": 12767807.56527777
+        },
+        "latency": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "noise": {
+          "mean": 0.12718395390403336,
+          "median": 0.08377781942437998,
+          "low": 0.0884873090117533,
+          "high": 0.17425340552943994
+        },
+        "commF1": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "clarification": {
+          "mean": 0,
+          "median": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coherence": {
+          "mean": 0.3333333333333333,
+          "median": 0,
+          "low": 0,
+          "high": 1
+        },
+        "retention": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "fidelity": {
+          "mean": 0.3333333333333333,
+          "median": 0,
+          "low": 0,
+          "high": 1
+        },
+        "closedLoop": {
+          "mean": 0.8333333333333334,
+          "median": 1,
+          "low": 0.5,
+          "high": 1
+        },
+        "resync": {
+          "mean": 1,
+          "median": 1,
+          "low": 1,
+          "high": 1
+        },
+        "learning": {
+          "mean": -0.6666666666666666,
+          "median": -1,
+          "low": -1,
+          "high": 0
+        }
+      },
+      "mast": {
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "model": "deepseek-account:deepseek-flash",
+      "preset": "standard",
+      "baseline": "single-agent",
+      "arm": "v0.1.0",
+      "pairs": 18,
+      "pass": {
+        "b": 2,
+        "c": 7,
+        "pValue": 0.1796875
+      },
+      "cvr": {
+        "b": 0,
+        "c": 0,
+        "pValue": 1
+      },
+      "continuous": {
+        "milestone": {
+          "wilcoxon": {
+            "w": 30,
+            "n": 13,
+            "pValue": 0.2888443836744226
+          },
+          "cliffs": {
+            "delta": 0.2808641975308642,
+            "magnitude": "small"
+          },
+          "difference": {
+            "mean": 0.16203703703703706,
+            "median": 0.125,
+            "low": -0.08518518518518518,
+            "high": 0.399074074074074
+          }
+        },
+        "pooling": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 1,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": -0.1111111111111111,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": -0.19999999999999998,
+            "median": 0,
+            "low": -0.6,
+            "high": 0
+          }
+        },
+        "cache": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "tokens": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 18,
+            "pValue": 0.00000762939453125
+          },
+          "cliffs": {
+            "delta": 0.8641975308641975,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 3867445.4444444445,
+            "median": 1127249,
+            "low": 943583.8777777778,
+            "high": 8701814.031944444
+          }
+        },
+        "latency": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "noise": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 18,
+            "pValue": 0.00000762939453125
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 0.5574927251960422,
+            "median": 0.5496217107237308,
+            "low": 0.46165621377634836,
+            "high": 0.6514133229316382
+          }
+        },
+        "commF1": {
+          "wilcoxon": {
+            "w": 2,
+            "n": 3,
+            "pValue": 0.75
+          },
+          "cliffs": {
+            "delta": -0.4444444444444444,
+            "magnitude": "medium"
+          },
+          "difference": {
+            "mean": -0.10070947570947571,
+            "median": -0.16071428571428575,
+            "low": -0.3636363636363636,
+            "high": 0.22222222222222224
+          }
+        },
+        "clarification": {
+          "wilcoxon": {
+            "w": 1.5,
+            "n": 2,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": -1,
+            "high": 1
+          }
+        },
+        "coherence": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 2,
+            "pValue": 0.34577859648998643
+          },
+          "cliffs": {
+            "delta": -0.6666666666666666,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.6666666666666666,
+            "median": -1,
+            "low": -1,
+            "high": 0
+          }
+        },
+        "retention": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 3,
+            "pValue": 0.14891467698513344
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          }
+        },
+        "fidelity": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 2,
+            "pValue": 0.34577859648998643
+          },
+          "cliffs": {
+            "delta": 0.6666666666666666,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 0.6666666666666666,
+            "median": 1,
+            "low": 0,
+            "high": 1
+          }
+        },
+        "closedLoop": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 3,
+            "pValue": 0.14891467698513344
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          }
+        },
+        "resync": null,
+        "learning": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 1,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": -0.3333333333333333,
+            "magnitude": "medium"
+          },
+          "difference": {
+            "mean": -0.3333333333333333,
+            "median": 0,
+            "low": -1,
+            "high": 0
+          }
+        }
+      }
+    },
+    {
+      "model": "deepseek-account:deepseek-flash",
+      "preset": "standard",
+      "baseline": "single-agent",
+      "arm": "v0.2.0-full",
+      "pairs": 18,
+      "pass": {
+        "b": 2,
+        "c": 4,
+        "pValue": 0.6875000000000002
+      },
+      "cvr": {
+        "b": 0,
+        "c": 0,
+        "pValue": 1
+      },
+      "continuous": {
+        "milestone": {
+          "wilcoxon": {
+            "w": 38.5,
+            "n": 12,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0.037037037037037035,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0.02685185185185185,
+            "median": 0,
+            "low": -0.19999999999999998,
+            "high": 0.245416666666666
+          }
+        },
+        "pooling": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 1,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": -0.1111111111111111,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": -0.19999999999999998,
+            "median": 0,
+            "low": -0.6,
+            "high": 0
+          }
+        },
+        "cache": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "tokens": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 18,
+            "pValue": 0.00000762939453125
+          },
+          "cliffs": {
+            "delta": 0.8395061728395061,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 5183867.333333333,
+            "median": 1074566.5,
+            "low": 929710.9708333333,
+            "high": 12224366.205555553
+          }
+        },
+        "latency": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "noise": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 18,
+            "pValue": 0.00000762939453125
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 0.12718395390403336,
+            "median": 0.08377781942437998,
+            "low": 0.0884873090117533,
+            "high": 0.17425340552943994
+          }
+        },
+        "commF1": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 2,
+            "pValue": 0.5
+          },
+          "cliffs": {
+            "delta": -0.6666666666666666,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.21645021645021645,
+            "median": -0.28571428571428575,
+            "low": -0.3636363636363636,
+            "high": 0
+          }
+        },
+        "clarification": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 2,
+            "pValue": 0.34577859648998643
+          },
+          "cliffs": {
+            "delta": -0.6666666666666666,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.6666666666666666,
+            "median": -1,
+            "low": -1,
+            "high": 0
+          }
+        },
+        "coherence": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 2,
+            "pValue": 0.34577859648998643
+          },
+          "cliffs": {
+            "delta": -0.6666666666666666,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.6666666666666666,
+            "median": -1,
+            "low": -1,
+            "high": 0
+          }
+        },
+        "retention": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 3,
+            "pValue": 0.14891467698513344
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          }
+        },
+        "fidelity": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 1,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0.3333333333333333,
+            "magnitude": "medium"
+          },
+          "difference": {
+            "mean": 0.3333333333333333,
+            "median": 0,
+            "low": 0,
+            "high": 1
+          }
+        },
+        "closedLoop": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 3,
+            "pValue": 0.17356817444421163
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": 0.8333333333333334,
+            "median": 1,
+            "low": 0.5,
+            "high": 1
+          }
+        },
+        "resync": null,
+        "learning": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 2,
+            "pValue": 0.34577859648998643
+          },
+          "cliffs": {
+            "delta": -0.6666666666666666,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.6666666666666666,
+            "median": -1,
+            "low": -1,
+            "high": 0
+          }
+        }
+      }
+    }
+  ],
+  "trials": [
+    {
+      "arm": "single-agent",
+      "scenario": "S1",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "region": true,
+            "budget": true,
+            "retention": true,
+            "latency": true,
+            "export": true,
+            "feasibleOffer": true
+          }
+        },
+        "hiddenFactsPooled": 5,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 10513,
+        "outputTokens": 2109,
+        "cacheReadTokens": 43264,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 55886,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 11,
+        "leaderAnswerChars": 764,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S1",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "region": true,
+            "budget": true,
+            "retention": true,
+            "latency": true,
+            "export": true,
+            "feasibleOffer": true
+          }
+        },
+        "hiddenFactsPooled": 5,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 1855,
+        "outputTokens": 3311,
+        "cacheReadTokens": 54272,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 59438,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 10,
+        "leaderAnswerChars": 842,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S1",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.6666666666666666,
+        "details": {
+          "checks": {
+            "region": true,
+            "budget": false,
+            "retention": true,
+            "latency": false,
+            "export": true,
+            "feasibleOffer": true
+          }
+        },
+        "hiddenFactsPooled": 3,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 1869,
+        "outputTokens": 2179,
+        "cacheReadTokens": 52096,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 56144,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 10,
+        "leaderAnswerChars": 2007,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S1",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "region": true,
+            "budget": true,
+            "retention": true,
+            "latency": true,
+            "export": true,
+            "feasibleOffer": true
+          }
+        },
+        "hiddenFactsPooled": 5,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 45929,
+        "outputTokens": 14196,
+        "cacheReadTokens": 470656,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 530781,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 14,
+        "taskWorkSteps": 33,
+        "leaderAnswerChars": 2147,
+        "rawTeammateReportChars": 9756,
+        "compactTeammateReportChars": 640,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.2978723404255319,
+        "defaultExpandedNoiseRatio": 0.8196253045450727,
+        "compactCollapsedNoiseRatio": 0.22963760315751705
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S1",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "region": true,
+            "budget": true,
+            "retention": true,
+            "latency": true,
+            "export": true,
+            "feasibleOffer": true
+          }
+        },
+        "hiddenFactsPooled": 5,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 62468,
+        "outputTokens": 27639,
+        "cacheReadTokens": 1215744,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1305851,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 36,
+        "taskWorkSteps": 48,
+        "leaderAnswerChars": 7962,
+        "rawTeammateReportChars": 11525,
+        "compactTeammateReportChars": 880,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.42857142857142855,
+        "defaultExpandedNoiseRatio": 0.5914199209729564,
+        "compactCollapsedNoiseRatio": 0.09952499434517077
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S1",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.16666666666666666,
+        "details": {
+          "checks": {
+            "region": false,
+            "budget": false,
+            "retention": false,
+            "latency": false,
+            "export": false,
+            "feasibleOffer": true
+          }
+        },
+        "hiddenFactsPooled": 0,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 63028,
+        "outputTokens": 41437,
+        "cacheReadTokens": 1042944,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1147409,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 31,
+        "taskWorkSteps": 48,
+        "leaderAnswerChars": 8092,
+        "rawTeammateReportChars": 40551,
+        "compactTeammateReportChars": 960,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.3924050632911392,
+        "defaultExpandedNoiseRatio": 0.8336451287955101,
+        "compactCollapsedNoiseRatio": 0.10605391073795846
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S1",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "region": true,
+            "budget": true,
+            "retention": true,
+            "latency": true,
+            "export": true,
+            "feasibleOffer": true
+          }
+        },
+        "hiddenFactsPooled": 5,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 56540,
+        "outputTokens": 41268,
+        "cacheReadTokens": 1389312,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1487120,
+        "briefSyncCount": 4,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 42,
+        "taskWorkSteps": 56,
+        "leaderAnswerChars": 4693,
+        "rawTeammateReportChars": 15398,
+        "compactTeammateReportChars": 1280,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.42857142857142855,
+        "defaultExpandedNoiseRatio": 0.7664128216614404,
+        "compactCollapsedNoiseRatio": 0.21429767286120877
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S1",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "region": true,
+            "budget": true,
+            "retention": true,
+            "latency": true,
+            "export": true,
+            "feasibleOffer": true
+          }
+        },
+        "hiddenFactsPooled": 5,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 53533,
+        "outputTokens": 30796,
+        "cacheReadTokens": 1005056,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1089385,
+        "briefSyncCount": 2,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 36,
+        "taskWorkSteps": 39,
+        "leaderAnswerChars": 5652,
+        "rawTeammateReportChars": 7399,
+        "compactTeammateReportChars": 960,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.48,
+        "defaultExpandedNoiseRatio": 0.56692973718489,
+        "compactCollapsedNoiseRatio": 0.14519056261343014
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S1",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.16666666666666666,
+        "details": {
+          "checks": {
+            "region": false,
+            "budget": false,
+            "retention": false,
+            "latency": false,
+            "export": false,
+            "feasibleOffer": true
+          }
+        },
+        "hiddenFactsPooled": 0,
+        "hiddenFactsTotal": 5
+      },
+      "metrics": {
+        "inputTokens": 55352,
+        "outputTokens": 37122,
+        "cacheReadTokens": 1004288,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1096762,
+        "briefSyncCount": 6,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 35,
+        "taskWorkSteps": 43,
+        "leaderAnswerChars": 4642,
+        "rawTeammateReportChars": 13268,
+        "compactTeammateReportChars": 1040,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.44871794871794873,
+        "defaultExpandedNoiseRatio": 0.7408151870463429,
+        "compactCollapsedNoiseRatio": 0.18303414290742695
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S2",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "audience": false,
+            "budget": false,
+            "deadline": false,
+            "clarified": false,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 0,
+        "commPrecision": 0,
+        "commRecall": 0
+      },
+      "metrics": {
+        "inputTokens": 1064,
+        "outputTokens": 559,
+        "cacheReadTokens": 18048,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 19671,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 2,
+        "leaderAnswerChars": 660,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S2",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.8,
+        "details": {
+          "checks": {
+            "audience": true,
+            "budget": true,
+            "deadline": true,
+            "clarified": true,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 1,
+        "commPrecision": 0.2,
+        "commRecall": 0.5
+      },
+      "metrics": {
+        "inputTokens": 1738,
+        "outputTokens": 2004,
+        "cacheReadTokens": 60032,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 63774,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 6,
+        "leaderAnswerChars": 2055,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S2",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.8,
+        "details": {
+          "checks": {
+            "audience": true,
+            "budget": true,
+            "deadline": true,
+            "clarified": true,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 1,
+        "commPrecision": 0.2857142857142857,
+        "commRecall": 0.5
+      },
+      "metrics": {
+        "inputTokens": 2117,
+        "outputTokens": 3779,
+        "cacheReadTokens": 75008,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 80904,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 9,
+        "leaderAnswerChars": 2316,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S2",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.8,
+        "details": {
+          "checks": {
+            "audience": true,
+            "budget": true,
+            "deadline": true,
+            "clarified": true,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 1,
+        "commPrecision": 0.14285714285714285,
+        "commRecall": 0.5
+      },
+      "metrics": {
+        "inputTokens": 26116,
+        "outputTokens": 7826,
+        "cacheReadTokens": 258432,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 292374,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 1,
+        "taskWorkSteps": 14,
+        "leaderAnswerChars": 4122,
+        "rawTeammateReportChars": 282,
+        "compactTeammateReportChars": 160,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.06666666666666667,
+        "defaultExpandedNoiseRatio": 0.06403269754768393,
+        "compactCollapsedNoiseRatio": 0.03736571695469407
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S2",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.8,
+        "details": {
+          "checks": {
+            "audience": true,
+            "budget": true,
+            "deadline": true,
+            "clarified": true,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 1,
+        "commPrecision": 0.07142857142857142,
+        "commRecall": 0.5
+      },
+      "metrics": {
+        "inputTokens": 32168,
+        "outputTokens": 11944,
+        "cacheReadTokens": 433920,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 478032,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 14,
+        "taskWorkSteps": 18,
+        "leaderAnswerChars": 8479,
+        "rawTeammateReportChars": 7610,
+        "compactTeammateReportChars": 320,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.4375,
+        "defaultExpandedNoiseRatio": 0.4729939710361116,
+        "compactCollapsedNoiseRatio": 0.03636776906466644
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S2",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "audience": false,
+            "budget": false,
+            "deadline": false,
+            "clarified": false,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 0,
+        "commPrecision": 0,
+        "commRecall": 0
+      },
+      "metrics": {
+        "inputTokens": 28286,
+        "outputTokens": 12916,
+        "cacheReadTokens": 281472,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 322674,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 7,
+        "taskWorkSteps": 14,
+        "leaderAnswerChars": 7141,
+        "rawTeammateReportChars": 3921,
+        "compactTeammateReportChars": 320,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.3333333333333333,
+        "defaultExpandedNoiseRatio": 0.3544566986078467,
+        "compactCollapsedNoiseRatio": 0.042889693070633964
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S2",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "audience": false,
+            "budget": false,
+            "deadline": false,
+            "clarified": false,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 0,
+        "commPrecision": 0,
+        "commRecall": 0
+      },
+      "metrics": {
+        "inputTokens": 27798,
+        "outputTokens": 8515,
+        "cacheReadTokens": 203264,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 239577,
+        "briefSyncCount": 1,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 8,
+        "taskWorkSteps": 13,
+        "leaderAnswerChars": 3518,
+        "rawTeammateReportChars": 5017,
+        "compactTeammateReportChars": 320,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.38095238095238093,
+        "defaultExpandedNoiseRatio": 0.5878148799062684,
+        "compactCollapsedNoiseRatio": 0.08337675872850443
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S2",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "audience": false,
+            "budget": false,
+            "deadline": false,
+            "clarified": false,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 0,
+        "commPrecision": 0,
+        "commRecall": 0
+      },
+      "metrics": {
+        "inputTokens": 36569,
+        "outputTokens": 18079,
+        "cacheReadTokens": 643584,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 698232,
+        "briefSyncCount": 2,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 25,
+        "taskWorkSteps": 36,
+        "leaderAnswerChars": 6022,
+        "rawTeammateReportChars": 3808,
+        "compactTeammateReportChars": 320,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.4098360655737705,
+        "defaultExpandedNoiseRatio": 0.3873855544252289,
+        "compactCollapsedNoiseRatio": 0.05045726900031536
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S2",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0,
+        "details": {
+          "checks": {
+            "audience": false,
+            "budget": false,
+            "deadline": false,
+            "clarified": false,
+            "decision": false
+          }
+        },
+        "clarificationCoverage": 0,
+        "commPrecision": 0,
+        "commRecall": 0
+      },
+      "metrics": {
+        "inputTokens": 27964,
+        "outputTokens": 9098,
+        "cacheReadTokens": 297344,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 334406,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 9,
+        "taskWorkSteps": 14,
+        "leaderAnswerChars": 5601,
+        "rawTeammateReportChars": 3703,
+        "compactTeammateReportChars": 320,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.391304347826087,
+        "defaultExpandedNoiseRatio": 0.3980008598452279,
+        "compactCollapsedNoiseRatio": 0.05404492484377639
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S3",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 20903,
+        "outputTokens": 25173,
+        "cacheReadTokens": 2010240,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 2056316,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 70,
+        "leaderAnswerChars": 8315,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S3",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 15575,
+        "outputTokens": 46234,
+        "cacheReadTokens": 921728,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 983537,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 40,
+        "leaderAnswerChars": 11874,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S3",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 6139,
+        "outputTokens": 6475,
+        "cacheReadTokens": 370944,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 383558,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 31,
+        "leaderAnswerChars": 4439,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S3",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 77146,
+        "outputTokens": 74711,
+        "cacheReadTokens": 4238336,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 4390193,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 47,
+        "taskWorkSteps": 115,
+        "leaderAnswerChars": 24973,
+        "rawTeammateReportChars": 35067,
+        "compactTeammateReportChars": 1918,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.29012345679012347,
+        "defaultExpandedNoiseRatio": 0.5840606262491672,
+        "compactCollapsedNoiseRatio": 0.07132497861738128
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S3",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.25,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": false,
+            "consistent": false,
+            "adapted": false
+          },
+          "artifactReuse": 0,
+          "unobservedTransitions": 4
+        },
+        "postPivotCoherence": 0
+      },
+      "metrics": {
+        "inputTokens": 118345,
+        "outputTokens": 220149,
+        "cacheReadTokens": 15554688,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 15893182,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 63,
+        "taskWorkSteps": 178,
+        "leaderAnswerChars": 45269,
+        "rawTeammateReportChars": 22978,
+        "compactTeammateReportChars": 1040,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.26141078838174275,
+        "defaultExpandedNoiseRatio": 0.3366887921813413,
+        "compactCollapsedNoiseRatio": 0.022457837569370965
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S3",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.5,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": false,
+            "consistent": false,
+            "adapted": true
+          },
+          "artifactReuse": 0,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 0,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 244070,
+        "outputTokens": 357100,
+        "cacheReadTokens": 37932288,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 38533458,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 102,
+        "taskWorkSteps": 353,
+        "leaderAnswerChars": 53416,
+        "rawTeammateReportChars": 146269,
+        "compactTeammateReportChars": 5360,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.22417582417582418,
+        "defaultExpandedNoiseRatio": 0.7324986854295515,
+        "compactCollapsedNoiseRatio": 0.09119368449707363
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S3",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.5,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": false,
+            "consistent": false,
+            "adapted": true
+          },
+          "artifactReuse": 0,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 0,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 430122,
+        "outputTokens": 363346,
+        "cacheReadTokens": 62085504,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 62878972,
+        "briefSyncCount": 35,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 161,
+        "taskWorkSteps": 550,
+        "leaderAnswerChars": 73095,
+        "rawTeammateReportChars": 127546,
+        "compactTeammateReportChars": 7600,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.22644163150492264,
+        "defaultExpandedNoiseRatio": 0.6356926052003329,
+        "compactCollapsedNoiseRatio": 0.09418179565028813
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S3",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.5,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": false,
+            "consistent": false,
+            "adapted": true
+          },
+          "artifactReuse": 0,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 0,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 145233,
+        "outputTokens": 135519,
+        "cacheReadTokens": 11896448,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 12177200,
+        "briefSyncCount": 23,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 112,
+        "taskWorkSteps": 149,
+        "leaderAnswerChars": 36555,
+        "rawTeammateReportChars": 55789,
+        "compactTeammateReportChars": 3360,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.42911877394636017,
+        "defaultExpandedNoiseRatio": 0.6041432036732218,
+        "compactCollapsedNoiseRatio": 0.08417888012025554
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S3",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "transitions": true,
+            "reused": true,
+            "consistent": true,
+            "adapted": true
+          },
+          "artifactReuse": 1,
+          "unobservedTransitions": 0
+        },
+        "postPivotCoherence": 1,
+        "adaptationLatencySteps": 0
+      },
+      "metrics": {
+        "inputTokens": 114939,
+        "outputTokens": 155476,
+        "cacheReadTokens": 8174208,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 8444623,
+        "briefSyncCount": 15,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 69,
+        "taskWorkSteps": 189,
+        "leaderAnswerChars": 25459,
+        "rawTeammateReportChars": 25788,
+        "compactTeammateReportChars": 1520,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.26744186046511625,
+        "defaultExpandedNoiseRatio": 0.5032099439967218,
+        "compactCollapsedNoiseRatio": 0.05634011638681938
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S4",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.25,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": false,
+            "resumed": false,
+            "retained": false
+          }
+        },
+        "postCompactionRetention": 0
+      },
+      "metrics": {
+        "inputTokens": 8855,
+        "outputTokens": 4411,
+        "cacheReadTokens": 181632,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 194898,
+        "briefSyncCount": 0,
+        "compactionCount": 1,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 16,
+        "leaderAnswerChars": 1912,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S4",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.25,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": false,
+            "resumed": false,
+            "retained": false
+          }
+        },
+        "postCompactionRetention": 0
+      },
+      "metrics": {
+        "inputTokens": 10587,
+        "outputTokens": 6806,
+        "cacheReadTokens": 260224,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 277617,
+        "briefSyncCount": 0,
+        "compactionCount": 1,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 25,
+        "leaderAnswerChars": 3562,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S4",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.25,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": false,
+            "resumed": false,
+            "retained": false
+          }
+        },
+        "postCompactionRetention": 0
+      },
+      "metrics": {
+        "inputTokens": 8322,
+        "outputTokens": 6679,
+        "cacheReadTokens": 182528,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 197529,
+        "briefSyncCount": 0,
+        "compactionCount": 1,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 14,
+        "leaderAnswerChars": 2165,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S4",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": true,
+            "resumed": true,
+            "retained": true
+          }
+        },
+        "postCompactionRetention": 1
+      },
+      "metrics": {
+        "inputTokens": 62475,
+        "outputTokens": 37293,
+        "cacheReadTokens": 1273600,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1373368,
+        "briefSyncCount": 0,
+        "compactionCount": 1,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 25,
+        "taskWorkSteps": 51,
+        "leaderAnswerChars": 9655,
+        "rawTeammateReportChars": 12079,
+        "compactTeammateReportChars": 720,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.32894736842105265,
+        "defaultExpandedNoiseRatio": 0.5557651605778964,
+        "compactCollapsedNoiseRatio": 0.06939759036144579
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S4",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": true,
+            "resumed": true,
+            "retained": true
+          }
+        },
+        "postCompactionRetention": 1
+      },
+      "metrics": {
+        "inputTokens": 68020,
+        "outputTokens": 29086,
+        "cacheReadTokens": 1343744,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1440850,
+        "briefSyncCount": 0,
+        "compactionCount": 1,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 33,
+        "taskWorkSteps": 57,
+        "leaderAnswerChars": 13098,
+        "rawTeammateReportChars": 9901,
+        "compactTeammateReportChars": 960,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.36666666666666664,
+        "defaultExpandedNoiseRatio": 0.4304969781294839,
+        "compactCollapsedNoiseRatio": 0.06828851899274435
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S4",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": true,
+            "resumed": true,
+            "retained": true
+          }
+        },
+        "postCompactionRetention": 1
+      },
+      "metrics": {
+        "inputTokens": 66364,
+        "outputTokens": 29593,
+        "cacheReadTokens": 1162240,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1258197,
+        "briefSyncCount": 0,
+        "compactionCount": 1,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 27,
+        "taskWorkSteps": 36,
+        "leaderAnswerChars": 12600,
+        "rawTeammateReportChars": 15000,
+        "compactTeammateReportChars": 960,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.42857142857142855,
+        "defaultExpandedNoiseRatio": 0.5434782608695652,
+        "compactCollapsedNoiseRatio": 0.07079646017699115
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S4",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": true,
+            "resumed": true,
+            "retained": true
+          }
+        },
+        "postCompactionRetention": 1
+      },
+      "metrics": {
+        "inputTokens": 61141,
+        "outputTokens": 27504,
+        "cacheReadTokens": 1257216,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1345861,
+        "briefSyncCount": 8,
+        "compactionCount": 1,
+        "resyncEligible": 1,
+        "resynced": 1,
+        "coordinationSteps": 27,
+        "taskWorkSteps": 80,
+        "leaderAnswerChars": 6294,
+        "rawTeammateReportChars": 7317,
+        "compactTeammateReportChars": 560,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": 1,
+        "coordinationRatio": 0.2523364485981308,
+        "defaultExpandedNoiseRatio": 0.5375798986114172,
+        "compactCollapsedNoiseRatio": 0.08170411438576014
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S4",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": true,
+            "resumed": true,
+            "retained": true
+          }
+        },
+        "postCompactionRetention": 1
+      },
+      "metrics": {
+        "inputTokens": 59650,
+        "outputTokens": 19268,
+        "cacheReadTokens": 966272,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1045190,
+        "briefSyncCount": 5,
+        "compactionCount": 1,
+        "resyncEligible": 1,
+        "resynced": 1,
+        "coordinationSteps": 20,
+        "taskWorkSteps": 73,
+        "leaderAnswerChars": 7338,
+        "rawTeammateReportChars": 3947,
+        "compactTeammateReportChars": 400,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": 1,
+        "coordinationRatio": 0.21505376344086022,
+        "defaultExpandedNoiseRatio": 0.3497563136907399,
+        "compactCollapsedNoiseRatio": 0.051692943913155855
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S4",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "compacted": true,
+            "replaced": true,
+            "resumed": true,
+            "retained": true
+          }
+        },
+        "postCompactionRetention": 1
+      },
+      "metrics": {
+        "inputTokens": 58780,
+        "outputTokens": 32489,
+        "cacheReadTokens": 1303168,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1394437,
+        "briefSyncCount": 6,
+        "compactionCount": 1,
+        "resyncEligible": 1,
+        "resynced": 1,
+        "coordinationSteps": 25,
+        "taskWorkSteps": 112,
+        "leaderAnswerChars": 7556,
+        "rawTeammateReportChars": 5598,
+        "compactTeammateReportChars": 480,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": 1,
+        "coordinationRatio": 0.18248175182481752,
+        "defaultExpandedNoiseRatio": 0.42557396989508894,
+        "compactCollapsedNoiseRatio": 0.05973120955699353
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S5",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.25,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": false,
+            "handoffs": false,
+            "closed": false
+          }
+        },
+        "handoffFidelity": 0,
+        "closedLoopRate": 0
+      },
+      "metrics": {
+        "inputTokens": 3867,
+        "outputTokens": 9519,
+        "cacheReadTokens": 191488,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 204874,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 29,
+        "leaderAnswerChars": 2727,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S5",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.25,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": false,
+            "handoffs": false,
+            "closed": false
+          }
+        },
+        "handoffFidelity": 0,
+        "closedLoopRate": 0
+      },
+      "metrics": {
+        "inputTokens": 4026,
+        "outputTokens": 15558,
+        "cacheReadTokens": 209408,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 228992,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 2,
+        "taskWorkSteps": 28,
+        "leaderAnswerChars": 3133,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.06666666666666667,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S5",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.25,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": false,
+            "handoffs": false,
+            "closed": false
+          }
+        },
+        "handoffFidelity": 0,
+        "closedLoopRate": 0
+      },
+      "metrics": {
+        "inputTokens": 3345,
+        "outputTokens": 14297,
+        "cacheReadTokens": 201728,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 219370,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 1,
+        "taskWorkSteps": 28,
+        "leaderAnswerChars": 2388,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.034482758620689655,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S5",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": true,
+            "handoffs": true,
+            "closed": true
+          }
+        },
+        "handoffFidelity": 1,
+        "closedLoopRate": 1
+      },
+      "metrics": {
+        "inputTokens": 85627,
+        "outputTokens": 23088,
+        "cacheReadTokens": 1318272,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1426987,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 42,
+        "taskWorkSteps": 65,
+        "leaderAnswerChars": 4731,
+        "rawTeammateReportChars": 15898,
+        "compactTeammateReportChars": 1920,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.3925233644859813,
+        "defaultExpandedNoiseRatio": 0.7706626593630326,
+        "compactCollapsedNoiseRatio": 0.2886783942264321
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S5",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.5,
+        "details": {
+          "checks": {
+            "delivered": false,
+            "parallel": true,
+            "handoffs": false,
+            "closed": true
+          }
+        },
+        "handoffFidelity": 0,
+        "closedLoopRate": 1
+      },
+      "metrics": {
+        "inputTokens": 95686,
+        "outputTokens": 36922,
+        "cacheReadTokens": 1783808,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1916416,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 61,
+        "taskWorkSteps": 81,
+        "leaderAnswerChars": 4277,
+        "rawTeammateReportChars": 27605,
+        "compactTeammateReportChars": 2160,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.4295774647887324,
+        "defaultExpandedNoiseRatio": 0.8658490684398721,
+        "compactCollapsedNoiseRatio": 0.33556004349852414
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S5",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": true,
+            "handoffs": true,
+            "closed": true
+          }
+        },
+        "handoffFidelity": 1,
+        "closedLoopRate": 1
+      },
+      "metrics": {
+        "inputTokens": 91984,
+        "outputTokens": 29236,
+        "cacheReadTokens": 1495296,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1616516,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 53,
+        "taskWorkSteps": 70,
+        "leaderAnswerChars": 4056,
+        "rawTeammateReportChars": 14162,
+        "compactTeammateReportChars": 1680,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.43089430894308944,
+        "defaultExpandedNoiseRatio": 0.7773630475354045,
+        "compactCollapsedNoiseRatio": 0.2928870292887029
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S5",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.75,
+        "details": {
+          "checks": {
+            "delivered": true,
+            "parallel": true,
+            "handoffs": true,
+            "closed": false
+          }
+        },
+        "handoffFidelity": 1,
+        "closedLoopRate": 0.5
+      },
+      "metrics": {
+        "inputTokens": 80440,
+        "outputTokens": 25141,
+        "cacheReadTokens": 1207808,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1313389,
+        "briefSyncCount": 4,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 46,
+        "taskWorkSteps": 66,
+        "leaderAnswerChars": 2574,
+        "rawTeammateReportChars": 12274,
+        "compactTeammateReportChars": 1680,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.4107142857142857,
+        "defaultExpandedNoiseRatio": 0.8266433189655172,
+        "compactCollapsedNoiseRatio": 0.39492242595204513
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S5",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.5,
+        "details": {
+          "checks": {
+            "delivered": false,
+            "parallel": true,
+            "handoffs": false,
+            "closed": true
+          }
+        },
+        "handoffFidelity": 0,
+        "closedLoopRate": 1
+      },
+      "metrics": {
+        "inputTokens": 92676,
+        "outputTokens": 36331,
+        "cacheReadTokens": 1497088,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1626095,
+        "briefSyncCount": 4,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 51,
+        "taskWorkSteps": 88,
+        "leaderAnswerChars": 4525,
+        "rawTeammateReportChars": 19892,
+        "compactTeammateReportChars": 1760,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.3669064748201439,
+        "defaultExpandedNoiseRatio": 0.8146782979071958,
+        "compactCollapsedNoiseRatio": 0.28003182179793157
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S5",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.5,
+        "details": {
+          "checks": {
+            "delivered": false,
+            "parallel": true,
+            "handoffs": false,
+            "closed": true
+          }
+        },
+        "handoffFidelity": 0,
+        "closedLoopRate": 1
+      },
+      "metrics": {
+        "inputTokens": 90695,
+        "outputTokens": 30886,
+        "cacheReadTokens": 1478144,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1599725,
+        "briefSyncCount": 4,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 65,
+        "taskWorkSteps": 75,
+        "leaderAnswerChars": 6489,
+        "rawTeammateReportChars": 16533,
+        "compactTeammateReportChars": 1920,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.4642857142857143,
+        "defaultExpandedNoiseRatio": 0.7181391712275215,
+        "compactCollapsedNoiseRatio": 0.22832679272208348
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S6",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.6666666666666666,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": false,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 5765,
+        "outputTokens": 9561,
+        "cacheReadTokens": 243200,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 258526,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 37,
+        "leaderAnswerChars": 1146,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S6",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.6666666666666666,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": false,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 5509,
+        "outputTokens": 9077,
+        "cacheReadTokens": 260480,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 275066,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 38,
+        "leaderAnswerChars": 1329,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "single-agent",
+      "scenario": "S6",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.6666666666666666,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": false,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 5625,
+        "outputTokens": 14013,
+        "cacheReadTokens": 275072,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 294710,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 0,
+        "taskWorkSteps": 56,
+        "leaderAnswerChars": 950,
+        "rawTeammateReportChars": 0,
+        "compactTeammateReportChars": 0,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0,
+        "defaultExpandedNoiseRatio": 0,
+        "compactCollapsedNoiseRatio": 0
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S6",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.6666666666666666,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": true,
+            "stage2": false
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": false
+      },
+      "metrics": {
+        "inputTokens": 73667,
+        "outputTokens": 31778,
+        "cacheReadTokens": 948992,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1054437,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 16,
+        "taskWorkSteps": 71,
+        "leaderAnswerChars": 6565,
+        "rawTeammateReportChars": 4037,
+        "compactTeammateReportChars": 480,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.1839080459770115,
+        "defaultExpandedNoiseRatio": 0.38077721184682134,
+        "compactCollapsedNoiseRatio": 0.06813342796309439
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S6",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": true,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 70502,
+        "outputTokens": 37607,
+        "cacheReadTokens": 1154944,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1263053,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 26,
+        "taskWorkSteps": 72,
+        "leaderAnswerChars": 10898,
+        "rawTeammateReportChars": 9314,
+        "compactTeammateReportChars": 720,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.2653061224489796,
+        "defaultExpandedNoiseRatio": 0.4608153572135365,
+        "compactCollapsedNoiseRatio": 0.06197280082630401
+      }
+    },
+    {
+      "arm": "v0.1.0",
+      "scenario": "S6",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": true,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 68328,
+        "outputTokens": 33842,
+        "cacheReadTokens": 1178880,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1281050,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 29,
+        "taskWorkSteps": 78,
+        "leaderAnswerChars": 10548,
+        "rawTeammateReportChars": 8994,
+        "compactTeammateReportChars": 800,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.27102803738317754,
+        "defaultExpandedNoiseRatio": 0.460239484187903,
+        "compactCollapsedNoiseRatio": 0.07049700387733521
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S6",
+      "repeat": 1,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": true,
+        "constraintViolations": 0,
+        "milestoneKpi": 1,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": true,
+            "stage2": true
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": true
+      },
+      "metrics": {
+        "inputTokens": 55789,
+        "outputTokens": 22682,
+        "cacheReadTokens": 525568,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 604039,
+        "briefSyncCount": 1,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 18,
+        "taskWorkSteps": 41,
+        "leaderAnswerChars": 5570,
+        "rawTeammateReportChars": 5487,
+        "compactTeammateReportChars": 560,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.3050847457627119,
+        "defaultExpandedNoiseRatio": 0.49624672153386995,
+        "compactCollapsedNoiseRatio": 0.09135399673735727
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S6",
+      "repeat": 2,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.6666666666666666,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": true,
+            "stage2": false
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": false
+      },
+      "metrics": {
+        "inputTokens": 67964,
+        "outputTokens": 34119,
+        "cacheReadTokens": 1090560,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 1192643,
+        "briefSyncCount": 2,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 30,
+        "taskWorkSteps": 58,
+        "leaderAnswerChars": 10914,
+        "rawTeammateReportChars": 10729,
+        "compactTeammateReportChars": 800,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.3409090909090909,
+        "defaultExpandedNoiseRatio": 0.4957261008178164,
+        "compactCollapsedNoiseRatio": 0.06829434864264983
+      }
+    },
+    {
+      "arm": "v0.2.0-full",
+      "scenario": "S6",
+      "repeat": 3,
+      "preset": "standard",
+      "model": "deepseek-account:deepseek-flash",
+      "reasoningEfforts": [
+        "high"
+      ],
+      "mode": "live",
+      "verification": {
+        "passed": false,
+        "constraintViolations": 0,
+        "milestoneKpi": 0.6666666666666666,
+        "details": {
+          "checks": {
+            "stage1": true,
+            "trained": true,
+            "stage2": false
+          }
+        },
+        "stage1Passed": true,
+        "stage2Passed": false
+      },
+      "metrics": {
+        "inputTokens": 55890,
+        "outputTokens": 19596,
+        "cacheReadTokens": 577280,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 652766,
+        "briefSyncCount": 0,
+        "compactionCount": 0,
+        "resyncEligible": 0,
+        "resynced": 0,
+        "coordinationSteps": 16,
+        "taskWorkSteps": 41,
+        "leaderAnswerChars": 7657,
+        "rawTeammateReportChars": 3642,
+        "compactTeammateReportChars": 560,
+        "deniedToolCalls": 0,
+        "staleInProgressTasks": 0,
+        "repeatedIdenticalToolCalls": 0,
+        "kvCacheHitRate": 1,
+        "postCompactionResyncRate": null,
+        "coordinationRatio": 0.2807017543859649,
+        "defaultExpandedNoiseRatio": 0.32232940968227275,
+        "compactCollapsedNoiseRatio": 0.06815139345259827
+      }
+    }
+  ],
+  "coverage": {
+    "measured": 54,
+    "planned": 54,
+    "complete": true
+  },
+  "interruptedAttempts": 1,
+  "cacheAblation": {
+    "mode": "live",
+    "arms": [
+      {
+        "model": "deepseek-account:deepseek-flash",
+        "preset": "standard",
+        "mode": "live",
+        "arm": "v0.2.0-full",
+        "trials": 3,
+        "passAt1": 1,
+        "passPow3": 1,
+        "milestoneKpi": 1,
+        "cvr": 0,
+        "kvCacheHitRate": 1,
+        "providerUsage": {
+          "uncachedInput": 179571,
+          "cacheRead": 3526656,
+          "cacheWrite": 0,
+          "output": 79261,
+          "promptCacheReadShare": 0.9515488392912792
+        },
+        "tokensPerSolved": 1261829.3333333333,
+        "commF1": null,
+        "noiseRatio": 0.06437608928530318,
+        "learningGain": null,
+        "intervals": {
+          "pass": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "cvr": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          },
+          "milestone": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "pooling": null,
+          "cache": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "tokens": {
+            "mean": 1261829.3333333333,
+            "median": 1345861,
+            "low": 1045190,
+            "high": 1394437
+          },
+          "latency": null,
+          "noise": {
+            "mean": 0.06437608928530318,
+            "median": 0.05973120955699353,
+            "low": 0.051692943913155855,
+            "high": 0.08170411438576014
+          },
+          "commF1": null,
+          "clarification": null,
+          "coherence": null,
+          "retention": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "fidelity": null,
+          "closedLoop": null,
+          "resync": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "learning": null
+        },
+        "mast": {
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0
+        }
+      },
+      {
+        "model": "deepseek-account:deepseek-flash",
+        "preset": "standard",
+        "mode": "live",
+        "arm": "v0.2.0-prefix-brief",
+        "trials": 3,
+        "passAt1": 0.6666666666666666,
+        "passPow3": 0,
+        "milestoneKpi": 0.9166666666666666,
+        "cvr": 0,
+        "kvCacheHitRate": 1,
+        "providerUsage": {
+          "uncachedInput": 233642,
+          "cacheRead": 3302528,
+          "cacheWrite": 0,
+          "output": 72563,
+          "promptCacheReadShare": 0.9339279502965072
+        },
+        "tokensPerSolved": 1804366.5,
+        "commF1": null,
+        "noiseRatio": 0.05663132511655272,
+        "learningGain": null,
+        "intervals": {
+          "pass": {
+            "mean": 0.6666666666666666,
+            "median": 1,
+            "low": 0,
+            "high": 1
+          },
+          "cvr": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          },
+          "milestone": {
+            "mean": 0.9166666666666666,
+            "median": 1,
+            "low": 0.75,
+            "high": 1
+          },
+          "pooling": null,
+          "cache": {
+            "mean": 1,
+            "median": 1,
+            "low": 1,
+            "high": 1
+          },
+          "tokens": {
+            "mean": 1202911,
+            "median": 1133958,
+            "low": 877661,
+            "high": 1597114
+          },
+          "latency": null,
+          "noise": {
+            "mean": 0.05663132511655272,
+            "median": 0.06100097046998475,
+            "low": 0.0455684666210982,
+            "high": 0.0633245382585752
+          },
+          "commF1": null,
+          "clarification": null,
+          "coherence": null,
+          "retention": {
+            "mean": 0.8888888888888888,
+            "median": 1,
+            "low": 0.6666666666666666,
+            "high": 1
+          },
+          "fidelity": null,
+          "closedLoop": null,
+          "resync": null,
+          "learning": null
+        },
+        "mast": {
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0
+        }
+      }
+    ],
+    "comparisons": [
+      {
+        "model": "deepseek-account:deepseek-flash",
+        "preset": "standard",
+        "baseline": "v0.2.0-prefix-brief",
+        "arm": "v0.2.0-full",
+        "pairs": 3,
+        "pass": {
+          "b": 0,
+          "c": 1,
+          "pValue": 1
+        },
+        "cvr": {
+          "b": 0,
+          "c": 0,
+          "pValue": 1
+        },
+        "continuous": {
+          "milestone": {
+            "wilcoxon": {
+              "w": 0,
+              "n": 1,
+              "pValue": 1
+            },
+            "cliffs": {
+              "delta": 0.3333333333333333,
+              "magnitude": "medium"
+            },
+            "difference": {
+              "mean": 0.08333333333333333,
+              "median": 0,
+              "low": 0,
+              "high": 0.25
+            }
+          },
+          "pooling": null,
+          "cache": {
+            "wilcoxon": {
+              "w": 0,
+              "n": 0,
+              "pValue": 1
+            },
+            "cliffs": {
+              "delta": 0,
+              "magnitude": "negligible"
+            },
+            "difference": {
+              "mean": 0,
+              "median": 0,
+              "low": 0,
+              "high": 0
+            }
+          },
+          "tokens": {
+            "wilcoxon": {
+              "w": 2,
+              "n": 3,
+              "pValue": 0.75
+            },
+            "cliffs": {
+              "delta": 0.1111111111111111,
+              "magnitude": "negligible"
+            },
+            "difference": {
+              "mean": 58918.333333333336,
+              "median": 167529,
+              "low": -251253,
+              "high": 260479
+            }
+          },
+          "latency": null,
+          "noise": {
+            "wilcoxon": {
+              "w": 1,
+              "n": 3,
+              "pValue": 0.5
+            },
+            "cliffs": {
+              "delta": 0.1111111111111111,
+              "magnitude": "negligible"
+            },
+            "difference": {
+              "mean": 0.007744764168750457,
+              "median": 0.014162742935895326,
+              "low": -0.011631594345419348,
+              "high": 0.020703143915775393
+            }
+          },
+          "commF1": null,
+          "clarification": null,
+          "coherence": null,
+          "retention": {
+            "wilcoxon": {
+              "w": 0,
+              "n": 1,
+              "pValue": 1
+            },
+            "cliffs": {
+              "delta": 0.3333333333333333,
+              "magnitude": "medium"
+            },
+            "difference": {
+              "mean": 0.11111111111111112,
+              "median": 0,
+              "low": 0,
+              "high": 0.3333333333333333
+            }
+          },
+          "fidelity": null,
+          "closedLoop": null,
+          "resync": null,
+          "learning": null
+        }
+      }
+    ],
+    "trials": [
+      {
+        "arm": "v0.2.0-full",
+        "scenario": "S4",
+        "repeat": 1,
+        "preset": "standard",
+        "model": "deepseek-account:deepseek-flash",
+        "reasoningEfforts": [
+          "high"
+        ],
+        "mode": "live",
+        "verification": {
+          "passed": true,
+          "constraintViolations": 0,
+          "milestoneKpi": 1,
+          "details": {
+            "checks": {
+              "compacted": true,
+              "replaced": true,
+              "resumed": true,
+              "retained": true
+            }
+          },
+          "postCompactionRetention": 1
+        },
+        "metrics": {
+          "inputTokens": 61141,
+          "outputTokens": 27504,
+          "cacheReadTokens": 1257216,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "totalTokens": 1345861,
+          "briefSyncCount": 8,
+          "compactionCount": 1,
+          "resyncEligible": 1,
+          "resynced": 1,
+          "coordinationSteps": 27,
+          "taskWorkSteps": 80,
+          "leaderAnswerChars": 6294,
+          "rawTeammateReportChars": 7317,
+          "compactTeammateReportChars": 560,
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0,
+          "kvCacheHitRate": 1,
+          "postCompactionResyncRate": 1,
+          "coordinationRatio": 0.2523364485981308,
+          "defaultExpandedNoiseRatio": 0.5375798986114172,
+          "compactCollapsedNoiseRatio": 0.08170411438576014
+        }
+      },
+      {
+        "arm": "v0.2.0-full",
+        "scenario": "S4",
+        "repeat": 2,
+        "preset": "standard",
+        "model": "deepseek-account:deepseek-flash",
+        "reasoningEfforts": [
+          "high"
+        ],
+        "mode": "live",
+        "verification": {
+          "passed": true,
+          "constraintViolations": 0,
+          "milestoneKpi": 1,
+          "details": {
+            "checks": {
+              "compacted": true,
+              "replaced": true,
+              "resumed": true,
+              "retained": true
+            }
+          },
+          "postCompactionRetention": 1
+        },
+        "metrics": {
+          "inputTokens": 59650,
+          "outputTokens": 19268,
+          "cacheReadTokens": 966272,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "totalTokens": 1045190,
+          "briefSyncCount": 5,
+          "compactionCount": 1,
+          "resyncEligible": 1,
+          "resynced": 1,
+          "coordinationSteps": 20,
+          "taskWorkSteps": 73,
+          "leaderAnswerChars": 7338,
+          "rawTeammateReportChars": 3947,
+          "compactTeammateReportChars": 400,
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0,
+          "kvCacheHitRate": 1,
+          "postCompactionResyncRate": 1,
+          "coordinationRatio": 0.21505376344086022,
+          "defaultExpandedNoiseRatio": 0.3497563136907399,
+          "compactCollapsedNoiseRatio": 0.051692943913155855
+        }
+      },
+      {
+        "arm": "v0.2.0-full",
+        "scenario": "S4",
+        "repeat": 3,
+        "preset": "standard",
+        "model": "deepseek-account:deepseek-flash",
+        "reasoningEfforts": [
+          "high"
+        ],
+        "mode": "live",
+        "verification": {
+          "passed": true,
+          "constraintViolations": 0,
+          "milestoneKpi": 1,
+          "details": {
+            "checks": {
+              "compacted": true,
+              "replaced": true,
+              "resumed": true,
+              "retained": true
+            }
+          },
+          "postCompactionRetention": 1
+        },
+        "metrics": {
+          "inputTokens": 58780,
+          "outputTokens": 32489,
+          "cacheReadTokens": 1303168,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "totalTokens": 1394437,
+          "briefSyncCount": 6,
+          "compactionCount": 1,
+          "resyncEligible": 1,
+          "resynced": 1,
+          "coordinationSteps": 25,
+          "taskWorkSteps": 112,
+          "leaderAnswerChars": 7556,
+          "rawTeammateReportChars": 5598,
+          "compactTeammateReportChars": 480,
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0,
+          "kvCacheHitRate": 1,
+          "postCompactionResyncRate": 1,
+          "coordinationRatio": 0.18248175182481752,
+          "defaultExpandedNoiseRatio": 0.42557396989508894,
+          "compactCollapsedNoiseRatio": 0.05973120955699353
+        }
+      },
+      {
+        "arm": "v0.2.0-prefix-brief",
+        "scenario": "S4",
+        "repeat": 1,
+        "preset": "standard",
+        "model": "deepseek-account:deepseek-flash",
+        "reasoningEfforts": [
+          "high"
+        ],
+        "mode": "live",
+        "verification": {
+          "passed": false,
+          "constraintViolations": 0,
+          "milestoneKpi": 0.75,
+          "details": {
+            "checks": {
+              "compacted": true,
+              "replaced": true,
+              "resumed": true,
+              "retained": false
+            }
+          },
+          "postCompactionRetention": 0.6666666666666666
+        },
+        "metrics": {
+          "inputTokens": 86752,
+          "outputTokens": 28762,
+          "cacheReadTokens": 1481600,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "totalTokens": 1597114,
+          "briefSyncCount": 0,
+          "compactionCount": 1,
+          "resyncEligible": 0,
+          "resynced": 0,
+          "coordinationSteps": 33,
+          "taskWorkSteps": 67,
+          "leaderAnswerChars": 13546,
+          "rawTeammateReportChars": 13380,
+          "compactTeammateReportChars": 880,
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0,
+          "kvCacheHitRate": 1,
+          "postCompactionResyncRate": null,
+          "coordinationRatio": 0.33,
+          "defaultExpandedNoiseRatio": 0.4969174775310109,
+          "compactCollapsedNoiseRatio": 0.06100097046998475
+        }
+      },
+      {
+        "arm": "v0.2.0-prefix-brief",
+        "scenario": "S4",
+        "repeat": 2,
+        "preset": "standard",
+        "model": "deepseek-account:deepseek-flash",
+        "reasoningEfforts": [
+          "high"
+        ],
+        "mode": "live",
+        "verification": {
+          "passed": true,
+          "constraintViolations": 0,
+          "milestoneKpi": 1,
+          "details": {
+            "checks": {
+              "compacted": true,
+              "replaced": true,
+              "resumed": true,
+              "retained": true
+            }
+          },
+          "postCompactionRetention": 1
+        },
+        "metrics": {
+          "inputTokens": 68769,
+          "outputTokens": 19132,
+          "cacheReadTokens": 789760,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "totalTokens": 877661,
+          "briefSyncCount": 0,
+          "compactionCount": 1,
+          "resyncEligible": 0,
+          "resynced": 0,
+          "coordinationSteps": 21,
+          "taskWorkSteps": 51,
+          "leaderAnswerChars": 7100,
+          "rawTeammateReportChars": 5301,
+          "compactTeammateReportChars": 480,
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0,
+          "kvCacheHitRate": 1,
+          "postCompactionResyncRate": null,
+          "coordinationRatio": 0.2916666666666667,
+          "defaultExpandedNoiseRatio": 0.42746552697363116,
+          "compactCollapsedNoiseRatio": 0.0633245382585752
+        }
+      },
+      {
+        "arm": "v0.2.0-prefix-brief",
+        "scenario": "S4",
+        "repeat": 3,
+        "preset": "standard",
+        "model": "deepseek-account:deepseek-flash",
+        "reasoningEfforts": [
+          "high"
+        ],
+        "mode": "live",
+        "verification": {
+          "passed": true,
+          "constraintViolations": 0,
+          "milestoneKpi": 1,
+          "details": {
+            "checks": {
+              "compacted": true,
+              "replaced": true,
+              "resumed": true,
+              "retained": true
+            }
+          },
+          "postCompactionRetention": 1
+        },
+        "metrics": {
+          "inputTokens": 78121,
+          "outputTokens": 24669,
+          "cacheReadTokens": 1031168,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "totalTokens": 1133958,
+          "briefSyncCount": 0,
+          "compactionCount": 1,
+          "resyncEligible": 0,
+          "resynced": 0,
+          "coordinationSteps": 23,
+          "taskWorkSteps": 89,
+          "leaderAnswerChars": 8378,
+          "rawTeammateReportChars": 4715,
+          "compactTeammateReportChars": 400,
+          "deniedToolCalls": 0,
+          "staleInProgressTasks": 0,
+          "repeatedIdenticalToolCalls": 0,
+          "kvCacheHitRate": 1,
+          "postCompactionResyncRate": null,
+          "coordinationRatio": 0.20535714285714285,
+          "defaultExpandedNoiseRatio": 0.3601160925685481,
+          "compactCollapsedNoiseRatio": 0.0455684666210982
+        }
+      }
+    ]
+  },
+  "versionComparisons": [
+    {
+      "model": "deepseek-account:deepseek-flash",
+      "preset": "standard",
+      "baseline": "v0.1.0",
+      "arm": "v0.2.0-full",
+      "pairs": 18,
+      "pass": {
+        "b": 5,
+        "c": 2,
+        "pValue": 0.45312500000000017
+      },
+      "cvr": {
+        "b": 0,
+        "c": 0,
+        "pValue": 1
+      },
+      "continuous": {
+        "milestone": {
+          "wilcoxon": {
+            "w": 12.5,
+            "n": 10,
+            "pValue": 0.13683831143951442
+          },
+          "cliffs": {
+            "delta": -0.21604938271604937,
+            "magnitude": "small"
+          },
+          "difference": {
+            "mean": -0.13518518518518519,
+            "median": 0,
+            "low": -0.2981481481481481,
+            "high": 0.018518518518518514
+          }
+        },
+        "pooling": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "cache": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "tokens": {
+          "wilcoxon": {
+            "w": 52,
+            "n": 18,
+            "pValue": 0.15404510498046875
+          },
+          "cliffs": {
+            "delta": -0.043209876543209874,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 1316421.888888889,
+            "median": -61603.5,
+            "low": -5152078.295833333,
+            "high": 9508835.805555556
+          }
+        },
+        "latency": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "noise": {
+          "wilcoxon": {
+            "w": 1,
+            "n": 18,
+            "pValue": 0.0000152587890625
+          },
+          "cliffs": {
+            "delta": -0.9012345679012346,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.43030877129200873,
+            "median": -0.4343830301976613,
+            "low": -0.5017941397126143,
+            "high": -0.35170785260936616
+          }
+        },
+        "commF1": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 2,
+            "pValue": 0.5
+          },
+          "cliffs": {
+            "delta": -0.6666666666666666,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.11574074074074074,
+            "median": -0.125,
+            "low": -0.22222222222222224,
+            "high": 0
+          }
+        },
+        "clarification": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 2,
+            "pValue": 0.34577859648998643
+          },
+          "cliffs": {
+            "delta": -0.6666666666666666,
+            "magnitude": "large"
+          },
+          "difference": {
+            "mean": -0.6666666666666666,
+            "median": -1,
+            "low": -1,
+            "high": 0
+          }
+        },
+        "coherence": {
+          "wilcoxon": {
+            "w": 1.5,
+            "n": 2,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": -1,
+            "high": 1
+          }
+        },
+        "retention": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "difference": {
+            "mean": 0,
+            "median": 0,
+            "low": 0,
+            "high": 0
+          }
+        },
+        "fidelity": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 1,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": -0.3333333333333333,
+            "magnitude": "medium"
+          },
+          "difference": {
+            "mean": -0.3333333333333333,
+            "median": 0,
+            "low": -1,
+            "high": 0
+          }
+        },
+        "closedLoop": {
+          "wilcoxon": {
+            "w": 0,
+            "n": 1,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": -0.3333333333333333,
+            "magnitude": "medium"
+          },
+          "difference": {
+            "mean": -0.16666666666666666,
+            "median": 0,
+            "low": -0.5,
+            "high": 0
+          }
+        },
+        "resync": null,
+        "learning": {
+          "wilcoxon": {
+            "w": 2,
+            "n": 3,
+            "pValue": 0.7728300209745409
+          },
+          "cliffs": {
+            "delta": -0.3333333333333333,
+            "magnitude": "medium"
+          },
+          "difference": {
+            "mean": -0.3333333333333333,
+            "median": -1,
+            "low": -1,
+            "high": 1
+          }
+        }
+      }
+    }
+  ],
+  "environment": {
+    "host": "DSH Desktop runtime 0.2.2-rc.5",
+    "node": "v26.6.0",
+    "baselineTag": "v0.1.0",
+    "baselineCommit": "f3e0b353fe894adbc36784c496c1fefc9ca31ec5",
+    "sha256": {
+      "v0.1.0/dist/host.js": "bd2d0554ca5f4d75bff94b1bb0da0b9a9083bf67e77e8795549a19484d19dcf8",
+      "v0.1.0/dist/remote.js": "34723297de625edec6f35431f244e88fdb82416500193a5a5b77df0b403e6b37",
+      "v0.1.0/dist/schedules-CdtW7Gnc.js": "32597c14fc1cd08504d03e06f3c0ad41e15de54dbfcf7ee1ee95badf5d0fbdda",
+      "v0.1.0/dist/shared-DrX8sV4W.js": "2e9f9e1f3bb65f430748b15a9de141a16f32bfe7b6aaa4f9d9179f7b96bc46a2",
+      "v0.1.0/dist/shared.js": "3249c46e1c646914b0796f516d5eaca70e7a73cbdca9e1b9a53ae7569603b5ca",
+      "v0.2.0/dist/host.js": "fc72cde677f0b00463ce09d4644f5357d69052e615ac128f811c6dbc0f3860d1",
+      "v0.2.0/dist/remote.js": "163141b0fb425c63fc371b45fbede55d2426f9dad5f0d72496e2f3fde7ccb4c3",
+      "v0.2.0/dist/runtime-KlI7kjYl.js": "349e87e8cc81edcbed1b052aae373a81cd6260e82ff4d2430e398db87c81ad01",
+      "v0.2.0/dist/shared-uN6t1-Qi.js": "5aa8b53955fe4879be0160cb846ebee2fbd78912b99378dad3f59a1abbc96826",
+      "v0.2.0/dist/shared.js": "2b404194b5984a6590de1dc5f430dcaa6f1c318a22163fec76281ea094c3416f",
+      "dsh-desktop-runtime/package.json": "fa342021105009d1facf56958989dd9ddb26357b090808f9523b1bf924fed150"
+    }
+  }
+}

@@ -4,3 +4,13 @@ coverage/
 .DS_Store
 *.log
 *.tsbuildinfo
+
+# Publish the original aggregate reports and their supporting provenance.
+benchmarks/results/*
+!benchmarks/results/live-deepseek-flash/
+!benchmarks/results/live-codex/
+benchmarks/results/live-*/**
+!benchmarks/results/live-*/report.md
+!benchmarks/results/live-*/summary.json
+!benchmarks/results/live-*/environment.json
+!benchmarks/results/live-*/interruptions.jsonl

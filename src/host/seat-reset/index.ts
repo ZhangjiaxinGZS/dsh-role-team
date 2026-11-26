@@ -50,6 +50,8 @@ export async function replaceSeat(
     nativeAgentName: name,
     roleSnapshotHash: snap.sourceHash,
     memoryIds: snap.memories.map((m) => m.meta.id),
+    seenBriefHash: null,
+    seenPolicyHash: null,
     handoffNote: intent.handoff,
     archivedAt: null,
   })

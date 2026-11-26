@@ -20,7 +20,7 @@ export function taskOwner(task: TeamTaskView, seats: Seat[]) {
   if (matches.length === 1) return matches[0]
 }
 
-function useTeamTasks(run: Run) {
+export function useTeamTasks(run: Run) {
   const { reference, error } = useRetainedSession(sessionTarget(run.rootSessionId))
   const face = reference?.binding.session.projections.faceOf('agentTeam')
   const projection = useSyncExternalStore(face?.subscribe ?? noopSubscribe, face?.getSnapshot ?? nothing) as TeamProjection | undefined
@@ -41,14 +41,18 @@ export function TeamPreview({ run }: { run: Run }) {
   const { call, t } = useUi()
   const team = useLoad(run.runId, () => call('getTeam', { runId: run.runId }))
   const { grouped, tasks, error, loading } = useTeamTasks(run)
+  const active = [...grouped[0], ...grouped[1]]
+  const visible = active.length ? active.slice(0, 3) : grouped[2].slice(0, 2)
   return <section className="rt-task-preview" aria-label={t('taskBoard')}>
     <strong>{run.title}</strong>
     <Notice>{error}</Notice>
     <small>{groups.map((status, i) => t(status) + ' ' + grouped[i].length).join(' · ')}</small>
-    {loading ? t('loading') : !tasks.length ? t('noTeamTasks') : grouped.flat().slice(0, 5).map(task =>
+    {loading ? t('loading') : !tasks.length ? t('noTeamTasks') : visible.map(task =>
       <article key={task.id} data-status={task.status}><strong>{task.subject}</strong>
         <footer>{t(task.status)} · {taskOwner(task, team.data?.seats ?? [])?.displayName ?? task.ownerName ?? t('unassigned')}</footer>
       </article>)}
+    {!loading && active.length > 3 && <small>{t('previewMoreActive').replace('{n}', String(active.length - 3))}</small>}
+    {!loading && !active.length && grouped[2].length > 2 && <small>{t('previewCompletedTotal').replace('{n}', String(grouped[2].length))}</small>}
   </section>
 }
 
@@ -80,11 +84,11 @@ function TaskRow({ task, tasks, seats, onOwner }: {
   </article>
 }
 
-export function TaskBoard({ run, seats, onOwner, close }: {
-  run: Run; seats: Seat[]; onOwner: (id: string) => void; close: () => void
+export function TaskBoard({ state, seats, onOwner, close, embedded }: {
+  state: ReturnType<typeof useTeamTasks>; embedded?: boolean; seats: Seat[]; onOwner: (id: string) => void; close: () => void
 }) {
   const { t } = useUi()
-  const { grouped, tasks, error, loading } = useTeamTasks(run)
+  const { grouped, tasks, error, loading } = state
   const [filter, setFilter] = useState<Filter>('allTasks')
   const [search, setSearch] = useState('')
   const [opened, setOpened] = useState({ in_progress: true, pending: true, completed: false })
@@ -98,10 +102,10 @@ export function TaskBoard({ run, seats, onOwner, close }: {
     setOpened({ in_progress: true, pending: true, completed: next === 'completed' || !!query })
     setLimit(5)
   }
-  return <section className="rt-task-board" aria-label={t('taskBoard')} onKeyDown={e => {
-    if (e.key === 'Escape') { e.stopPropagation(); close() }
+  return <section className="rt-task-board" data-embedded={embedded || undefined} aria-label={t('taskBoard')} onKeyDown={e => {
+    if (!embedded && e.key === 'Escape') { e.stopPropagation(); close() }
   }}>
-    <header><h3>{t('taskBoard')}</h3><button className="rt-icon" aria-label={t('close')} title={t('close')} onClick={close}><IconCloseOutlineRegular size={16}/></button></header>
+    {!embedded && <header><h3>{t('taskBoard')}</h3><button className="rt-icon" aria-label={t('close')} title={t('close')} onClick={close}><IconCloseOutlineRegular size={16}/></button></header>}
     <input type="search" aria-label={t('searchTasks')} placeholder={t('searchTasks')} value={search} onChange={e => {
       setSearch(e.target.value); setLimit(5)
       setOpened({ in_progress: true, pending: true, completed: !!e.target.value.trim() || filter === 'completed' })

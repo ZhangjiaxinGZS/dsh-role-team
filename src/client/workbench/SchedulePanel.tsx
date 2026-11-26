@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
+import { Notice, useAction, useLoad, useUi } from '../ui.js'
 import type { Input } from '../../shared/runtime.js'
 import type { ScheduleRow, Timing } from '../../shared/schedules.js'
 
@@ -292,18 +292,16 @@ function History({ runId, task }: { runId: string; task: ScheduleRow }) {
   )
 }
 
-export function SchedulePanel({
-  runId,
-  active,
-  close,
-}: {
-  runId: string
-  active: boolean
-  close: () => void
+export function useTeamSchedules(runId: string, available: boolean) {
+  const { call } = useUi()
+  return useLoad('schedules:' + runId + '/' + available,
+    () => available ? call('teamSchedules', { runId }) : Promise.resolve([]), available ? 2500 : 0)
+}
+
+export function SchedulePanel({ runId, active, tasks, available = true }: {
+  runId: string; active: boolean; tasks: ReturnType<typeof useTeamSchedules>; available?: boolean
 }) {
-  const { call, t } = useUi(),
-    action = useAction()
-  const tasks = useLoad(runId, () => call('teamSchedules', { runId }), 2500)
+  const { call, t } = useUi(), action = useAction()
   const [editor, setEditor] = useState<ScheduleRow | 'new'>(),
     [history, setHistory] = useState<ScheduleRow>(),
     [deleting, setDeleting] = useState<string>()
@@ -325,8 +323,9 @@ export function SchedulePanel({
       tasks.refresh()
     })
   }
+  if (!available) return <p>{t('schedulesUnavailable')}</p>
   return (
-    <Modal title={t('teamTimers')} close={close} locked={action.busy}>
+    <section className="rt-schedules">
       <Notice>{action.error || tasks.error}</Notice>
       {editor ? (
         <Editor
@@ -347,6 +346,7 @@ export function SchedulePanel({
           {active && (
             <div>
               <button
+                className="rt-primary"
                 onClick={() => {
                   action.clear()
                   setEditor('new')
@@ -422,6 +422,6 @@ export function SchedulePanel({
           ))}
         </div>
       )}
-    </Modal>
+    </section>
   )
 }

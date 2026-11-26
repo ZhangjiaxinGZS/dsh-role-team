@@ -1,5 +1,7 @@
-import { TaskBoard, TeamPreview } from './TaskBoard.js'
-import { SchedulePanel } from './SchedulePanel.js'
+import { delegationTemplate } from '../../shared/policy.js'
+import type { LeaderPolicy } from '../../shared/index.js'
+import { useTeamTasks, TeamPreview } from './TaskBoard.js'
+import { TeamDrawer, type DrawerHandle } from './TeamDrawer.js'
 import { PaneDivider, paneStyle, usePaneWidths } from '../PaneDivider.js'
 import { useNavigation } from '../navigation.js'
 import {
@@ -11,7 +13,6 @@ import {
   Menu,
   IconChevronDownOutlineRegular,
   IconSettingsOutlineRegular,
-  IconClockOutlineRegular,
   IconFlatListOutlineRegular,
   IconRefreshOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -103,7 +104,7 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
       <div className="rt-board">
         <Notice>{runs.error}</Notice>
         {id ? (
-          <TeamBoard key={id} id={id} roles={roles} toggle={toggle} onMembersChanged={runs.refresh} />
+          <TeamBoard key={id} run={list.find(r => r.runId === id)!} roles={roles} toggle={toggle} onMembersChanged={runs.refresh} />
         ) : (
           <>
             <div className="rt-controls">{toggle}</div>
@@ -181,18 +182,21 @@ function dominantSeat(board: HTMLElement) {
   return winner
 }
 
-function TeamBoard({ id, roles, toggle, onMembersChanged }: {
-  id: string; roles: RoleChoice[]; toggle: React.ReactNode; onMembersChanged: () => void
+function TeamBoard({ run, roles, toggle, onMembersChanged }: {
+  run: Run; roles: RoleChoice[]; toggle: React.ReactNode; onMembersChanged: () => void
 }) {
+  const id = run.runId
+  const tasks = useTeamTasks(run)
+  const activeTaskCount = tasks.grouped[0].length + tasks.grouped[1].length
   const { call, t } = useUi(),
     team = useLoad(id, () => call('getTeam', { runId: id }), 2500)
   const [layout, setLayout] = useNavigation('layout'),
     [focus, setFocus] = useState(''),
     [add, setAdd] = useState(false)
   const single = layout === 'focus'
-  const [tasksOpen, showTasks] = useState(false)
+  const [drawerOpen, showDrawer] = useState(false)
   const taskButton = useRef<HTMLButtonElement>(null)
-  const [timers, showTimers] = useState(false)
+  const drawer = useRef<DrawerHandle>(null)
   const [settings, showSettings] = useState(false)
   const board = useRef<HTMLDivElement>(null)
   const [reset, setReset] = useState<Seat>()
@@ -290,13 +294,14 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
         <button aria-label={t('addMember')} title={t('addMember')} className="rt-add-member" disabled={!active} onClick={() => setAdd(true)}>
           <IconPlusOutlineRegular size={14} /><span>{t('addMember')}</span>
         </button>
-        <button ref={taskButton} className="rt-icon" title={t('taskBoard')} aria-label={t('taskBoard')}
-          aria-expanded={tasksOpen} onClick={() => showTasks(!tasksOpen)}>
-          <IconFlatListOutlineRegular size={16} />
-        </button>
-        <button className="rt-icon" title={t('teamTimers')} aria-label={t('teamTimers')} onClick={() => showTimers(true)}>
-          <IconClockOutlineRegular size={16} />
-        </button>
+        <Tooltip label={t('teamPanelHint')} side="bottom" portal>
+          <button ref={taskButton} className="rt-drawer-toggle" aria-label={t('teamPanel')}
+            aria-expanded={drawerOpen} onClick={() => drawerOpen ? drawer.current?.requestClose() : showDrawer(true)}>
+            <IconFlatListOutlineRegular size={16} />
+            <span className="rt-drawer-label">{t('teamPanel')}</span>
+            {activeTaskCount > 0 && <span className="rt-badge">{activeTaskCount}</span>}
+          </button>
+        </Tooltip>
         <button className="rt-icon" title={t('boardSettings')} aria-label={t('boardSettings')} onClick={() => showSettings(true)}>
           <IconSettingsOutlineRegular size={16} />
         </button>
@@ -307,7 +312,6 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
         setReset(undefined)
         team.refresh()
       }} />}
-      {timers && <SchedulePanel key={id} runId={id} active={active} close={() => showTimers(false)} />}
       {settings && <Modal title={t('boardSettings')} close={() => showSettings(false)}>
         <div className="rt-width-settings">
           <label htmlFor="rt-column-width">{t('columnWidth')} <output htmlFor="rt-column-width">{width} px</output></label>
@@ -319,6 +323,7 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
             <button onClick={() => changeWidth(null)}>{t('restoreWidth')}</button>
           </div>
         </div>
+        <LeaderPolicySettings key={data.run.runId} run={data.run} refresh={team.refresh} />
       </Modal>}
       <div className="rt-floor">
         <div ref={board} className={'rt-columns' + (single ? ' rt-single' : '')}
@@ -370,9 +375,9 @@ function TeamBoard({ id, roles, toggle, onMembersChanged }: {
               </Fragment>
             ))}
         </div>
-        {tasksOpen && <TaskBoard run={data.run} seats={seats}
-          close={() => { showTasks(false); taskButton.current?.focus() }}
-          onOwner={id => { setFocus(id); setLayout('focus'); showTasks(false); taskButton.current?.focus() }} />}
+        {drawerOpen && <TeamDrawer ref={drawer} team={data} seats={seats} tasks={tasks}
+          close={() => { showDrawer(false); taskButton.current?.focus() }}
+          onOwner={id => { setFocus(id); setLayout('focus'); showDrawer(false); taskButton.current?.focus() }} />}
       </div>
       {add && (
         <TeamSetup
@@ -566,4 +571,47 @@ export function SeatResetModal({
       </form>
     </Modal>
   )
+}
+
+function LeaderPolicySettings({ run, refresh }: { run: Run; refresh(): void }) {
+  const { call, t } = useUi()
+  const [baseline, setBaseline] = useState<LeaderPolicy>(run.leaderPolicy ?? { mode: 'delegate' })
+  const [mode, setMode] = useState(baseline.mode)
+  const [customText, setCustomText] = useState(baseline.customText ?? '')
+  const [saved, setSaved] = useState(false)
+  const action = useAction()
+  const archived = run.status !== 'active'
+  const dirty = mode !== baseline.mode || (mode === 'custom' && customText.trim() !== baseline.customText?.trim())
+  const submit = () => action.run(async () => {
+    const policy: LeaderPolicy = mode === 'custom' ? { mode, customText: customText.trim() } : { mode }
+    const updated = await call('updateLeaderPolicy', { runId: run.runId, policy })
+    setBaseline(updated.leaderPolicy ?? { mode: 'delegate' })
+    setSaved(true)
+    refresh()
+  })
+  return <section className="rt-policy-settings" aria-labelledby="rt-policy-title">
+    <h3 id="rt-policy-title">{t('policyTitle')}</h3>
+    {archived && <small>{t('policyArchived')}</small>}
+    <fieldset role="radiogroup" aria-labelledby="rt-policy-title" disabled={archived || action.busy}>
+      {([['delegate', 'policyDelegate', 'policyDelegateHint'], ['balanced', 'policyBalanced', 'policyBalancedHint'],
+        ['custom', 'policyCustom', 'policyCustomHint']] as const).map(([value, label, hint]) =>
+        <label key={value} className="rt-policy-option">
+          <input type="radio" name="leader-policy" value={value} checked={mode === value}
+            onChange={() => { setMode(value); setSaved(false) }} />
+          <span><strong>{t(label)}</strong>{value === 'delegate' && <small className="rt-policy-recommended">{t('policyRecommended')}</small>}
+            <small className="rt-policy-hint">{t(hint)}</small></span>
+        </label>)}
+    </fieldset>
+    {mode === 'custom' && <div className="rt-policy-custom">
+      <label>{t('policyInstructions')}<textarea value={customText} maxLength={1200} rows={4}
+        disabled={archived || action.busy} onChange={e => { setCustomText(e.target.value); setSaved(false) }} /></label>
+      <div><button disabled={archived || action.busy} onClick={() => {
+        setCustomText(delegationTemplate[run.locale ?? 'zh']); setSaved(false)
+      }}>{t('policyFill')}</button><small>{customText.length} / 1200</small></div>
+    </div>}
+    <Notice>{action.error}</Notice>
+    <footer>{saved && <small role="status">{t('saved')}</small>}
+      <button className="rt-primary" disabled={archived || action.busy || !dirty || (mode === 'custom' && !customText.trim())}
+        onClick={submit}>{t('policySave')}</button></footer>
+  </section>
 }

@@ -25,7 +25,7 @@ export type Labels = keyof typeof en.ui
 export type Seat = IndexRecord<'team_seats'>
 export type Run = IndexRecord<'team_runs'>
 export type Training = IndexRecord<'training_sessions'>
-export type Team = { run: Run; seats: Seat[]; formalSessionIds?: string[] }
+export type Team = { run: Run; seats: Seat[]; formalSessionIds?: string[]; capabilities?: { schedules: boolean } }
 export type SessionTarget = Parameters<ISessions['retain']>[0]
 export type PreviewState = 'unavailable' | 'closed' | 'open'
 export interface WorkspacePreview {
