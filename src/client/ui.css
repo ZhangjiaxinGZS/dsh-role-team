@@ -935,3 +935,34 @@ button.rt-task-owner { min-height: 22px; padding: 1px 6px; font-size: 12px; colo
   overflow-wrap: anywhere;
   user-select: text;
 }
+
+.rt-docs-tabs {
+  padding: 6px 16px 8px;
+  border-bottom: 1px solid var(--dsw-alias-border-l4);
+}
+.rt-defaults {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 16px;
+}
+.rt-defaults label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+.rt-defaults select {
+  font-size: 14px;
+  color: var(--dsw-alias-label-primary);
+}
+.rt-defaults footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rt-defaults footer small {
+  margin-inline-end: auto;
+}

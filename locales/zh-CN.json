@@ -280,6 +280,12 @@
     "briefSynced": "已同步团队简报",
     "schedulesUnavailable": "当前宿主未启用定时任务服务。",
     "copyPath": "复制",
-    "copiedPath": "已复制"
+    "copiedPath": "已复制",
+    "profileTab": "档案",
+    "defaultsTab": "默认配置",
+    "defaultModel": "默认模型",
+    "defaultPermission": "默认权限",
+    "defaultsEffectHint": "仅对新建对话、新建团队及新添成员生效，对话中仍可随时调整。",
+    "unavailableModel": "当前不可用"
   }
 }

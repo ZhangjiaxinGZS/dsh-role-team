@@ -565,7 +565,13 @@ it('creates and publishes the named role before opening its first independent co
   await screen.findByText('stream:s')
   expect(profileView()).toBe('splitView')
   expect(screen.queryByRole('heading', { name: 'Author' })).toBeNull()
-  expect(call.mock.calls[0]).toEqual(['createRole', { name: 'Author', summary: 'Write stories' }])
+  expect(call).toHaveBeenCalledWith('createRole', {
+    name: 'Author',
+    summary: 'Write stories',
+    defaultPermission: 'danger-full-access',
+  })
+  const methods = call.mock.calls.map(([method]) => method)
+  expect(methods.indexOf('createRole')).toBeLessThan(methods.indexOf('openTraining'))
   expect(changed).toHaveBeenCalledOnce()
   expect(call).toHaveBeenCalledWith('openTraining', { roleId: 'auto-id' })
 })
@@ -603,7 +609,10 @@ it('starts coaching immediately without a team debrief entry', async () => {
   )
   await screen.findByText('stream:coach-session')
   expect(screen.getByText('badge:coach-session').closest('.rt-session-bar')).toBeTruthy()
-  const toolbar = screen.getByRole('tablist').closest<HTMLElement>('.rt-session-bar')!
+  const toolbar = screen
+    .getAllByRole('tablist')
+    .map((el) => el.closest<HTMLElement>('.rt-session-bar'))
+    .find(Boolean)!
   expect(within(toolbar).getByRole('button', { name: en.ui.newTraining })).toBeTruthy()
   expect(screen.queryByRole('heading', { name: en.ui.training })).toBeNull()
   expect(call).toHaveBeenCalledWith('openTraining', { roleId: 'author' })
@@ -1850,4 +1859,132 @@ it('shows and copies the team workspace directory in board settings', async () =
   fireEvent.click(within(dialog).getByRole('button', { name: en.ui.copyPath }))
   await waitFor(() => expect(writeText).toHaveBeenCalledWith('/Users/demo/project-alpha'))
   expect(await within(dialog).findByRole('button', { name: en.ui.copiedPath })).toBeTruthy()
+})
+
+it('lets users configure default model and default permission when creating a role', async () => {
+  const catalog = [
+    {
+      provider: 'openai',
+      model: 'gpt-5',
+      name: 'GPT-5',
+      efforts: [],
+    },
+    {
+      provider: 'antigravity',
+      model: 'gemini-4-neon',
+      name: 'Gemini 4 Neon',
+      defaultEffort: 'high',
+      isDefault: true,
+      efforts: [
+        { id: 'low', name: 'Low' },
+        { id: 'high', name: 'High' },
+      ],
+    },
+  ]
+  const call = vi.fn(async (method: string) => {
+    if (method === 'seatModels') return catalog
+    if (method === 'createRole') return { ok: true, status: { roleId: 'role-new', publishedRevision: 1, error: null }, hash: 'a'.repeat(64) }
+    if (method === 'openTraining') return { trainingId: 't1', sessionId: 's1', roleId: 'role-new', mode: 'coach' }
+    if (method === 'readDocument') return null
+    if (method === 'listMemories') return []
+    return []
+  })
+  const h = harness(call)
+  h.ui.permissions = {
+    list: async () => [
+      { value: 'workspace-write', name: 'Workspace write' },
+      { value: 'danger-full-access', name: 'Full access' },
+    ],
+  }
+  h.mount(<RoleLibrary roles={[]} changed={() => {}} />)
+  fireEvent.click(screen.getByRole('button', { name: en.ui.newRole }))
+  const dialog = screen.getByRole('dialog', { name: en.ui.newRole })
+  const modelSelect = await within(dialog).findByRole<HTMLSelectElement>('combobox', { name: en.ui.defaultModel })
+  const permSelect = within(dialog).getByRole<HTMLSelectElement>('combobox', { name: en.ui.defaultPermission })
+  await waitFor(() => expect(modelSelect.value).toBe('antigravity\0gemini-4-neon'))
+  await waitFor(() => expect(permSelect.value).toBe('danger-full-access'))
+  expect(within(modelSelect).getAllByRole('option').map((o) => o.textContent)).toEqual(['GPT-5', 'Gemini 4 Neon'])
+  expect(within(permSelect).getAllByRole('option').map((o) => o.textContent)).toEqual([en.ui.workspaceWrite, en.ui.fullAccess])
+  const effortSelect = within(dialog).getByRole<HTMLSelectElement>('combobox', { name: en.ui.effort })
+  expect(effortSelect.value).toBe('high')
+  fireEvent.change(within(dialog).getByLabelText(en.ui.name), { target: { value: 'Director' } })
+  fireEvent.change(within(dialog).getByLabelText(en.ui.duty), { target: { value: 'Leads visual QA' } })
+  fireEvent.change(effortSelect, { target: { value: 'low' } })
+  fireEvent.change(permSelect, { target: { value: 'workspace-write' } })
+  fireEvent.click(within(dialog).getByRole('button', { name: en.ui.create }))
+  await waitFor(() =>
+    expect(call).toHaveBeenCalledWith('createRole', {
+      name: 'Director',
+      summary: 'Leads visual QA',
+      defaultModel: { provider: 'antigravity', model: 'gemini-4-neon', reasoningEffort: 'low' },
+      defaultPermission: 'workspace-write',
+    }),
+  )
+})
+
+it('edits role defaults in the Defaults tab, guards unsaved switches, and preserves unavailable values', async () => {
+  let docText = serializeMarkdown(
+    {
+      id: 'director',
+      name: 'Director',
+      summary: 'Design lead',
+      defaultModel: { provider: 'legacy', model: 'old-model', reasoningEffort: 'max' },
+      defaultPermission: 'read-only',
+    },
+    'Keep it crisp.',
+  )
+  let docHash = '1'.repeat(64)
+  const call = vi.fn(async (method: string, input?: { text?: string }) => {
+    if (method === 'readDocument') return { text: docText, hash: docHash }
+    if (method === 'listMemories') return []
+    if (method === 'seatModels')
+      return [
+        {
+          provider: 'antigravity',
+          model: 'gemini-4-neon',
+          name: 'Gemini 4 Neon',
+          efforts: [{ id: 'high', name: 'High' }],
+        },
+      ]
+    if (method === 'saveDocument') {
+      docText = input!.text!
+      docHash = '2'.repeat(64)
+      return { ok: true, status: { roleId: 'director', publishedRevision: 2, error: null }, hash: docHash }
+    }
+    return []
+  })
+  const h = harness(call)
+  h.ui.permissions = {
+    list: async () => [
+      { value: 'workspace-write', name: 'Workspace write' },
+      { value: 'danger-full-access', name: 'Full access' },
+    ],
+  }
+  const changed = vi.fn()
+  h.mount(<Documents roleId="director" revision={1} changed={changed} />)
+  await screen.findByText('Design lead')
+  const defaultsTab = screen.getByRole('tab', { name: en.ui.defaultsTab })
+  const profileTab = screen.getByRole('tab', { name: en.ui.profileTab })
+  fireEvent.click(defaultsTab)
+  expect(defaultsTab.getAttribute('aria-selected')).toBe('true')
+  const modelSelect = await screen.findByRole<HTMLSelectElement>('combobox', { name: en.ui.defaultModel })
+  const permSelect = screen.getByRole<HTMLSelectElement>('combobox', { name: en.ui.defaultPermission })
+  await waitFor(() => expect(within(modelSelect).getByText('Gemini 4 Neon')).toBeTruthy())
+  expect(modelSelect.value).toBe('legacy\0old-model')
+  expect(within(modelSelect).getByText(`legacy / old-model · ${en.ui.unavailableModel}`)).toBeTruthy()
+  expect(permSelect.value).toBe('read-only')
+  expect(within(permSelect).getByText(`${en.ui.readOnlyMode} · ${en.ui.unavailableModel}`)).toBeTruthy()
+  fireEvent.change(modelSelect, { target: { value: 'antigravity\0gemini-4-neon' } })
+  fireEvent.change(screen.getByRole('combobox', { name: en.ui.effort }), { target: { value: 'high' } })
+  fireEvent.change(permSelect, { target: { value: 'workspace-write' } })
+  fireEvent.click(profileTab)
+  const confirmModal = screen.getByRole('dialog', { name: en.ui.savedDirty })
+  fireEvent.click(within(confirmModal).getByRole('button', { name: en.ui.saveSwitch }))
+  await waitFor(() => expect(profileTab.getAttribute('aria-selected')).toBe('true'))
+  expect(docText).toContain('provider: antigravity')
+  expect(docText).toContain('model: gemini-4-neon')
+  expect(docText).toContain('reasoningEffort: high')
+  expect(docText).toContain('defaultPermission: workspace-write')
+  expect(docText).toContain('Keep it crisp.')
+  expect(changed).toHaveBeenCalled()
 })

@@ -8,6 +8,7 @@ import {
   revision,
   conversationLocale,
   modelChoice,
+  permissionPresetId,
   leaderPolicy,
   snapshotSchema,
   hash,
@@ -23,7 +24,12 @@ const seat = z.strictObject({ seatId: id })
 const training = z.strictObject({ trainingId: id })
 const team = z.strictObject({ run: indexRecords.team_runs, seats: z.array(indexRecords.team_seats) })
 export const runtimeMethods = {
-  createRole: [z.strictObject({ name: title, summary: z.string().trim().max(160).optional() }), editResult],
+  createRole: [z.strictObject({
+    name: title,
+    summary: z.string().trim().max(160).optional(),
+    defaultModel: modelChoice.optional(),
+    defaultPermission: permissionPresetId.optional(),
+  }), editResult],
   deleteRole: [z.strictObject({ roleId: fileId, expectedHash: hash.nullable() }), editResult],
   roleHistory: [
     z.strictObject({ roleId: fileId }),
@@ -86,6 +92,7 @@ export const runtimeMethods = {
         name: title,
         defaultEffort: id.optional(),
         efforts: z.array(z.strictObject({ id, name: title })),
+        isDefault: z.boolean().optional(),
       }),
     ),
   ],

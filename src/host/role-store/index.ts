@@ -19,6 +19,7 @@ import {
   type EditRequest,
   type EditResult,
   type FileRef,
+  type RoleMeta,
   type RoleStatus,
   type Snapshot,
 } from '../../shared/index.js'
@@ -304,13 +305,19 @@ export class RoleStore {
       return result
     })
   }
-  createRole(name: string, summary?: string) {
+  createRole(name: string, summary?: string, defaults: Pick<RoleMeta, 'defaultModel' | 'defaultPermission'> = {}) {
     return this.locked(async () => {
       let roleId: string
       do {
         roleId = 'role-' + randomUUID()
       } while (await directory(join(this.root, roleId)) || await this.retiredRole(roleId))
-      const text = serializeMarkdown({ id: roleId, name: name.trim(), ...(summary && { summary: summary.trim() }) }, '')
+      const text = serializeMarkdown({
+        id: roleId,
+        name: name.trim(),
+        ...(summary && { summary: summary.trim() }),
+        ...(defaults.defaultModel !== undefined && { defaultModel: defaults.defaultModel }),
+        ...(defaults.defaultPermission !== undefined && { defaultPermission: defaults.defaultPermission }),
+      }, '')
       return this.changeLocked({ roleId, expectedHash: null }, text, false)
     })
   }

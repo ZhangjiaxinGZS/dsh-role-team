@@ -475,13 +475,17 @@ it('reuses the current training across concurrent opens, cold start and an expli
   expect((await service.openTraining({ roleId })).sessionId).toBe(next.sessionId)
   expect(await service.listTrainings({ roleId })).toHaveLength(1)
 })
+async function permissions() {
+  ctx.provide('shell', { sandboxMode: 'workspace-write' } as never)
+  ctx.provide('approval', { config: { policy: 'ask' } } as never)
+  await ctx.plugin(Permissions, { presets: {
+    'read-only': { sandbox: 'read-only', approval: 'ask' },
+    'workspace-write': { sandbox: 'workspace-write', approval: 'ask' },
+    'danger-full-access': { sandbox: 'danger-full-access', approval: 'never' },
+  } })
+  return ctx.permissionPresets
+}
 it('starts coaching with full access and carries the native selection across restarts and replacements', async () => {
-  const permissions = async () => {
-    ctx.provide('shell', { sandboxMode: 'workspace-write' } as never)
-    ctx.provide('approval', { config: { policy: 'ask' } } as never)
-    await ctx.plugin(Permissions, {})
-    return ctx.permissionPresets
-  }
   const presets = await permissions()
   const first = await service.openTraining({ roleId })
   const session = ctx.agents.get(first.sessionId as SessionId)!.session
@@ -648,6 +652,42 @@ it('resumes a partially committed replacement after a host restart without spawn
   expect(ctx.agentTeams.listTasks(ctx.agents.get(root.id)!)[0].ownerId).toBe(restored.currentSessionId)
 })
 
+it('uses the published coaching defaults without persisting temporary picker or request selections', async () => {
+  const presets = await permissions()
+  const defaultModel = { provider: 'fixture', model: 'authoring', reasoningEffort: 'high' }
+  const temporary = { provider: 'fixture', model: 'fixture' }
+  const created = await service.createRole({ name: 'Coach', defaultModel, defaultPermission: 'read-only' })
+  if (!created.ok) throw new Error('Expected a published role')
+  const { roleId } = created.status
+  const coach = await service.openTraining({ roleId })
+  const live = ctx.agents.get(coach.sessionId as SessionId)!
+  expect(live.model.current()).toEqual(defaultModel)
+  expect(presets.current(live.session)).toBe('read-only')
+  await ctx.sessionController.selectModel({ sessionId: live.id, ...temporary })
+  presets.set(live.session, 'workspace-write')
+  await prompt(live.id, 'Use the temporary selection')
+  expect(request(live.id).model).toBe('fixture')
+  expect(service.index.models.get(roleId)).toBeUndefined()
+  const next = await service.createTraining({ roleId, mode: 'coach' })
+  const nextAgent = ctx.agents.get(next.sessionId as SessionId)!
+  expect(nextAgent.model.current()).toEqual(defaultModel)
+  expect(presets.current(nextAgent.session)).toBe('read-only')
+})
+it('clears a stale remembered model when a role default is removed without changing the live chat', async () => {
+  const defaultModel = { provider: 'fixture', model: 'authoring', reasoningEffort: 'high' }
+  const created = await service.createRole({ name: 'Coach', defaultModel })
+  if (!created.ok || !created.hash) throw new Error('Expected a published role')
+  const { roleId } = created.status
+  await service.index.models.put({ roleId, selection: { provider: 'fixture', model: 'authoring' } })
+  const coach = await service.openTraining({ roleId })
+  const live = ctx.agents.get(coach.sessionId as SessionId)!
+  expect(live.model.current()).toEqual(defaultModel)
+  expect(await service.saveDocument({ roleId, expectedHash: created.hash, text: serializeMarkdown({ id: roleId, name: 'Coach' }, '') })).toMatchObject({ ok: true })
+  expect(live.model.current()).toEqual(defaultModel)
+  expect(service.index.models.get(roleId)).toBeUndefined()
+  const next = await service.createTraining({ roleId, mode: 'coach' })
+  expect(ctx.agents.get(next.sessionId as SessionId)!.model.current()?.model).toBe('fixture')
+})
 it('carries a role model and effort across training, team admission and restart', async () => {
   const first = await service.createTraining({ roleId, mode: 'coach' })
   const choice = { provider: 'fixture', model: 'authoring', reasoningEffort: 'high' }
@@ -670,6 +710,30 @@ it('carries a role model and effort across training, team admission and restart'
   ctx.llm.registerAdapter(['second-fixture'], model)
   const later = await service.createTraining({ roleId, mode: 'coach' })
   expect(ctx.agents.get(later.sessionId as SessionId)?.model.current()).toEqual(next)
+})
+it('applies the leader permission but not a member permission, and restores the explicit seat model on reset', async () => {
+  const presets = await permissions()
+  const lead = await service.createRole({ name: 'Lead fixture', defaultPermission: 'read-only' })
+  const defaultModel = { provider: 'fixture', model: 'authoring', reasoningEffort: 'high' }
+  const editor = await service.createRole({ name: 'Editor fixture', defaultModel, defaultPermission: 'danger-full-access' })
+  if (!lead.ok || !editor.ok) throw new Error('Expected published roles')
+  const { run } = await service.createTeam({ title: 'Team', workspaceCwd: cwd, roleId: lead.status.roleId })
+  const root = ctx.agents.get(run.rootSessionId as SessionId)!
+  expect(presets.current(root.session)).toBe('read-only')
+  expect(run.permissionPreset).toBe('read-only')
+  const child = await service.addMember({ runId: run.runId, roleId: editor.status.roleId })
+  const live = ctx.agents.get(child.currentSessionId as SessionId)!
+  expect(presets.current(live.session)).toBe('read-only')
+  expect(live.model.current()).toEqual(defaultModel)
+  await ctx.subagents.waitForTreeWork(root)
+  const selected = { provider: 'fixture', model: 'fixture' }
+  await service.selectSeatModel({ seatId: child.seatId, generation: 1, selection: selected })
+  expect(service.index.models.get(editor.status.roleId)).toBeUndefined()
+  const replacement = await service.resetSeat({ seatId: child.seatId, generation: 1, handoff: '' })
+  const next = ctx.agents.get(replacement.currentSessionId as SessionId)!
+  expect(next.model.current()).toEqual(selected)
+  expect(presets.current(next.session)).toBe('read-only')
+  await ctx.subagents.waitForTreeWork(root)
 })
 it('delivers a localized membership notice and mirrors the lead permission to live and new children', async () => {
   ctx.provide('shell', { sandboxMode: 'workspace-write' } as never)
@@ -807,7 +871,7 @@ it('deletes a role and its coaching entry while existing seats can run and reset
   await service.saveDocument({
     roleId,
     expectedHash: original!.hash,
-    text: role('last adopted instructions'),
+    text: serializeMarkdown({ id: roleId, name: 'Reviewer', defaultModel: { provider: 'fixture', model: 'authoring' } }, 'last adopted instructions'),
   })
   async function send(seat: typeof child, text: string) {
     await service.promptSeat({
@@ -842,6 +906,7 @@ it('deletes a role and its coaching entry while existing seats can run and reset
   await boot()
   const reset = await service.resetSeat({ seatId: child.seatId, generation: 1, handoff: 'continue' })
   await send(reset, 'after deletion')
+  expect(request(reset.currentSessionId).model).toBe('authoring')
   expect(JSON.stringify(request(reset.currentSessionId).messages[0])).toContain(
     'last adopted instructions',
   )

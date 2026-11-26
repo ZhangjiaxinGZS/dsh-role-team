@@ -20,6 +20,7 @@ import {
 } from '../../shared/index.js'
 import { DocumentError, parseMarkdown, serializeMarkdown } from '../../shared/markdown.js'
 import { MoreMenu, Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
+import { RoleDefaultsPanel } from './RoleDefaults.js'
 
 // Allow intermediate empty or trailing-space names in the form, while the write contract stays strict.
 type Conflict = Extract<EditResult, { code: 'conflict' }>
@@ -97,6 +98,7 @@ export function Documents({
   const localGuard = useRef<ProfileGuard['current']>(null)
   const profileGuard = guard ?? localGuard
   const [panel, setPanel] = useState<{ mode: 'read' } | { mode: 'edit'; initial: FileContents | null } | { mode: 'history'; hash: string }>({ mode: 'read' })
+  const [tab, setTab] = useState<'profile' | 'defaults'>('profile')
   const buffers = useContext(EditorBuffers)
   const [adding, setAdding] = useState(false)
   const action = useAction()
@@ -137,14 +139,18 @@ export function Documents({
             </Button>
           ) : <>
             <h3>{t('card')}</h3>
-            {panel.mode === 'read' && <Button size="sm" variant="outline" icon={<IconEditOutlineRegular size={14} />}
+            {panel.mode === 'read' && tab === 'profile' && <Button size="sm" variant="outline" icon={<IconEditOutlineRegular size={14} />}
               disabled={!role.data} onClick={edit}>{t('edit')}</Button>}
           </>}
         </div>
         <div className="rt-row">
           {panel.mode === 'read' && <Button size="sm" variant="outline" icon={<ProfileIcon kind="history" />}
             disabled={!role.data?.file} onClick={() => {
-              if (role.data?.file) setPanel({ mode: 'history', hash: role.data.file.hash })
+              if (role.data?.file)
+                leaveProfile(profileGuard, {
+                  kind: 'switch',
+                  proceed: () => setPanel({ mode: 'history', hash: role.data!.file!.hash }),
+                })
             }}>{t('roleHistory')}</Button>}
           {toggleSize && (
             <Tooltip label={t(fullscreen ? 'restoreSplit' : 'expandProfile')} side="bottom">
@@ -162,13 +168,58 @@ export function Documents({
           )}
         </div>
       </header>
+      {panel.mode !== 'history' && (
+        <div className="rt-docs-tabs">
+          <div className="rt-view-navigation rt-segment" role="tablist" aria-label={t('card')}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'profile'}
+              onClick={() => {
+                if (tab !== 'profile')
+                  leaveProfile(profileGuard, { kind: 'switch', proceed: () => setTab('profile') })
+              }}
+            >
+              {t('profileTab')}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'defaults'}
+              onClick={() => {
+                if (tab !== 'defaults')
+                  leaveProfile(profileGuard, {
+                    kind: 'switch',
+                    proceed: () => {
+                      read()
+                      setTab('defaults')
+                    },
+                  })
+              }}
+            >
+              {t('defaultsTab')}
+            </button>
+          </div>
+        </div>
+      )}
       <Notice>{role.error || memories.error || (panel.mode === 'read' && role.data?.error)}</Notice>
-      {panel.mode === 'read' && role.data?.profile && (
+      {panel.mode === 'read' && tab === 'defaults' && role.data?.profile && (
+        <RoleDefaultsPanel
+          key={roleId}
+          roleId={roleId}
+          file={role.data.file}
+          meta={role.data.profile.meta}
+          body={role.data.profile.body}
+          guard={profileGuard}
+          changed={updated}
+        />
+      )}
+      {panel.mode === 'read' && tab === 'profile' && role.data?.profile && (
         <article className="rt-profile-text" onDoubleClick={edit}>
           <ProfileFields {...role.data.profile} />
         </article>
       )}
-      {panel.mode === 'edit' && (
+      {panel.mode === 'edit' && tab === 'profile' && (
         <DocumentEditor
           key={roleId}
           nameTaken={nameTaken}
@@ -193,7 +244,7 @@ export function Documents({
           }}
         />
       )}
-      {panel.mode === 'read' && (
+      {panel.mode === 'read' && tab === 'profile' && (
         <section className="rt-experiences">
           <header className="rt-row">
             <h3>{t('memories')}</h3>

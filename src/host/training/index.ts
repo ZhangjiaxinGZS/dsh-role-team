@@ -208,15 +208,6 @@ export class TrainingRuntime {
     return ref.memoryId
   }
   async install(agent: Agent, row: Training) {
-    const presets = this.native.ctx.get('permissionPresets')
-    if (row.initializing && presets) {
-      // The previous session log is the durable record of the role's native picker selection.
-      const previous = this.current(row.roleId).at(-1)
-      const preset = previous
-        ? await this.native.ctx.sessionQuery.inspectSession(previous.sessionId as SessionId, (session) => presets.current(session))
-        : 'danger-full-access'
-      presets.set(agent.session, preset)
-    }
     const ref = { roleId: row.roleId }
     let base = await this.roles.readDocument(ref)
     const loadSnapshot = async () => {
@@ -226,6 +217,14 @@ export class TrainingRuntime {
         : undefined
     }
     let snapshot = await loadSnapshot()
+    const presets = this.native.ctx.get('permissionPresets')
+    if (row.initializing && presets) {
+      const previous = this.current(row.roleId).at(-1)
+      const preset = snapshot?.role.meta.defaultPermission ?? (previous
+        ? await this.native.ctx.sessionQuery.inspectSession(previous.sessionId as SessionId, (session) => presets.current(session))
+        : 'danger-full-access')
+      presets.set(agent.session, preset)
+    }
     let pendingTurn = -1
     let remindedTurn = -1
     const receipts = new Set<string>()
