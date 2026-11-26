@@ -64,6 +64,11 @@ export function teamMessage({ source, content }: Input) {
 }
 
 type Message = NonNullable<ReturnType<typeof teamMessage>>
+function isEmptyCompletion(message: Message) {
+  return message.omitted && (!message.status || message.status === 'completed')
+    && !message.parts.some(part => 'block' in part || part.text.trim())
+}
+
 const statusLabels: Readonly<Partial<Record<string, Parameters<Text>[0]>>> = {
   completed: 'reportCompleted', aborted: 'reportAborted', error: 'reportError',
   'max-tokens': 'reportLimit', refusal: 'reportRefused',
@@ -168,9 +173,7 @@ export function registerTeamTrigger(ctx: Context, call: Ui['call'], t: Text) {
       return () => { live = false }
     }, [key, sessionId, senderId, senderName])
     if (resolved?.key !== key || !resolved.sender) return fallback
-    const emptyReceipt = message.omitted && (!message.status || message.status === 'completed')
-      && !message.parts.some(part => 'block' in part || part.text.trim())
-    if (moved || emptyReceipt) return null
+    if (moved || isEmptyCompletion(message)) return null
     const alias = senderName && !/^(?:role-|rt-(?:root|child)-|lead$)/.test(senderName) ? senderName : undefined
     return <TeamMessageCard fromParent={resolved.sender.fromParent} message={message} name={resolved.sender.name ?? alias ?? t('messageMember')} time={time} t={t} />
   }
@@ -200,7 +203,7 @@ export function registerTeamTrigger(ctx: Context, call: Ui['call'], t: Text) {
           return true
         }
         const report = latest.get(key)
-        if (!report || (message.status && message.status !== 'completed')) return true
+        if (!report || !isEmptyCompletion(message)) return true
         report.settled = true
         report.status = 'completed'
         return false

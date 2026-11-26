@@ -1280,19 +1280,15 @@ it('renders team turn triggers expanded with Markdown, sender and timestamp, and
   expect(lookup).toHaveBeenCalledTimes(1)
 })
 
-it('shows mid-turn team reports beside the native disclosure and keeps ordinary process rows native', async () => {
+const processNotice = (seq: number, kind: string, body: string, senderSessionId: string | null = 'member', stopReason?: string) => ({
+  seq, time: seq, source: { kind, senderSessionId, stopReason }, content: [{ type: 'text', text: body }],
+})
+const completionPrefix = 'Background subagent editor finished and will do no further work unless you send it more.'
+const omittedClosing = ' It sent you a message just before finishing, so its closing message is omitted.'
+
+async function renderProcessReports(initialRows: ReturnType<typeof processNotice>[]) {
   const { registerTeamTrigger } = await import('../src/client/workbench/TeamTrigger.js')
-  const notice = (seq: number, kind: string, body: string, senderSessionId: string | null = 'member', stopReason?: string) => ({
-    seq, time: seq, source: { kind, senderSessionId, stopReason }, content: [{ type: 'text', text: body }],
-  })
-  const sent = notice(3, 'agent-message', 'Agent editor sent a message: **Reviewed**')
-  const prefix = 'Background subagent editor finished and will do no further work unless you send it more.'
-  const receipt = notice(4, 'subagent-settled', prefix + ' It sent you a message just before finishing, so its closing message is omitted.')
-  const auto = notice(5, 'subagent-settled', prefix + ' Its closing message: Automatic answer', 'other-member')
-  const schedule = notice(6, 'schedule', 'Unrelated')
-  const outside = notice(90, 'team-message', 'Outside the fold')
-  // Simulate new contexts arriving after the controller was mounted.
-  let rows = [sent, receipt, schedule, outside]
+  let rows = initialRows
   const listeners = new Set<() => void>()
   const source = { getSnapshot: () => rows, subscribe: (f: () => void) => { listeners.add(f); return () => { listeners.delete(f) } } }
   const snapshot = { nodes: { turnDataSource: (turn: number, kind: string) => {
@@ -1325,34 +1321,72 @@ it('shows mid-turn team reports beside the native disclosure and keeps ordinary 
       {rows.map(data => <ContextRow key={data.seq} {...common} node={{kind:'context', location, data}} />)}</>
   }
   const view = render(flow(props.sessionId, false))
+  return {
+    update(next: typeof rows) { act(() => { rows = next; listeners.forEach(f => f()) }) },
+    show(sessionId: string, open: boolean) { view.rerender(flow(sessionId, open)) },
+  }
+}
+
+it('shows mid-turn team reports beside the native disclosure and keeps ordinary process rows native', async () => {
+  const sent = processNotice(3, 'agent-message', 'Agent editor sent a message: **Reviewed**')
+  const receipt = processNotice(4, 'subagent-settled', completionPrefix + omittedClosing)
+  const auto = processNotice(5, 'subagent-settled', completionPrefix + ' Its closing message: Automatic answer', 'other-member')
+  const schedule = processNotice(6, 'schedule', 'Unrelated')
+  const outside = processNotice(90, 'team-message', 'Outside the fold')
+  const view = await renderProcessReports([sent, receipt, schedule, outside])
   expect(await screen.findByText('Reviewed')).toBeTruthy()
   await waitFor(() => expect(screen.getAllByTestId('native-context')).toHaveLength(1))
   expect(screen.getByText('Outside the fold')).toBeTruthy()
   expect(screen.getAllByRole('button', {name:/From Editor/})).toHaveLength(2)
-  act(() => { rows = [sent, receipt, auto, schedule, outside]; listeners.forEach(f => f()) })
+  view.update([sent, receipt, auto, schedule, outside])
   expect(await screen.findByText('Automatic answer')).toBeTruthy()
-  view.rerender(flow(props.sessionId, true))
+  view.show('rt-child-reader', true)
   await waitFor(() => expect(screen.getAllByTestId('native-context')).toHaveLength(1))
   expect(screen.getAllByRole('button', {name:/From Editor/})).toHaveLength(3)
   expect(screen.getByTestId('native-turn-process').textContent).toBe('true')
   expect(screen.queryByText(en.ui.reportAlreadySent)).toBeNull()
-  const earlier = notice(7, 'team-message', 'Agent reviewer sent a message: First update', null)
-  const latest = notice(8, 'agent-message', 'Agent reviewer sent a message: Final update', null)
-  const finish = notice(9, 'subagent-settled', prefix.replace('editor', 'reviewer') + ' Its closing message: Duplicate conclusion', null)
+  const earlier = processNotice(7, 'team-message', 'Agent reviewer sent a message: First update', null)
+  const latest = processNotice(8, 'agent-message', 'Agent reviewer sent a message: Final update', null)
+  const finish = processNotice(9, 'subagent-settled', completionPrefix.replace('editor', 'reviewer') + omittedClosing, null)
   const exceptions = ['error', 'aborted', 'refusal', 'max-tokens'].map((reason,i) =>
-    notice(10+i, 'subagent-settled', 'Must retain '+reason, 'member', reason))
-  act(() => { rows = [sent, receipt, auto, schedule, earlier, latest, finish, ...exceptions, outside]; listeners.forEach(f => f()) })
+    processNotice(10+i, 'subagent-settled', 'Must retain '+reason, 'member', reason))
+  const rows = [sent, receipt, auto, schedule, earlier, latest, finish, ...exceptions, outside]
+  view.update(rows)
   const latestCard = (await screen.findByText('Final update')).closest('button')!
   expect(latestCard.textContent?.includes(en.ui.reportCompleted)).toBeTruthy()
   expect(screen.getByText('First update').closest('button')?.textContent).not.toContain(en.ui.reportCompleted)
-  expect(screen.queryByText('Duplicate conclusion')).toBeNull()
   expect(screen.getByText('Reviewed').closest('button')?.textContent).toContain(en.ui.reportCompleted)
   for (const reason of ['error','aborted','refusal','max-tokens']) expect(await screen.findByText('Must retain '+reason)).toBeTruthy()
   for (const sessionId of ['ordinary', 'rt-root-unregistered']) {
-    view.rerender(flow(sessionId, false))
+    view.show(sessionId, false)
     await waitFor(() => expect(screen.getAllByTestId('native-context')).toHaveLength(rows.length))
     expect(screen.queryByRole('button', {name:/From Editor/})).toBeNull()
   }
+})
+
+it('shows one report with a completion badge when the host omits its closing message', async () => {
+  await renderProcessReports([
+    processNotice(3, 'agent-message', 'Agent editor sent a message: Review complete'),
+    processNotice(4, 'subagent-settled', completionPrefix + omittedClosing),
+  ])
+  const report = await screen.findByRole('button', { name: /From Editor/ })
+  expect(screen.getAllByRole('button')).toHaveLength(1)
+  expect(report.textContent).toContain('Review complete')
+  expect(report.textContent).toContain(en.ui.reportCompleted)
+})
+
+it('keeps a new closing answer beside the same sender’s earlier report in the same turn', async () => {
+  await renderProcessReports([
+    processNotice(3, 'agent-message', 'Agent editor sent a message: Review underway'),
+    processNotice(4, 'subagent-settled', completionPrefix + ' Its closing message: Fixed the failing test'),
+  ])
+  const update = (await screen.findByText('Review underway')).closest('button')!
+  const closing = (await screen.findByText('Fixed the failing test')).closest('button')!
+  expect(screen.getAllByRole('button', { name: /From Editor/ })).toHaveLength(2)
+  expect(update.textContent).not.toContain(en.ui.reportCompleted)
+  expect(closing.textContent).toContain(en.ui.reportCompleted)
+  fireEvent.click(closing)
+  expect(screen.getByTestId('native-markdown').textContent).toBe('Fixed the failing test')
 })
 
 it('offers team-only atomic mentions, disambiguates names and renders the serialized identity', async () => {
