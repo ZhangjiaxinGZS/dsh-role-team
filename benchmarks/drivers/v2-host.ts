@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
@@ -6,10 +7,25 @@ import { mkdir, writeFile, realpath } from 'node:fs/promises'
 import { lstatSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import type { Port, Event } from '../v2/driver.ts'
-import { requestReservation, writable } from '../v2/protocol.ts'
+import { writable } from '../v2/protocol.ts'
 import { installPrefixBrief } from './prefix-brief.ts'
 import type {} from '../../src/host/index.ts'
 
+// An event may precede addMember/resetSeat returning the authoritative session ID.
+export class SeatActors {
+  private readonly seats = new Map<string, string>()
+  bind(session: string, role: string) {
+    const old = this.seats.get(session)
+    if (old && old !== role) throw Error('Conflicting seat for one session')
+    this.seats.set(session, role)
+  }
+  actor(session: string) {
+    return this.seats.get(session) ?? 'session:' + session
+  }
+  resolve(key: string) {
+    return key.startsWith('session:') ? (this.seats.get(key.slice(8)) ?? 'auxiliary') : key
+  }
+}
 // Mount only inside the dedicated withLocalHost worker. The outer driver owns
 // boot, denial of ambient tools/paths, the isolated identity and final disposal.
 export function hostPort(ctx: Context, roleStore: string, route: { provider: string; model: string }): Port {
@@ -18,9 +34,11 @@ export function hostPort(ctx: Context, roleStore: string, route: { provider: str
     lead: Agent,
     last = '',
     failure: Error | undefined
-  let admittingRole = 'lead'
   const agents = new Map<string, Agent>(),
-    roles = new Map<string, string>()
+    roles = new SeatActors()
+  const pending = new Map<string, string>()
+  const scratchpadCalls = new Map<string, string>()
+  const deny = (code: string, reason: string) => ({ reason, info: { name: 'BenchmarkPolicy', code } })
   const abort = () => {
     for (const agent of agents.values()) agent.cancel({ kind: 'hook', reason: 'benchmark trial stopped' })
   }
@@ -40,7 +58,6 @@ export function hostPort(ctx: Context, roleStore: string, route: { provider: str
   async function create() {
     const { job, workspace } = options
     const team = job.arm !== 'single-agent'
-    admittingRole = 'lead'
     const root = team
       ? (
           await ctx.roleTeam.createTeam({
@@ -58,16 +75,16 @@ export function hostPort(ctx: Context, roleStore: string, route: { provider: str
         }
     runId = root.runId
     lead = await resolveAgent(root.rootSessionId)
-    roles.set(lead.id, 'lead')
+    roles.bind(lead.id, 'lead')
     ctx.permissionPresets.set(lead.session, 'danger-full-access')
     if (team)
       for (const r of job.scenario.roles.slice(1)) {
-        admittingRole = r.id
         const seat = await ctx.roleTeam.addMember({ runId, roleId: r.id })
-        roles.set(seat.currentSessionId, r.id)
+        roles.bind(seat.currentSessionId, r.id)
       }
   }
   return {
+    resolveActor: (key) => roles.resolve(key),
     async start(o) {
       options = o
       if (
@@ -111,45 +128,36 @@ export function hostPort(ctx: Context, roleStore: string, route: { provider: str
         )
       ctx.on('agent/created', ({ agent }) => {
         agents.set(agent.id, agent)
-        roles.set(agent.id, admittingRole)
         agent.model.select({ ...route, reasoningEffort: ReasoningEffortId('high') })
         return undefined
       })
       ctx.on(
         'llm/stream',
         async function* (req, next) {
-          if (req.provider !== route.provider) { yield* next(); return }
-          const info = await ctx.llm.resolveModelInfo(req.provider, req.model)
-          const estimate = requestReservation(req, info.context?.contextWindow ?? 0)
-          const settle = o.reserve(estimate)
-          let settled = false
-          try {
-            for await (const chunk of next()) {
-              if (chunk.type === 'usage') {
-                const u = chunk.usage
-                const used =
-                  u.totalTokens ??
-                  u.inputTokens + (u.cacheReadTokens ?? 0) + (u.cacheWriteTokens ?? 0) + u.outputTokens
-                send({
-                  actor: roles.get(req.sessionId ?? '') ?? 'auxiliary',
-                  type: 'provider/usage',
-                  metered: true,
-                  usage: {
-                    inputTokens: u.inputTokens,
-                    cacheReadTokens: u.cacheReadTokens ?? 0,
-                    cacheWriteTokens: u.cacheWriteTokens ?? 0,
-                    outputTokens: u.outputTokens,
-                    ...(u.totalTokens !== undefined && { totalTokens: u.totalTokens }),
-                    ...(u.reasoningTokens !== undefined && { reasoningTokens: u.reasoningTokens }),
-                  },
-                })
-                settled = true
-                settle(used)
-              }
-              yield chunk
+          if (req.provider !== route.provider) {
+            yield* next()
+            return
+          }
+          o.signal.throwIfAborted()
+          for await (const chunk of next()) {
+            if (chunk.type === 'usage') {
+              const u = chunk.usage
+              send({
+                actor: req.sessionId ? 'session:' + req.sessionId : 'auxiliary',
+                type: 'provider/usage',
+                metered: true,
+                usage: {
+                  inputTokens: u.inputTokens,
+                  cacheReadTokens: u.cacheReadTokens ?? 0,
+                  cacheWriteTokens: u.cacheWriteTokens ?? 0,
+                  outputTokens: u.outputTokens,
+                  ...(u.totalTokens !== undefined && { totalTokens: u.totalTokens }),
+                  ...(u.reasoningTokens !== undefined && { reasoningTokens: u.reasoningTokens }),
+                },
+              })
+              o.signal.throwIfAborted()
             }
-          } finally {
-            if (!settled) settle(0)
+            yield chunk
           }
         },
         { global: true, prepend: true },
@@ -170,30 +178,32 @@ export function hostPort(ctx: Context, roleStore: string, route: { provider: str
           'remember_experience',
         ]
         if (teamTools.includes(exec.name)) return
-        if (!['read', 'edit', 'write'].includes(exec.name)) return 'Benchmark policy denied ambient tool'
+        if (!['read', 'edit', 'write'].includes(exec.name))
+          return deny('TOOL', 'Benchmark policy denied ambient tool')
         const value = (exec.arguments as { file_path?: unknown })?.file_path
         if (
           typeof value !== 'string' ||
           dirname(resolve(o.workspace, value)) !== o.workspace ||
           value.split(/[\\/]/).includes('..')
         )
-          return 'Benchmark policy denied path'
+          return deny('PATH', 'Benchmark policy denied path')
         const stat = lstatSync(resolve(o.workspace, value), { throwIfNoEntry: false })
-        if (stat && (!stat.isFile() || stat.nlink !== 1)) return 'Benchmark policy denied file link'
+        if (stat && (!stat.isFile() || stat.nlink !== 1))
+          return deny('LINK', 'Benchmark policy denied file link')
         if (['edit', 'write'].includes(exec.name)) {
           const file = (exec.arguments as { file_path?: string })?.file_path
           if (
             !file ||
             dirname(resolve(o.workspace, file)) !== o.workspace ||
-            !writable(o.job.scenario, roles.get(exec.agent?.id ?? '') ?? 'member', basename(file))
+            !writable(o.job.scenario, roles.actor(exec.agent?.id ?? ''), basename(file))
           ) {
-            return 'Benchmark policy denied write to a protected file'
+            return deny('PROTECTED_WRITE', 'Benchmark policy denied write to a protected file')
           }
         }
       })
       ctx.on('session/event', (session, event) => {
         const native = (e: Event) => send({ ...e, nativeSeq: event.seq, nativeTime: event.time })
-        const actor = roles.get(session.id) ?? (lead?.id === session.id ? 'lead' : 'admitting')
+        const actor = roles.actor(session.id)
         const text = (c: readonly { type: string; text?: string }[]) =>
           c
             .filter((b) => b.type === 'text')
@@ -201,7 +211,11 @@ export function hostPort(ctx: Context, roleStore: string, route: { provider: str
             .join('\n')
         if (event.type === 'turn/end' && event.data.reason.kind === 'error') {
           const f = event.data.reason.error
-          failure = Error('Model turn failed: ' + (/^[A-Z_0-9]+$/.test(f.code) ? f.code : 'UNKNOWN') + ('status' in f && typeof f.status === 'number' ? ' HTTP ' + f.status : ''))
+          failure = Error(
+            'Model turn failed: ' +
+              (/^[A-Z_0-9]+$/.test(f.code) ? f.code : 'UNKNOWN') +
+              ('status' in f && typeof f.status === 'number' ? ' HTTP ' + f.status : ''),
+          )
           fault.reject(failure)
         }
         if (event.type === 'request/header') {
@@ -226,12 +240,25 @@ export function hostPort(ctx: Context, roleStore: string, route: { provider: str
         }
         if (event.type === 'tool/call' || event.type === 'tool/ptc-dispatch-start') {
           const d = event.data
+          if (event.type === 'tool/call')
+            pending.set(
+              session.id + ':' + event.data.callId,
+              createHash('sha256')
+                .update(JSON.stringify([d.name, d.arguments]))
+                .digest('hex'),
+            )
           let args = d.arguments
           if (typeof args === 'string') {
             try {
               args = JSON.parse(args)
             } catch {
               /* Preserve malformed calls. */
+            }
+          }
+          if (event.type === 'tool/call' && ['read', 'write', 'edit'].includes(d.name)) {
+            const file = args && typeof args === 'object' && Reflect.get(args, 'file_path')
+            if (typeof file === 'string' && resolve(o.workspace, file) === join(o.workspace, 'scratchpad.md')) {
+              scratchpadCalls.set(session.id + ':' + event.data.callId, d.name)
             }
           }
           native({
@@ -246,12 +273,34 @@ export function hostPort(ctx: Context, roleStore: string, route: { provider: str
               }),
           })
         }
-        if (
-          event.type === 'tool/result' &&
-          event.data.message.isError &&
-          /denied|forbidden|权限|拒绝/i.test(text(event.data.message.content))
-        )
-          native({ actor, type: 'tool/denied' })
+        if (event.type === 'tool/result') {
+          const { message, error, turn, step } = event.data
+          const id = session.id + ':' + message.toolCallId
+          const signature = pending.get(id)
+          pending.delete(id)
+          const scratchpadTool = scratchpadCalls.get(id)
+          if (scratchpadTool) {
+            scratchpadCalls.delete(id)
+            native({actor, type:'scratchpad/result', tool:scratchpadTool, target:message.toolCallId, text:message.isError?'error':'ok'})
+          }
+          const key =
+            message.isError && signature
+              ? createHash('sha256')
+                  .update(signature + text(message.content))
+                  .digest('hex')
+              : undefined
+          if (
+            error?.name === 'BenchmarkPolicy' ||
+            (message.isError && /denied|forbidden|权限|拒绝/i.test(text(message.content)))
+          )
+            native({
+              actor,
+              type: 'tool/denied',
+              target: message.toolCallId,
+              text: error?.code ?? 'HOST_DENIAL',
+            })
+          o.toolOutcome(session.id, key, turn, step)
+        }
         if (event.type === 'team/task' && event.data.task)
           native({ actor, type: 'team/task', target: event.data.task.id, text: event.data.task.status })
         if (String(event.type) === 'llm/retry') {
@@ -271,7 +320,11 @@ export function hostPort(ctx: Context, roleStore: string, route: { provider: str
             ['team-message', 'agent-message', 'subagent-settled'].includes(source.kind)
           ) {
             const id = Reflect.get(source, 'senderSessionId') ?? Reflect.get(source, 'senderId')
-            native({ actor: roles.get(id) ?? 'member', type: 'team/report', text: text(event.data.content) })
+            native({
+              actor: typeof id === 'string' ? roles.actor(id) : 'member',
+              type: 'team/report',
+              text: text(event.data.content),
+            })
           }
         }
       })
@@ -332,7 +385,7 @@ export function hostPort(ctx: Context, roleStore: string, route: { provider: str
           generation: seat.currentGeneration,
           handoff: 'Resume from the durable team record.',
         })
-        roles.set(next.currentSessionId, role)
+        roles.bind(next.currentSessionId, role)
         send({ actor: role, type: 'seat/reset' })
       }
     },

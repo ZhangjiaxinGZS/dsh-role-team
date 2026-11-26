@@ -123,7 +123,7 @@ const governance: V2Scenario[] = [
   }),
   decision({
     id: 'G5',
-    title: 'Consolidate four specialist signoffs',
+    title: 'Consolidate four specialist facts',
     multiAgentOnly: true,
     facts: g5,
     roles: [
@@ -135,9 +135,10 @@ const governance: V2Scenario[] = [
     ],
     files: {
       'review.md':
-        'Four separate sign-offs are required from finance, privacy, reliability and support. Each owns one acceptance condition.',
+        'Finance holds the budget, privacy holds the residency requirement, reliability holds the recovery target, and support holds the coverage period. Each specialist can provide their fact directly in a message.',
     },
-    prompt: 'Obtain and consolidate each specialist’s signoff for the launch.',
+    prompt:
+      'Ask each of the four specialists for their factual value and record all four values in delivery.json. Their replies provide all the confirmation needed. No human signature or launch authorization is required.',
   }),
 ]
 function continuity(
@@ -221,4 +222,90 @@ export const catalogue: V2Scenario[] = [
   ...projects.map(engineeringScenario),
   ...governance,
   ...continuityCases,
+  {
+    id: 'S1',
+    title: 'Change one configuration value',
+    roles,
+    archetype: 'sequential-pivot',
+    split: 'dev',
+    prompt: 'Set retries in config.json to 4. Preserve all other entries. This is the entire change.',
+    files: { 'config.json': '{"retries":2,"mode":"safe","stream":"001"}' },
+    facts: [
+      fact('retries', 'retries', ['4']),
+      fact('mode', 'mode', ['safe']),
+      fact('stream', 'stream', ['001']),
+    ],
+    stages: [],
+  },
+  {
+    id: 'S2',
+    title: 'Look up one record',
+    roles,
+    archetype: 'parallel-read-synthesis',
+    split: 'dev',
+    prompt: 'Read only. Reply with the duration for item K03 as a quantity with units. Do not write files.',
+    files: { 'durations.csv': 'id,minutes\nK01,7\nK03,12\nK30,21' },
+    facts: [fact('duration', '时长', ['12'], ['minutes', 'min', '分钟'])],
+    stages: [],
+  },
+  decision({
+    id: 'S3',
+    title: 'Format three inventory codes',
+    split: 'holdout',
+    files: { 'codes.csv': '001,west\n023,north\n007,east' },
+    facts: [fact('codes', '编码', ['001:west|023:north|007:east'])],
+    prompt:
+      'Return the three codes as one pipe-separated id:region string in original order. Preserve leading zeros.',
+  }),
+  decision({
+    id: 'L2',
+    title: 'Hand off a revised cold-chain plan',
+    archetype: 'long-horizon-continuity',
+    files: {
+      'plan.md':
+        'Approval A: use north, reserve 6 vans, contact ops. Outstanding: radio check. Record final authority and the open action.',
+    },
+    facts: [
+      owner('logistics', '物流'),
+      fact('region', '地区', ['east', '东区']),
+      fact('vans', '车辆', ['4']),
+      fact('pending', '待办', ['seal check', '封签检查']),
+      fact('authority', '依据', ['D']),
+    ],
+    prompt: 'Maintain the authoritative dispatch plan and its open action across shift handoffs.',
+    stages: [
+      { instruction: 'Approval B overrides north with west, and ops hands ownership to logistics.' },
+      {
+        instruction: 'Approval C cancels west and sends four vans east; the radio check is complete.',
+        action: 'compact',
+      },
+      {
+        instruction:
+          'Approval D requires a seal check before dispatch. Deliver the final plan, remaining action and final approval ID.',
+        action: 'compact-reset',
+      },
+    ],
+  }),
+  decision({
+    id: 'L3',
+    title: 'Replan a constrained maintenance roster',
+    archetype: 'sequential-pivot',
+    split: 'holdout',
+    files: {
+      'skill.md': 'Only A or B may do lift; any worker may do audit or seal.',
+      'slots.md': 'Use slots 1,2,3 exactly once. Lift must precede seal.',
+      'cost.md':
+        'A costs 4, B costs 3, C costs 2 per job. If C works slot 1, add a 2-credit callout. Cap 10; each person works once.',
+      'coverage.md': 'A cannot cover slot 3. B can cover any slot.',
+    },
+    facts: [fact('lift', '吊装', ['A1']), fact('audit', '审计', ['C3']), fact('seal', '封签', ['B2'])],
+    stages: [
+      {
+        instruction:
+          'C loses access to slot 2. Replan; every other skill, availability, precedence and cost constraint still holds.',
+      },
+    ],
+    prompt:
+      'Assign lift, audit and seal. Encode each assignment as worker followed by slot (e.g. B2). Any feasible roster is accepted.',
+  }),
 ]

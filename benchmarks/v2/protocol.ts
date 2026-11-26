@@ -2,21 +2,36 @@ import { createHash, randomUUID } from 'node:crypto'
 import type { Fact, V2Arm, V2Scenario } from '../types.ts'
 
 export const mainArms: V2Arm[] = ['single-agent', 'v0.1.0', 'v0.2.0-full']
-export function blocks(scenarios: V2Scenario[], repeats: number, seed: string) {
+export function armsFor(s: V2Scenario) {
+  const arms = mainArms.filter((a) => !(a === 'single-agent' && s.multiAgentOnly))
+  if (['C3', 'C4'].includes(s.id)) arms.push('v0.2.0-prefix-brief')
+  if (['E1', 'E2', 'G1', 'G2'].includes(s.id)) arms.push('v0.2.0-brief-only')
+  return arms
+}
+export function blocks(scenarios: V2Scenario[], repeats: number, seed: string, fixture = false) {
   if (!Number.isSafeInteger(repeats) || repeats < 1) throw RangeError('Invalid repeats')
   return scenarios
     .flatMap((s) =>
       Array.from({ length: repeats }, (_, i) => {
-        const arms = mainArms.filter((a) => !(a === 'single-agent' && s.multiAgentOnly))
-        if (['C3', 'C4'].includes(s.id)) arms.push('v0.2.0-prefix-brief')
-        if (['E1', 'E2', 'G1', 'G2'].includes(s.id)) arms.push('v0.2.0-brief-only')
+        const arms = armsFor(s)
         const rank = (arm: string) =>
           createHash('sha256')
             .update(JSON.stringify([seed, s.id, i + 1, arm]))
             .digest('hex')
         return arms
           .sort((a, b) => rank(a).localeCompare(rank(b)))
-          .map((arm) => ({ scenario: s, repeat: i + 1, arm, nonce: randomUUID() }))
+          .map((arm) => ({
+            scenario: s,
+            repeat: i + 1,
+            arm,
+            nonce: fixture
+              ? createHash('sha256')
+                  .update(JSON.stringify([seed, s.id, i, arm]))
+                  .digest('hex')
+                  .slice(0, 32)
+                  .replace(/^(........)(....)(....)(....)(............)$/, '$1-$2-$3-$4-$5')
+              : randomUUID(),
+          }))
       }),
     )
     .flat()
@@ -28,41 +43,26 @@ export function systemHeader(nonce: string) {
   return 'Trial ' + nonce + '\n' + commonHeader
 }
 export function writable(s: V2Scenario, actor: string, name: string) {
-  if (name === 'scratchpad.md') return actor === 'lead'
-  if (!s.id.startsWith('E')) return actor === 'lead' && name === 'delivery.json'
+  if (name === 'scratchpad.md') return true
+  if (s.id === 'S2') return false
+  if (s.id === 'S1') return name === 'config.json' && actor === 'lead'
+  if (!s.id.startsWith('E') && s.id !== 'L1') return actor === 'lead' && name === 'delivery.json'
   return Object.hasOwn(s.files, name) && name.endsWith('.ts')
 }
-export const defaultLimits = { maxWallMs: 900_000, maxSteps: 100, maxTotalTokens: 1_500_000 }
+export const defaultLimits = { maxWallMs: 900_000, maxSteps: 100, maxWeightedCostUnits: 1_000_000 }
+export const tierOf = (id: V2Scenario['id']) => (id.startsWith('S') ? 'S' : id.startsWith('L') ? 'L' : 'M')
+export const stepLimits = { S: 40, M: 100, L: 160 }
+export const scenarioLimits = (s: V2Scenario) => ({ ...defaultLimits, maxSteps: stepLimits[tierOf(s.id)] })
 export type Limits = typeof defaultLimits
-export type StopReason = 'maxWallMs' | 'maxSteps' | 'maxTotalTokens'
-export function requestReservation(
-  request: { messages: unknown; tools?: unknown; system?: unknown; maxTokens?: number; maxOutputTokens?: number },
-  contextWindow: number,
-) {
-  const chars = JSON.stringify([request.system, request.messages, request.tools]).length
-  return Math.min(contextWindow, Math.ceil(chars / 3))
-}
-
+export type StopReason = 'maxWallMs' | 'maxSteps' | 'maxWeightedCostUnits' | 'repeatedFailureLoop'
 export class Budget {
   readonly controller = new AbortController()
   readonly started = Date.now()
   steps = 0
-  tokens = 0
-  reserved = 0
-  tokenStop?: { phase: 'usage'; accounted: number; outstanding: number; requested: number }
-  reserve(estimate: number) {
-    this.controller.signal.throwIfAborted()
-    if (!Number.isSafeInteger(estimate) || estimate <= 0)
-      throw Error('Invalid request reservation')
-    this.charge(0, 0)
-    this.reserved += estimate
-    let open = true
-    return (used: number) => {
-      if (!open) throw Error('Reservation already settled')
-      open = false
-      this.reserved -= estimate
-      this.charge(0, used)
-    }
+  // Twentieths exactly represent all four cost weights.
+  private ticks = 0
+  get weightedCostUnits() {
+    return this.ticks / 20
   }
   readonly timer: ReturnType<typeof setTimeout>
   readonly limits: Limits
@@ -72,19 +72,35 @@ export class Budget {
       if (!Number.isSafeInteger(value) || value < 1) throw RangeError('Invalid resource cap')
     this.timer = setTimeout(() => this.stop('maxWallMs'), limits.maxWallMs)
   }
+  private readonly failed = new Map<string, { key: string; turn: number; step: number; count: number }>()
+  toolOutcome(session: string, key: string | undefined, turn: number, step: number) {
+    if (!key) {
+      this.failed.delete(session)
+      return
+    }
+    const prev = this.failed.get(session)
+    // Count distinct consecutive steps in one turn; a parallel batch is one attempt.
+    const same = prev?.key === key && prev.turn === turn
+    const count =
+      same && prev.step === step ? prev.count : same && prev.step + 1 === step ? prev.count + 1 : 1
+    this.failed.set(session, { key, turn, step, count })
+    if (count >= 4) this.stop('repeatedFailureLoop')
+  }
   private stop(reason: StopReason) {
     this.controller.abort(reason)
   }
-  charge(steps: number, tokens: number) {
-    if (![steps, tokens].every((v) => Number.isSafeInteger(v) && v >= 0))
+  charge(steps: number, usage?: AuditEvent['usage']) {
+    const counts = usage
+      ? [usage.inputTokens, usage.cacheReadTokens, usage.cacheWriteTokens, usage.outputTokens]
+      : [0, 0, 0, 0]
+    if (![steps, ...counts].every((v) => Number.isSafeInteger(v) && v >= 0))
       throw Error('Invalid resource observation')
     this.steps += steps
-    this.tokens += tokens
+    this.ticks += counts[0] * 20 + counts[1] * 2 + counts[2] * 25 + counts[3] * 80
     if (Date.now() - this.started >= this.limits.maxWallMs) this.stop('maxWallMs')
     if (this.steps >= this.limits.maxSteps) this.stop('maxSteps')
-    if (this.tokens >= this.limits.maxTotalTokens) {
-      this.tokenStop ??= { phase: 'usage', accounted: this.tokens, outstanding: this.reserved, requested: 0 }
-      this.stop('maxTotalTokens')
+    if (this.weightedCostUnits >= this.limits.maxWeightedCostUnits) {
+      this.stop('maxWeightedCostUnits')
     }
     this.controller.signal.throwIfAborted()
   }

@@ -19,7 +19,9 @@ export function offlinePort(): Port {
     index = -1,
     revision = '',
     previous = ''
+  let tick = 0
   return {
+    fixtureTime: () => ++tick,
     async start(options) {
       state = options
       options.emit({ actor: 'lead', type: 'request/header', route: 'fixture:offline', text: options.header })
@@ -58,23 +60,36 @@ export function offlinePort(): Port {
           emit({ actor: 'lead', type: 'tool/call', tool: 'send_message', target: r.id, text: r.duty })
           emit({ actor: r.id, type: 'step/start' })
           emit({ actor: r.id, type: 'tool/call', tool: 'read', args: { file_path: Object.keys(s.files)[0] } })
-          emit({ actor: r.id, type: 'team/report', text: r.privateContext ?? r.duty })
+          emit({
+            actor: r.id,
+            type: 'team/report',
+            text: r.privateContext ?? r.duty,
+            usage: { inputTokens: 20, cacheReadTokens: 12, cacheWriteTokens: 0, outputTokens: 8 },
+          })
         }
       emit({ actor: 'lead', type: 'tool/call', tool: 'read', args: { file_path: 'scratchpad.md' } })
       const notes = await readFile(join(workspace, 'scratchpad.md'), 'utf8')
-      await writeFile(join(workspace, 'scratchpad.md'), notes + text + '\n')
+      if (s.id !== 'S2') await writeFile(join(workspace, 'scratchpad.md'), notes + text + '\n')
       const p = projects.find((p) => p.id === s.id)
       if (p) {
         for (const [n, body] of Object.entries(projectSources(p, true, index)))
           await writeFile(join(workspace, n), body)
-      } else
+      } else if (s.id === 'S1')
+        await writeFile(
+          join(workspace, 'config.json'),
+          JSON.stringify({ retries: 4, mode: 'safe', stream: '001' }),
+        )
+      else if (s.id !== 'S2')
         await writeFile(
           join(workspace, 'delivery.json'),
           JSON.stringify(Object.fromEntries(s.facts.map((f) => [f.key, f.values[0]]))),
         )
-      const result = p
-        ? 'Implemented the requested modules.'
-        : s.facts.map((f) => f.label + ' = ' + f.values[0]).join('\n')
+      const result =
+        s.id === 'S2'
+          ? '12 minutes'
+          : p
+            ? 'Implemented the requested modules.'
+            : s.facts.map((f) => f.label + ' = ' + f.values[0]).join('\n')
       emit({
         actor: 'lead',
         type: 'assistant/message',

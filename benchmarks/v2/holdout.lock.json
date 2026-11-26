@@ -3,5 +3,23 @@
   "E4": "9ca75148255e1c31bbc2e84dc78371f09aed061e226482f6c2cb48270915e611",
   "G2": "df389d4fdd00a4f41877677c6afe78937ca8f333364312696d3626a6c97a34be",
   "G4": "42418b84d7380519003fdd6604d11e36b01e1d60554e57dd227db831de7cdcfa",
-  "C4": "b86cdde28b47ee5c66debfe5b952fb0e6f45ab777ae46bc56a5855921e8de485"
+  "C4": "b86cdde28b47ee5c66debfe5b952fb0e6f45ab777ae46bc56a5855921e8de485",
+  "S3": "ba961a9ccb7885797dd6ef7ea1a455eea269b02ed780ccedf1a9ca62be31a9d9",
+  "L3": "dd2fd9d1f96fbfa316467535b0f61662f7f1fc4876b4505c1ddec5276e0e0c04",
+  "dev": [
+    "C1",
+    "C2",
+    "C3",
+    "E1",
+    "E3",
+    "E5",
+    "E6",
+    "G1",
+    "G3",
+    "G5",
+    "L1",
+    "L2",
+    "S1",
+    "S2"
+  ]
 }

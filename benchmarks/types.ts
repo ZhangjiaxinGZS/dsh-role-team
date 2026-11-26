@@ -211,6 +211,12 @@ export async function safePath(name: string): Promise<string> {
 }
 
 export type V2ScenarioId =
+  | 'S1'
+  | 'S2'
+  | 'S3'
+  | 'L1'
+  | 'L2'
+  | 'L3'
   | 'E1'
   | 'E2'
   | 'E3'
@@ -236,7 +242,7 @@ export interface Fact {
 }
 export interface V2Stage {
   instruction: string
-  action?: 'compact-reset' | 'fresh-team' | 'controlled-brief'
+  action?: 'compact' | 'compact-reset' | 'fresh-team' | 'controlled-brief'
 }
 export type Archetype =
   | 'parallel-read-synthesis'

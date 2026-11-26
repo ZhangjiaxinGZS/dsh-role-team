@@ -127,3 +127,25 @@ Only aggregate counts, verifier checks and non-secret trial identifiers are reta
 `pass³` is estimated separately per scenario and macro-averaged. Fewer than three repeats gives an unavailable estimate. Pairing uses model, preset, scenario and repeat; the first selected arm in canonical protocol order is the reference. McNemar tests binary success and constraint violations. Wilcoxon uses average tied ranks and continuity correction; Cliff’s δ compares the experimental sample against the baseline. Percentile bootstrap intervals for means use 10,000 draws with seed 42. Missing denominators are marked unavailable where applicable. Krippendorff’s α requires at least two pairable ratings and nonzero expected disagreement.
 
 S2's decision units and S3–S6's milestone rubric are fixture-specific, English-language objective checks. S4 retention requires facts in post-reset work. S5 checks four report-to-deliverable handoffs and matching closed-loop board updates. S6 reports the paired difference in stage pass rates. Collapsed noise uses an 80-character estimate per report; it is not a browser measurement. Repetition counts the third and subsequent calls in an uninterrupted run of equivalent calls per session. The report identifies the three automated MAST proxies and does not infer the remaining categories or human workload scores.
+
+## Benchmark v2.1 offline protocol
+
+Run `node benchmarks/runner.ts --v2 --dry-run --out <new-directory>`. The default matrix covers 21 scenarios, 14 Dev and 7 frozen Holdout, across 204 scenario/arm/repeat combinations at k=3. Calibration runs four fixture classes for each scenario. Offline fixtures have a deterministic nonce and event clock; live trials use independent random nonces and monotonic wall time. Compare two fresh offline output directories recursively to verify reproducibility. The decision table uses paired primary arms, with restricted ablations shown in the scenario matrix. Synthetic rankings measure the fixture executor.
+
+The default cost ceiling is 1,000,000 units using weights 1/0.1/1.25/4 for uncached input, cache reads, cache writes and output. S/M/L step limits are 40/100/160, with a separate 900-second wall limit. Four consecutive steps with identical failed tool arguments and result in one session and turn trigger the repeated-failure stop. All seats may use the shared scratchpad. The S2 read-only lookup separately scores compliance with its no-write instruction. Original v2 live results retain their historical protocol.
+
+Blind coding uses a per-ticket schema and one retry for invalid responses. Rejected payloads are redacted and hashed in the trial ticket, including when the second ballot succeeds. Transport failures propagate. The v2.1 live driver writes to a version-specific directory. The offline entry point never initializes it.
+
+### Decision score
+
+Within each S/M/L tier, compare the three primary arms on the same scenario and repeat. Include a triple only when all three trials are available. G5 and the targeted ablations remain in the per-scenario matrix. Each matched triple has equal weight in the tier average.
+
+| Dimension | Score per trial (0–100) |
+|---|---|
+| Delivery quality, Q | `100 × (0.8 × P + 0.2 × M)`. P is 1 for a verified pass and 0 otherwise. M is the fraction of milestone checks passed. |
+| Collaboration experience, X | `100 / (1 + U + D)`. U counts recorded user corrections. D counts leader `send_message` events on S-tier tasks and is zero for M/L. |
+| Economic efficiency, E | `50 × ((Cmin + 1)/(C + 1) + (Tmin + 1)/(T + 1))`. C is weighted cost in units, T is agent wall time in milliseconds. Each minimum is taken independently across the three arms of the same triple. |
+
+The tier score is `0.50 × mean(Q) + 0.25 × mean(X) + 0.25 × mean(E)`. The report shows the matched denominator and tied best/worst arms. Offline fixtures use a deterministic event clock. `N/A` marks inapplicable measures, `SKIPPED (offline)` marks intentionally omitted online judgments, and `ERR/MISSING` marks expected live data that was missing or rejected.
+
+Run the live v2.1 pilot with `node benchmarks/drivers/v2-dev-smoke.mjs --pilot`. It runs S1, G1 and L2 once on each primary arm, saves resumable tickets under `results/v2.1-live-pilot/`, and uses the same isolated host and provider-default Codex sampling as the Dev smoke test. Set `BENCH_V020_PACKAGE` to a built checkout of tag `v0.2.0` when the current plugin version has advanced.

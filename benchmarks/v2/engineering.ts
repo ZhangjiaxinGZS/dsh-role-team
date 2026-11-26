@@ -12,7 +12,7 @@ export interface Example {
   stage?: number
 }
 export interface Project {
-  id: 'E1' | 'E2' | 'E3' | 'E4' | 'E5' | 'E6'
+  id: 'E1' | 'E2' | 'E3' | 'E4' | 'E5' | 'E6' | 'L1'
   title: string
   types: string
   modules: ModuleSpec[]
@@ -293,6 +293,73 @@ export const projects: Project[] = [
       ),
     ],
   },
+  {
+    id: 'L1',
+    title: 'Migrate a replayable shipment ledger',
+    types: 'export type Row = { id:string; rev?:number; qty:number; void?:boolean }',
+    requirements: {
+      'api.txt':
+        'V1: trim IDs; legacy absent rev means 0. Drop empty IDs, negative revision or quantity. Keep highest revision by ID (last wins ties), suppress void rows, sort by ID ascending, publish IDs. Replaying a batch must be idempotent. Implement through the six provided modules.',
+    },
+    modules: [
+      mod('parse', '(rows:Row[]):Row[]', 'return rows.map(r=>({...r,id:r.id.trim()}))'),
+      mod('compat', '(rows:Row[]):Row[]', 'return rows.map(r=>({...r,rev:r.rev??0}))'),
+      mod('validate', '(rows:Row[]):Row[]', 'return rows.filter(r=>r.id && r.rev! >= 0 && r.qty >= 0)'),
+      mod(
+        'merge',
+        '(rows:Row[]):Row[]',
+        'const m=new Map<string,Row>(); for(const r of rows) if(r.rev! >= (m.get(r.id)?.rev??-1)) m.set(r.id,r); return [...m.values()]',
+      ),
+      mod(
+        'active',
+        '(rows:Row[]):Row[]',
+        'return rows.filter(r=>!r.void).sort((a,b)=>a.id.localeCompare(b.id))',
+      ),
+      mod('publish', '(rows:Row[])', 'return rows.map(r=>[r.id,r.rev,r.qty])'),
+    ],
+    changes: [
+      'V2: publish sorted [id, revision, quantity] triples. Retain legacy inputs, stable replay and tombstone semantics.',
+    ],
+    cases: [
+      check(
+        'legacy and void',
+        [
+          { id: ' b ', qty: 1 },
+          { id: 'a', qty: 3 },
+          { id: 'a', qty: 3, rev: 1, void: true },
+        ],
+        ['b'],
+        0,
+      ),
+      check(
+        'migration',
+        [
+          { id: ' z ', qty: 4 },
+          { id: '', qty: 1 },
+          { id: 'a', rev: 2, qty: 7 },
+          { id: 'a', rev: 1, qty: 2 },
+        ],
+        [
+          ['a', 2, 7],
+          ['z', 0, 4],
+        ],
+      ),
+      check(
+        'duplicate replay',
+        [1, 2, 1, 2].map((qty) => ({ id: 'x', rev: 0, qty })),
+        [['x', 0, 2]],
+      ),
+      check(
+        'withdrawal',
+        [
+          { id: 'b', qty: 3 },
+          { id: 'b', rev: 1, qty: 0, void: true },
+          { id: 'c', qty: -1 },
+        ],
+        [],
+      ),
+    ],
+  },
 ]
 export function role(id: string, duty: string): Role {
   return { id, name: id, duty }
@@ -306,6 +373,7 @@ export function projectSources(p: Project, solution = false, stage = p.changes.l
     if (p.id === 'E3' && stage === 0 && m.name === 'select') body = 'return rows'
     if (p.id === 'E4' && stage < 2 && m.name === 'peak') body = 'return Math.max(0,...rows.map(r=>r.ms))'
     if (p.id === 'E4' && stage === 0 && m.name === 'valid') body = 'return rows'
+    if (p.id === 'L1' && stage === 0 && m.name === 'publish') body = 'return rows.map(r=>r.id)'
     if (p.id === 'E6' && stage === 0)
       body = body.replace("'south'", "'north'").replace('[r.key,r.revision]', 'r.key')
     files[m.name + '.ts'] =

@@ -8,6 +8,7 @@ import {
 } from '../stats.ts'
 import type { Trial } from './driver.ts'
 import { blindId, interpret, lengthControlledWinRate, reviewAgreement, type Coding } from './review.ts'
+import { scorecard, decisionLines, type ReportMode } from './scorecard.ts'
 import { catalogue } from './scenarios.ts'
 
 const labels = {
@@ -144,7 +145,28 @@ export interface Reviews {
   ratings?: Record<string, { judge: number[]; human: number[] }>
   pairs?: { left: string; right: string; winner: 'left' | 'right' | 'tie' }[]
 }
-export function reportV2(trials: Trial[], price: number, reviews: Reviews = {}) {
+export function reportV2(
+  trials: Trial[],
+  price: number,
+  reviews: Reviews = {},
+  plan: { scenarios: typeof catalogue; repeats: number; mode?: ReportMode; arms?: Trial['arm'][] } = {
+    scenarios: catalogue,
+    repeats: Math.max(1, ...trials.map((t) => t.repeat)),
+  },
+) {
+  const mode = plan.mode ?? 'offline'
+  const unjudged = mode === 'offline' ? 'SKIPPED (offline)' : 'ERR/MISSING'
+  const preferenceTrials = trials.filter((t) => t.scenario === 'G3' || t.scenario === 'G4')
+  const pairedTrialIds = new Set(
+    preferenceTrials
+      .filter((t) =>
+        preferenceTrials.some(
+          (other) => other.scenario === t.scenario && other.repeat === t.repeat && other.arm !== t.arm,
+        ),
+      )
+      .map(blindId),
+  )
+  const ratedPairs = new Set((reviews.pairs ?? []).flatMap((p) => [p.left, p.right]))
   const data = new Map(trials.map((t) => [t, row(t, price, reviews.coding?.[blindId(t)])]))
   const strata = ['all', 'dev', 'holdout', ...new Set(catalogue.map((s) => s.archetype))]
   const summaries = strata.flatMap((stratum) => {
@@ -162,11 +184,21 @@ export function reportV2(trials: Trial[], price: number, reviews: Reviews = {}) 
           ),
         ]),
       )
+      const unjudgedCount = ts.filter((t) => !reviews.coding?.[blindId(t)]).length
+      const pairStatus = ts.some((t) => ratedPairs.has(blindId(t)))
+        ? 'See paired estimates'
+        : ts.some((t) => pairedTrialIds.has(blindId(t)))
+          ? unjudged
+          : 'N/A'
       return {
+        pairStatus,
         stratum,
         arm,
         trials: ts.length,
         capped: ts.filter((t) => t.status === 'budget_exceeded').length,
+        hasSpecialistOnly: ts.some((t) => catalogue.find((s) => s.id === t.scenario)?.multiAgentOnly),
+        missingBallots: mode === 'live' ? unjudgedCount : 0,
+        skippedBallots: mode === 'offline' ? unjudgedCount : 0,
         metrics,
       }
     })
@@ -275,6 +307,9 @@ export function reportV2(trials: Trial[], price: number, reviews: Reviews = {}) 
     ),
   }))
   return {
+    reportMode: mode,
+    pairStatus: ratedPairs.size ? 'See paired estimates' : pairedTrialIds.size ? unjudged : 'N/A',
+    decision: scorecard(trials, plan.scenarios, plan.repeats, mode, plan.arms),
     frontier,
     summaries,
     comparisons: corrected,
@@ -286,10 +321,13 @@ export function reportV2(trials: Trial[], price: number, reviews: Reviews = {}) 
 }
 export function renderV2(report: ReturnType<typeof reportV2>, price: number) {
   const lines = [
-    '# Benchmark v2 · offline dry-run',
+    report.reportMode === 'offline' ? '# Benchmark v2.1 · offline dry-run' : '# Benchmark v2.1 · live',
     '',
-    'Synthetic fixtures exercise the protocol. Reported usage and trial scores describe the fixture executor only.',
+    report.reportMode === 'offline'
+      ? 'Synthetic fixtures exercise the protocol. Reported usage and trial scores describe the fixture executor only.'
+      : 'Observed trials from the live host.',
     '',
+    ...decisionLines(report.decision),
     'Costs use weights 1 / 0.1 / 1.25 / 4 for uncached input / cache read / cache write / output. Estimated USD assumes ' +
       price +
       ' USD per million units.',
@@ -313,7 +351,22 @@ export function renderV2(report: ReturnType<typeof reportV2>, price: number) {
           groups
             .map((g) => {
               const v = g.metrics[key]
-              return v ? v.value.toFixed(4) + ' [' + v.low.toFixed(4) + ', ' + v.high.toFixed(4) + ']' : '—'
+              const semantic =
+                key === 'f1' ||
+                (g.arm !== 'single-agent' &&
+                  (key === 'delegation' ||
+                    key === 'firstPass' ||
+                    (key === 'fidelity' && g.hasSpecialistOnly)))
+              const missing = !semantic
+                ? 'N/A'
+                : g.skippedBallots
+                  ? 'SKIPPED (offline)'
+                  : g.missingBallots
+                    ? 'ERR/MISSING'
+                    : 'N/A'
+              return v
+                ? v.value.toFixed(4) + ' [' + v.low.toFixed(4) + ', ' + v.high.toFixed(4) + ']'
+                : missing
             })
             .join(' | ') +
           ' |',
@@ -328,7 +381,7 @@ export function renderV2(report: ReturnType<typeof reportV2>, price: number) {
     )
     table('screen', labels.screen)
     table('mast', labels.mast)
-    lines.push('| Length-controlled win rate | ' + groups.map(() => '—').join(' | ') + ' |')
+    lines.push('| Length-controlled win rate | ' + groups.map((g) => g.pairStatus).join(' | ') + ' |')
   }
   lines.push(
     '',
@@ -353,7 +406,7 @@ export function renderV2(report: ReturnType<typeof reportV2>, price: number) {
   for (const [pair, rate] of Object.entries(report.lengthControlledWins))
     lines.push('| ' + pair + ' | ' + (rate ?? '—') + ' |')
   if (!Object.keys(report.lengthControlledWins).length)
-    lines.push('| No independent preference ballots | — |')
+    lines.push('| Independent preference ballots | ' + report.pairStatus + ' |')
   lines.push(
     '',
     '## Paired inference',

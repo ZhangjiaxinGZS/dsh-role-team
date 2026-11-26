@@ -7,6 +7,7 @@ import {
   sponsorTurn,
   writable,
   systemHeader,
+  redact,
   type AuditEvent,
   type SponsorModel,
   type Limits,
@@ -25,13 +26,15 @@ export interface Port {
     workspace: string
     header: string
     signal: AbortSignal
-    reserve: (maximum: number) => (used: number) => void
+    toolOutcome: Budget['toolOutcome']
     emit: (event: Event) => void
   }): Promise<void>
   ask(prompt: string): Promise<string>
   compactReset(team: boolean): Promise<void>
   fresh(): Promise<void>
   reviseBrief(text: string): Promise<void>
+  fixtureTime?(): number
+  resolveActor?(key: string): string
   close(): Promise<void>
 }
 export async function runProtocol(
@@ -44,17 +47,19 @@ export async function runProtocol(
 ) {
   const { scenario: s, arm } = job,
     team = arm !== 'single-agent'
-  const clockStart = performance.now(),
+  const clockNow = port.fixtureTime ?? (() => performance.now())
+  const clockStart = clockNow(),
     budget = new Budget(limits)
   const spans: { kind: keyof Omit<TrialClock, 'agentWallMs'>; start: number; end: number }[] = []
   const events: AuditEvent[] = [],
     raw = new Map<string, string[]>()
   const snapshots: Record<string, string>[] = []
+  const decisions: unknown[] = []
   let denied = 0,
     setup = true,
     finalText = '',
     sequence = 0
-  const now = () => performance.now() - clockStart
+  const now = () => clockNow() - clockStart
   const emit = (e: Event) => {
     const time = now(),
       seq = ++sequence
@@ -101,17 +106,14 @@ export async function runProtocol(
       )
       raw.set('lead', leadRows)
     }
-    budget.charge(
-      Number(e.type === 'step/start'),
-      e.usage && !metered
-        ? (e.usage.totalTokens ??
-            e.usage.inputTokens + e.usage.cacheReadTokens + e.usage.cacheWriteTokens + e.usage.outputTokens)
-        : 0,
-    )
+    budget.charge(Number(e.type === 'step/start'), e.usage)
   }
   const collect = async () => {
     const p = projects.find((p) => p.id === s.id)
-    if (!p) return
+    if (!p) {
+      if (s.id === 'L3') decisions.push(await document(workspace))
+      return
+    }
     const files: Record<string, string> = {}
     for (const name of Object.keys(projectSources(p))) files[name] = await artifact(workspace, name)
     snapshots.push(files)
@@ -132,10 +134,13 @@ export async function runProtocol(
     await port.start({
       job,
       workspace,
-      header: systemHeader(job.nonce),
+      header:
+        s.id === 'S2'
+          ? 'Trial ' + job.nonce + '\nRead-only lookup. Reply directly without writing notes.'
+          : systemHeader(job.nonce),
       emit,
+      toolOutcome: budget.toolOutcome.bind(budget),
       signal,
-      reserve: (maximum) => budget.reserve(maximum),
     })
     spans.push({ kind: 'setupMs', start: 0, end: now() })
     setup = false
@@ -146,7 +151,8 @@ export async function runProtocol(
         (s.files['ledger.txt'] ? '\n' + s.files['ledger.txt'] : ''),
     )
     if (s.card) {
-      for (;;) {
+      const disclosed = new Set<string>()
+      while (disclosed.size < s.card.length) {
         const start = now()
         let action
         try {
@@ -154,15 +160,20 @@ export async function runProtocol(
         } finally {
           spans.push({ kind: 'simUserMs', start, end: now() })
         }
+        action.slots.forEach((key) => disclosed.add(key))
+        const complete = disclosed.size === s.card.length
+        const confirmation = 'That completes the requested facts.'
+        const reply = complete ? action.reply + '\n' + confirmation : action.reply
         emit({
           actor: 'sponsor',
           type: 'sponsor/' + (action.state === 'TASK_DONE' ? 'done' : 'answer'),
           slots: action.slots,
-          text: action.reply,
+          text: reply,
         })
         if (action.state === 'TASK_DONE') break
         if (action.correction) emit({ actor: 'user', type: 'user/correction', text: action.reply })
-        await ask(action.reply)
+        if (complete) emit({ actor: 'sponsor', type: 'sponsor/done', text: confirmation })
+        await ask(reply)
       }
     }
     await collect()
@@ -170,7 +181,8 @@ export async function runProtocol(
       signal.throwIfAborted()
       if (stage.action === 'controlled-brief' && ['v0.2.0-prefix-brief', 'v0.2.0-full'].includes(arm))
         await port.reviseBrief(stage.instruction)
-      if (stage.action === 'compact-reset') await port.compactReset(team)
+      if (stage.action === 'compact-reset' || stage.action === 'compact')
+        await port.compactReset(stage.action === 'compact-reset' && team)
       if (stage.action === 'fresh-team') await port.fresh()
       emit({ actor: 'user', type: 'pivot', text: stage.instruction })
       await ask(stage.instruction)
@@ -180,7 +192,7 @@ export async function runProtocol(
   let end = 0
   try {
     await Promise.race([run(), interrupted])
-    budget.charge(0, 0)
+    budget.charge(0)
   } catch (err) {
     if (!signal.aborted) throw err
   } finally {
@@ -195,7 +207,13 @@ export async function runProtocol(
     end,
     spans.filter((p) => p.start <= end).map((p) => ({ ...p, end: Math.min(end, p.end) })),
   )
-  const traces: Trace[] = [...raw].map(([actor, rows]) => ({
+  const grouped = new Map<string, string[]>()
+  for (const [key, rows] of raw) {
+    const actor = port.resolveActor?.(key) ?? key
+    grouped.set(actor, (grouped.get(actor) ?? []).concat(rows))
+  }
+  for (const event of events) event.actor = port.resolveActor?.(event.actor) ?? event.actor
+  const traces: Trace[] = [...grouped].map(([actor, rows]) => ({
     leader: actor === 'lead',
     text: rows.join('\n'),
   }))
@@ -204,11 +222,15 @@ export async function runProtocol(
   for (const [name, initial] of Object.entries(s.files)) {
     if (!writable(s, 'lead', name) && (await artifact(workspace, name)) !== initial) modifiedInputs.push(name)
   }
+  const name = s.id === 'S1' ? 'config.json' : 'delivery.json'
+  const submitted = s.id === 'S2' ? { duration: finalText.trim() } : await document(workspace, name)
+  const rawSubmission = s.id === 'S2' ? finalText : await artifact(workspace, name)
   const verification = await verify(
     s,
     {
-      artifact: await document(workspace),
+      artifact: submitted,
       snapshots,
+      decisions,
       events,
       denied: denied + modifiedInputs.length,
       capped: signal.aborted,
@@ -216,7 +238,7 @@ export async function runProtocol(
     team,
   )
   return {
-    startedAt: budget.started,
+    startedAt: port.fixtureTime ? 0 : budget.started,
     scenario: s.id,
     split: s.split,
     archetype: s.archetype,
@@ -229,10 +251,17 @@ export async function runProtocol(
     modifiedInputs,
     status: signal.aborted ? 'budget_exceeded' : 'finished',
     cap: signal.aborted ? String(signal.reason) : null,
-    tokenStop: budget.tokenStop ?? null,
+    weightedCostUnits: budget.weightedCostUnits,
     steps: budget.steps,
     metrics: parseLogs(traces),
     verification,
+    submission: s.facts.length
+      ? {
+          name: s.id === 'S2' ? 'reply' : name,
+          sha256: createHash('sha256').update(rawSubmission).digest('hex'),
+          excerpt: redact(rawSubmission).slice(0, 4096),
+        }
+      : null,
     finalText,
   }
 }

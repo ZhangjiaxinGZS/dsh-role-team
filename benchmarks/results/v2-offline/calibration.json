@@ -120,6 +120,26 @@
     "accepted": false
   },
   {
+    "scenario": "L1",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "L1",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "L1",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "L1",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
     "scenario": "G1",
     "kind": "reference",
     "accepted": true
@@ -296,6 +316,106 @@
   },
   {
     "scenario": "C4",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "S1",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "S1",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "S1",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "S1",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "S2",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "S2",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "S2",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "S2",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "S3",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "S3",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "S3",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "S3",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "L2",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "L2",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "L2",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "L2",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "L3",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "L3",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "L3",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "L3",
     "kind": "truncated",
     "accepted": false
   }

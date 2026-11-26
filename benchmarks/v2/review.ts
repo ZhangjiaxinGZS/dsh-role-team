@@ -24,11 +24,12 @@ export function blindPacket(t: Trial) {
     scenario: s.id,
     reply: redact(t.finalText),
     task: s.prompt,
-    requirements: s.id.startsWith('E')
-      ? Object.entries(s.files)
-          .filter(([n]) => n.endsWith('.txt'))
-          .map(([, text]) => text)
-      : [],
+    requirements:
+      s.id.startsWith('E') || s.id === 'L1'
+        ? Object.entries(s.files)
+            .filter(([n]) => n.endsWith('.txt'))
+            .map(([, text]) => text)
+        : [],
     revisions: s.stages.map((stage) => stage.instruction),
     rubric: s.facts.length
       ? s.facts.map((f) => ({ id: f.key, meaning: f.label, accepted: f.values }))
@@ -45,7 +46,10 @@ export function blindPacket(t: Trial) {
             accepted: [],
           },
         ],
-    expectedSpecialists: s.roles.slice(1).map((r) => ({ id: r.id, duty: r.duty })),
+    expectedSpecialists: (t.arm === 'single-agent' ? [] : s.roles.slice(1)).map((r) => ({
+      id: r.id,
+      duty: r.duty,
+    })),
     reports: t.events
       .filter((e) => e.tool === 'send_message' || e.type === 'team/report')
       .map((e) => ({ speaker: e.actor, recipient: e.target, text: redact(e.text ?? '') })),

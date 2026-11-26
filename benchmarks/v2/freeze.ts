@@ -15,11 +15,19 @@ export function holdoutFingerprints() {
   )
 }
 export async function checkHoldout() {
-  const frozen = JSON.parse(await readFile(new URL('./holdout.lock.json', import.meta.url), 'utf8'))
+  const { dev, ...frozen } = JSON.parse(
+    await readFile(new URL('./holdout.lock.json', import.meta.url), 'utf8'),
+  )
   const actual = holdoutFingerprints()
   if (
-    Object.keys(frozen).length !== 5 ||
-    Object.keys(actual).length !== 5 ||
+    JSON.stringify(dev) !==
+      JSON.stringify(
+        catalogue
+          .filter((s) => s.split === 'dev')
+          .map((s) => s.id)
+          .sort(),
+      ) ||
+    Object.keys(frozen).length !== Object.keys(actual).length ||
     Object.entries(actual).some(([id, hash]) => frozen[id] !== hash)
   )
     throw Error('Frozen holdout has changed')

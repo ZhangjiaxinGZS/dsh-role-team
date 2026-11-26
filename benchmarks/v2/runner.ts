@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util'
 import { createHash } from 'node:crypto'
 import { safePath, syntheticMode } from '../types.ts'
 import { catalogue } from './scenarios.ts'
-import { auditDigest, blocks, defaultLimits, redact } from './protocol.ts'
+import { auditDigest, blocks, defaultLimits, scenarioLimits, stepLimits, redact } from './protocol.ts'
 import { checkHoldout } from './freeze.ts'
 import { preflight } from './calibration.ts'
 import { fixtureSponsor, offlinePort } from './offline.ts'
@@ -24,17 +24,17 @@ export async function runOfflineV2(argv: string[]) {
       'usd-per-million': { type: 'string', default: '1' },
       'max-wall-ms': { type: 'string' },
       'max-steps': { type: 'string' },
-      'max-total-tokens': { type: 'string' },
+      'max-weighted-cost-units': { type: 'string' },
     },
   })
   if (!v['dry-run']) throw Error('Benchmark v2 is in offline review. Use --dry-run.')
-  const schedule = blocks(catalogue, Number(v.repeats), v.seed!)
+  const schedule = blocks(catalogue, Number(v.repeats), v.seed!, true)
   const price = Number(v['usd-per-million'])
   if (!Number.isFinite(price) || price < 0) throw Error('Invalid USD conversion')
   const limits = {
     maxWallMs: Number(v['max-wall-ms'] ?? defaultLimits.maxWallMs),
     maxSteps: Number(v['max-steps'] ?? defaultLimits.maxSteps),
-    maxTotalTokens: Number(v['max-total-tokens'] ?? defaultLimits.maxTotalTokens),
+    maxWeightedCostUnits: Number(v['max-weighted-cost-units'] ?? defaultLimits.maxWeightedCostUnits),
   }
   const out = await safePath(v.out ?? 'benchmarks/results/v2-offline')
   await mkdir(dirname(out), { recursive: true })
@@ -45,7 +45,11 @@ export async function runOfflineV2(argv: string[]) {
   const calibration = await preflight()
   await write('calibration.json', calibration)
   await write('protocol.json', {
+    version: '2.1',
     mode: syntheticMode,
+    stepLimits: v['max-steps']
+      ? Object.fromEntries(Object.keys(stepLimits).map((k) => [k, limits.maxSteps]))
+      : stepLimits,
     repeats: Number(v.repeats),
     limits,
     seed: v.seed,
@@ -58,7 +62,10 @@ export async function runOfflineV2(argv: string[]) {
   for (const job of schedule) {
     const workspace = await mkdtemp(join(tmpdir(), 'role-team-v2-'))
     try {
-      const t = await runProtocol(job, workspace, offlinePort(), fixtureSponsor, 'fixture-agent', limits)
+      const t = await runProtocol(job, workspace, offlinePort(), fixtureSponsor, 'fixture-agent', {
+        ...limits,
+        maxSteps: v['max-steps'] ? limits.maxSteps : scenarioLimits(job.scenario).maxSteps,
+      })
       trials.push(t)
       const path = join('trials', t.split, t.scenario + '_' + t.arm + '_' + t.repeat)
       await mkdir(join(out, path), { recursive: true, mode: 0o700 })

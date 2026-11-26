@@ -176,7 +176,7 @@ export async function withLocalHost<T>(t: LiveTrial, work: (ctx: Context) => Pro
       return 'Benchmark tools are confined to the top-level trial workspace and team operations.'
     })
     if (t.arm !== 'single-agent') {
-      const plugin = t.arm === 'v0.1.0' ? process.env.BENCH_V010_PACKAGE : repo
+      const plugin = t.arm === 'v0.1.0' ? process.env.BENCH_V010_PACKAGE : (process.env.BENCH_V020_PACKAGE ?? repo)
       if (!plugin) throw new Error('BENCH_V010_PACKAGE must point to the built v0.1.0 worktree')
       const metadata = JSON.parse(await readFile(join(plugin, 'package.json'), 'utf8'))
       if (metadata.version !== (t.arm === 'v0.1.0' ? '0.1.0' : '0.2.0'))
