@@ -533,5 +533,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         process.disconnect()
       }
     })
+  } else if (process.argv.includes('--v2')) {
+    const { runOfflineV2 } = await import('./v2/runner.ts')
+    console.log(await runOfflineV2(process.argv.slice(2).filter((a) => a !== '--v2')))
   } else await run(process.argv.slice(2))
 }

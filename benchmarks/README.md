@@ -2,7 +2,28 @@
 
 Use Node.js 24.9 or newer from the repository root. Install repository dependencies with `npm ci`. Benchmark sources and results live outside the plugin package.
 
-## Offline validation
+## Benchmark v2 (offline)
+
+The [sample report](results/v2-offline/report.md) shows the completed fixture matrix. From the repository root, each run needs a new output directory.
+
+```sh
+node benchmarks/runner.ts --v2 --dry-run --out benchmarks/results/my-v2-run
+node benchmarks/analyze.ts --v2 benchmarks/results/my-v2-run
+```
+
+The preflight checks the five frozen holdout cases and exercises four verifier controls for every scenario. A full run produces 150 isolated trials: 42 single-agent, 45 v0.1.0, 45 v0.2.0-full, 12 brief-only (E1–E2 and G1–G2) and 6 prefix-brief (C3–C4). G5 requires four private expert signoffs and is excluded from the single-agent arm. The seed controls order within each adjacent scenario/repeat block. The system header starts with a fresh per-trial UUID, fixed across all its agents and turns. Every arm receives the same clarification instruction and persistent workspace notebook.
+
+The CLI uses deterministic fixture agents. The host adapter for an independently provisioned temporary DSH worker is in `drivers/v2-host.ts`; the temperature-zero sponsor and independent semantic/pairwise judge adapters are in `drivers/v2-judges.ts`. The offline CLI does not boot a provider. C1/C2 invoke native compaction and seat replacement through the port; E6 starts a fresh session for the second depot. Only C3/C4 allow the driver to write controlled brief revisions. The offline port exercises these transitions, without implying a measured DSH/provider result.
+
+Engineering submissions are copied by declared filename after each stage. After the last turn the trusted judge compiles the snapshots and runs an external read-only Vitest suite. Candidate code runs in a separate, timed Node permission-mode subprocess with an empty environment. Agents get the stubs and shared requirements; reference implementations and acceptance cases stay outside their workspace. Artifact-only success and process milestones are reported separately. For G1/G2 the order check compares the sponsor's first substantive clarification reply to the first leader dispatch by time and then event sequence. No delegation is marked inapplicable for ordering.
+
+Options `--max-wall-ms`, `--max-steps`, and `--max-total-tokens` apply equally to all arms. Defaults are 900000 ms, 100 aggregate steps and 1500000 tokens. Capped trials stay in the denominator as `budget_exceeded`. Before provider I/O the host reserves concurrent calls against their declared combined context windows; if remaining headroom cannot cover another call it stops conservatively. A route without a declared bound is inadmissible. Use `--usd-per-million` to supply the conversion price per million weighted units. The default of 1 is illustrative. Synthetic counters are never provider billing records.
+
+`protocol.json` records the exact allocation and `calibration.json` the verifier outcomes. `trials/{dev,holdout}` contains per-trial clocks, native-event-shaped audit digests and outcome checks. `report.md` and `summary.json` present separate dev, holdout and archetype strata, 95% cluster bootstrap intervals and matched-arm comparisons. The five held-out scenario/fixture digests in `v2/holdout.lock.json` are frozen. Never use held-out traces to tune prompts or policies; use the dev slice.
+
+`reviews/{dev,holdout}` contains blinded decision packets, pairs for G3/G4 and the randomized 20% human review queue. Use an independent provider for semantic coding, and have humans code the selected packets blind. Reanalyze using `node benchmarks/analyze.ts --v2 OUT ratings.json`. Ratings contain `coding` keyed by blind ID (atomic rubric-ID lists, correct assignments, first-pass specialists and preserved facts), `ratings` keyed by sampled ID (equal-length binary `judge` and `human` arrays), and `pairs` (blind left/right IDs and winner). Interpret semantic scores only after Krippendorff’s α reaches 0.80. Missing independent judgments, insufficient agreement evidence or unidentified length regressions are reported explicitly. No human agreement or model preference is imputed by the offline executor.
+
+## Legacy pilot (S1–S6) offline validation
 
 ```sh
 node benchmarks/runner.ts --dry-run --preset ptc --repeats 3 --out benchmarks/results/offline-ptc

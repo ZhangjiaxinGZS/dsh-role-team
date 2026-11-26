@@ -1,0 +1,4370 @@
+{
+  "mode": "dry-run (synthetic harness validation)",
+  "frontier": [
+    {
+      "arm": "single-agent",
+      "n": 42,
+      "pass": 1,
+      "priceUnits": 154.39999999999998,
+      "p50": 0.8760830000001079,
+      "efficient": true
+    },
+    {
+      "arm": "v0.1.0",
+      "n": 42,
+      "pass": 1,
+      "priceUnits": 154.39999999999998,
+      "p50": 0.9026459999995495,
+      "efficient": false
+    },
+    {
+      "arm": "v0.2.0-full",
+      "n": 42,
+      "pass": 1,
+      "priceUnits": 154.39999999999998,
+      "p50": 0.8996874999975262,
+      "efficient": false
+    }
+  ],
+  "summaries": [
+    {
+      "stratum": "all",
+      "arm": "v0.2.0-brief-only",
+      "trials": 12,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "f1": null,
+        "turns": {
+          "value": 1.5,
+          "low": 1,
+          "high": 2
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": null,
+        "coherence": null,
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 0.49474999999711144,
+          "low": 0.21693750000122236,
+          "high": 0.8341664999989007
+        },
+        "p95": {
+          "value": 1.1521081499986392,
+          "low": 0.2492089999941527,
+          "high": 1.3204999999979918
+        },
+        "redundancy": {
+          "value": 0.3333333333333333,
+          "low": 0.3333333333333333,
+          "high": 0.3333333333333333
+        },
+        "tokens": {
+          "value": 62,
+          "low": 44,
+          "high": 80
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 116,
+          "low": 80,
+          "high": 152
+        },
+        "usd": {
+          "value": 0.000116,
+          "low": 0.00008,
+          "high": 0.000152
+        },
+        "screen": {
+          "value": 0.3813110500610501,
+          "low": 0.31579670329670323,
+          "high": 0.4535714285714287
+        },
+        "mast": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        }
+      }
+    },
+    {
+      "stratum": "all",
+      "arm": "single-agent",
+      "trials": 42,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 2.2142857142857144,
+          "low": 1.6428571428571428,
+          "high": 2.7857142857142856
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.29143982222247156,
+          "low": 0.229816666666981,
+          "high": 0.3745408968257776
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "reuse": {
+          "value": 0.3333333333333333,
+          "low": 0,
+          "high": 0.5
+        },
+        "gain": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "p50": {
+          "value": 0.8760830000001079,
+          "low": 0.4597910000011325,
+          "high": 1.0656303999973487
+        },
+        "p95": {
+          "value": 2.1409148999973695,
+          "low": 1.0785604000005151,
+          "high": 2.28133604999839
+        },
+        "redundancy": null,
+        "tokens": {
+          "value": 96.28571428571429,
+          "low": 70.57142857142857,
+          "high": 122
+        },
+        "cache": {
+          "value": 0.3442622950819672,
+          "low": 0.16120543293718168,
+          "high": 0.45290183902555525
+        },
+        "units": {
+          "value": 154.39999999999998,
+          "low": 121.01142857142858,
+          "high": 187.77142857142857
+        },
+        "usd": {
+          "value": 0.00015440000000000007,
+          "low": 0.00012101142857142865,
+          "high": 0.0001877714285714286
+        },
+        "screen": null,
+        "mast": {
+          "value": 0.5714285714285714,
+          "low": 0.21428571428571427,
+          "high": 1
+        }
+      }
+    },
+    {
+      "stratum": "all",
+      "arm": "v0.1.0",
+      "trials": 45,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "f1": null,
+        "turns": {
+          "value": 2.1333333333333333,
+          "low": 1.6,
+          "high": 2.7333333333333334
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.36325186666686526,
+          "low": 0.29010025335503015,
+          "high": 0.4580527938651669
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "reuse": {
+          "value": 0.3333333333333333,
+          "low": 0,
+          "high": 0.5
+        },
+        "gain": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "p50": {
+          "value": 0.8580000000001746,
+          "low": 0.26249999998981366,
+          "high": 1.2221669999998994
+        },
+        "p95": {
+          "value": 2.6254163999983575,
+          "low": 1.6262500000011642,
+          "high": 4.026741200001559
+        },
+        "redundancy": {
+          "value": 0.5161290322580645,
+          "low": 0.4626865671641791,
+          "high": 0.5500114678899083
+        },
+        "tokens": {
+          "value": 92.8,
+          "low": 69.33333333333333,
+          "high": 119.2
+        },
+        "cache": {
+          "value": 0.3333333333333333,
+          "low": 0.17641928864569084,
+          "high": 0.4423076923076923
+        },
+        "units": {
+          "value": 149.44,
+          "low": 117.91333333333333,
+          "high": 182.6666666666667
+        },
+        "usd": {
+          "value": 0.00014944000000000006,
+          "low": 0.00011791333333333344,
+          "high": 0.00018266666666666675
+        },
+        "screen": {
+          "value": 0.46422216142663314,
+          "low": 0.4146098605829796,
+          "high": 0.5172033570873049
+        },
+        "mast": {
+          "value": 1.2666666666666666,
+          "low": 0.6,
+          "high": 2
+        }
+      }
+    },
+    {
+      "stratum": "all",
+      "arm": "v0.2.0-full",
+      "trials": 45,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "f1": null,
+        "turns": {
+          "value": 2.1333333333333333,
+          "low": 1.6,
+          "high": 2.7333333333333334
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.3344694888890242,
+          "low": 0.2837767421719835,
+          "high": 0.4014111963093264
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "reuse": {
+          "value": 0.3333333333333333,
+          "low": 0,
+          "high": 0.5
+        },
+        "gain": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "p50": {
+          "value": 0.8934159999989788,
+          "low": 0.3308340000003227,
+          "high": 1.1702500000028522
+        },
+        "p95": {
+          "value": 2.120291799998813,
+          "low": 1.385708000001614,
+          "high": 2.804774799998265
+        },
+        "redundancy": {
+          "value": 0.5161290322580645,
+          "low": 0.4626865671641791,
+          "high": 0.5500114678899083
+        },
+        "tokens": {
+          "value": 92.8,
+          "low": 69.33333333333333,
+          "high": 119.2
+        },
+        "cache": {
+          "value": 0.3333333333333333,
+          "low": 0.17641928864569084,
+          "high": 0.4423076923076923
+        },
+        "units": {
+          "value": 149.44,
+          "low": 117.91333333333333,
+          "high": 182.6666666666667
+        },
+        "usd": {
+          "value": 0.00014944000000000006,
+          "low": 0.00011791333333333344,
+          "high": 0.00018266666666666675
+        },
+        "screen": {
+          "value": 0.46422216142663314,
+          "low": 0.4146098605829796,
+          "high": 0.5172033570873049
+        },
+        "mast": {
+          "value": 1.2666666666666666,
+          "low": 0.6,
+          "high": 2
+        }
+      }
+    },
+    {
+      "stratum": "all",
+      "arm": "v0.2.0-prefix-brief",
+      "trials": 6,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 4,
+          "low": 4,
+          "high": 4
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.24902983333312376,
+          "low": 0.24659700000079787,
+          "high": 0.25146266666544964
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 1.1393125000031432,
+          "low": 1.0554579999952693,
+          "high": 1.1658340000067255
+        },
+        "p95": {
+          "value": 1.1866142500020942,
+          "low": 1.1530000000057044,
+          "high": 1.1935410000005504
+        },
+        "redundancy": {
+          "value": 0.5833333333333334,
+          "low": 0.5833333333333334,
+          "high": 0.5833333333333334
+        },
+        "tokens": {
+          "value": 176,
+          "low": 176,
+          "high": 176
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 320,
+          "low": 320,
+          "high": 320
+        },
+        "usd": {
+          "value": 0.00032,
+          "low": 0.00032,
+          "high": 0.00032
+        },
+        "screen": {
+          "value": 0.6333333333333333,
+          "low": 0.5757575757575758,
+          "high": 0.6909090909090909
+        },
+        "mast": {
+          "value": 4,
+          "low": 4,
+          "high": 4
+        }
+      }
+    },
+    {
+      "stratum": "dev",
+      "arm": "v0.2.0-brief-only",
+      "trials": 6,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "f1": null,
+        "turns": {
+          "value": 1.5,
+          "low": 1,
+          "high": 2
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": null,
+        "coherence": null,
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 0.49474999999711144,
+          "low": 0.24350099999719532,
+          "high": 0.8200829999987036
+        },
+        "p95": {
+          "value": 0.9657704999990528,
+          "low": 0.2492089999941527,
+          "high": 1.0143329999991693
+        },
+        "redundancy": {
+          "value": 0.3333333333333333,
+          "low": 0.3333333333333333,
+          "high": 0.3333333333333333
+        },
+        "tokens": {
+          "value": 62,
+          "low": 44,
+          "high": 80
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 116,
+          "low": 80,
+          "high": 152
+        },
+        "usd": {
+          "value": 0.000116,
+          "low": 0.00008,
+          "high": 0.000152
+        },
+        "screen": {
+          "value": 0.3998015873015874,
+          "low": 0.33928571428571436,
+          "high": 0.4603174603174603
+        },
+        "mast": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        }
+      }
+    },
+    {
+      "stratum": "dev",
+      "arm": "single-agent",
+      "trials": 27,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 2.2222222222222223,
+          "low": 1.5555555555555556,
+          "high": 2.888888888888889
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.28506540000016684,
+          "low": 0.2290119999994377,
+          "high": 0.4052919999982502
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "reuse": {
+          "value": 0.25,
+          "low": 0,
+          "high": 0.5
+        },
+        "gain": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "p50": {
+          "value": 0.9044169999997393,
+          "low": 0.30245799999829615,
+          "high": 1.3335420000003069
+        },
+        "p95": {
+          "value": 2.0125087999986135,
+          "low": 1.054375000006985,
+          "high": 2.2148750000014843
+        },
+        "redundancy": null,
+        "tokens": {
+          "value": 96.88888888888889,
+          "low": 67.53333333333333,
+          "high": 127.11111111111111
+        },
+        "cache": {
+          "value": 0.34177215189873417,
+          "low": 0.11315513626834382,
+          "high": 0.46875
+        },
+        "units": {
+          "value": 155.28888888888892,
+          "low": 114.84444444444445,
+          "high": 195.75555555555553
+        },
+        "usd": {
+          "value": 0.0001552888888888889,
+          "low": 0.00011484444444444446,
+          "high": 0.00019575555555555556
+        },
+        "screen": null,
+        "mast": {
+          "value": 0.5555555555555556,
+          "low": 0.1111111111111111,
+          "high": 1
+        }
+      }
+    },
+    {
+      "stratum": "dev",
+      "arm": "v0.1.0",
+      "trials": 30,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "f1": null,
+        "turns": {
+          "value": 2.1,
+          "low": 1.5,
+          "high": 2.8
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.3438515000001644,
+          "low": 0.2553704444435425,
+          "high": 0.44035279999952764
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "reuse": {
+          "value": 0.25,
+          "low": 0,
+          "high": 0.5
+        },
+        "gain": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "p50": {
+          "value": 0.8598750000019209,
+          "low": 0.26249999998981366,
+          "high": 1.4310000000004948
+        },
+        "p95": {
+          "value": 2.4452581499992436,
+          "low": 1.2194580000068527,
+          "high": 3.391042000002926
+        },
+        "redundancy": {
+          "value": 0.5238095238095238,
+          "low": 0.4666666666666667,
+          "high": 0.5569620253164557
+        },
+        "tokens": {
+          "value": 91.6,
+          "low": 64.4,
+          "high": 121.6
+        },
+        "cache": {
+          "value": 0.3253012048192771,
+          "low": 0.10521778584392014,
+          "high": 0.45535714285714285
+        },
+        "units": {
+          "value": 147.76000000000005,
+          "low": 110.56,
+          "high": 185.136
+        },
+        "usd": {
+          "value": 0.00014776,
+          "low": 0.00011056000000000008,
+          "high": 0.000185136
+        },
+        "screen": {
+          "value": 0.4866672470751485,
+          "low": 0.43199319078625936,
+          "high": 0.5461353423219069
+        },
+        "mast": {
+          "value": 1.3,
+          "low": 0.6,
+          "high": 2.1
+        }
+      }
+    },
+    {
+      "stratum": "dev",
+      "arm": "v0.2.0-full",
+      "trials": 30,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "f1": null,
+        "turns": {
+          "value": 2.1,
+          "low": 1.5,
+          "high": 2.8
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.3361834000003,
+          "low": 0.26157649999974336,
+          "high": 0.45752783333227853
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "reuse": {
+          "value": 0.25,
+          "low": 0,
+          "high": 0.5
+        },
+        "gain": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "p50": {
+          "value": 0.884290999998484,
+          "low": 0.36285449999923003,
+          "high": 1.385708000001614
+        },
+        "p95": {
+          "value": 2.0192774499984805,
+          "low": 1.2257909999989351,
+          "high": 2.9628329999977723
+        },
+        "redundancy": {
+          "value": 0.5238095238095238,
+          "low": 0.4666666666666667,
+          "high": 0.5569620253164557
+        },
+        "tokens": {
+          "value": 91.6,
+          "low": 64.4,
+          "high": 121.6
+        },
+        "cache": {
+          "value": 0.3253012048192771,
+          "low": 0.10521778584392014,
+          "high": 0.45535714285714285
+        },
+        "units": {
+          "value": 147.76000000000005,
+          "low": 110.56,
+          "high": 185.136
+        },
+        "usd": {
+          "value": 0.00014776,
+          "low": 0.00011056000000000008,
+          "high": 0.000185136
+        },
+        "screen": {
+          "value": 0.4866672470751485,
+          "low": 0.43199319078625936,
+          "high": 0.5461353423219069
+        },
+        "mast": {
+          "value": 1.3,
+          "low": 0.6,
+          "high": 2.1
+        }
+      }
+    },
+    {
+      "stratum": "dev",
+      "arm": "v0.2.0-prefix-brief",
+      "trials": 3,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 4,
+          "low": 4,
+          "high": 4
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.24659700000079787,
+          "low": 0.24659700000079787,
+          "high": 0.24659700000079787
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 1.1658340000067255,
+          "low": 1.1658340000067255,
+          "high": 1.1658340000067255
+        },
+        "p95": {
+          "value": 1.190770300001168,
+          "low": 1.190770300001168,
+          "high": 1.190770300001168
+        },
+        "redundancy": {
+          "value": 0.5833333333333334,
+          "low": 0.5833333333333334,
+          "high": 0.5833333333333334
+        },
+        "tokens": {
+          "value": 176,
+          "low": 176,
+          "high": 176
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 320,
+          "low": 320,
+          "high": 320
+        },
+        "usd": {
+          "value": 0.00032,
+          "low": 0.00032,
+          "high": 0.00032
+        },
+        "screen": {
+          "value": 0.6909090909090909,
+          "low": 0.6909090909090909,
+          "high": 0.6909090909090909
+        },
+        "mast": {
+          "value": 4,
+          "low": 4,
+          "high": 4
+        }
+      }
+    },
+    {
+      "stratum": "holdout",
+      "arm": "v0.2.0-full",
+      "trials": 15,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "f1": null,
+        "turns": {
+          "value": 2.2,
+          "low": 1.2,
+          "high": 3.2
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.33104166666647267,
+          "low": 0.27257866666574654,
+          "high": 0.4187361666675618
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": null,
+        "reuse": {
+          "value": 0.5,
+          "low": 0.5,
+          "high": 0.5
+        },
+        "gain": null,
+        "p50": {
+          "value": 0.9080839999987802,
+          "low": 0.22312499999679858,
+          "high": 1.919000000001688
+        },
+        "p95": {
+          "value": 2.152387599999565,
+          "low": 0.9240088999989893,
+          "high": 2.1725420000002487
+        },
+        "redundancy": {
+          "value": 0.5,
+          "low": 0.3333333333333333,
+          "high": 0.5625
+        },
+        "tokens": {
+          "value": 95.2,
+          "low": 51.2,
+          "high": 140.8
+        },
+        "cache": {
+          "value": 0.3488372093023256,
+          "low": 0,
+          "high": 0.515625
+        },
+        "units": {
+          "value": 152.8,
+          "low": 94.4,
+          "high": 211.20000000000007
+        },
+        "usd": {
+          "value": 0.0001528,
+          "low": 0.0000944,
+          "high": 0.00021120000000000004
+        },
+        "screen": {
+          "value": 0.4193319901296028,
+          "low": 0.34040179751519956,
+          "high": 0.5045068153044281
+        },
+        "mast": {
+          "value": 1.2,
+          "low": 0,
+          "high": 2.8
+        }
+      }
+    },
+    {
+      "stratum": "holdout",
+      "arm": "v0.1.0",
+      "trials": 15,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "f1": null,
+        "turns": {
+          "value": 2.2,
+          "low": 1.2,
+          "high": 3.2
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.40205260000026705,
+          "low": 0.3115135555563029,
+          "high": 0.5378611666662133
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": null,
+        "reuse": {
+          "value": 0.5,
+          "low": 0.5,
+          "high": 0.5
+        },
+        "gain": null,
+        "p50": {
+          "value": 0.8580000000001746,
+          "low": 0.23458300000493182,
+          "high": 2.448625000000902
+        },
+        "p95": {
+          "value": 3.0569748000012607,
+          "low": 1.3433919000002783,
+          "high": 4.18566600000122
+        },
+        "redundancy": {
+          "value": 0.5,
+          "low": 0.3333333333333333,
+          "high": 0.5625
+        },
+        "tokens": {
+          "value": 95.2,
+          "low": 51.2,
+          "high": 140.8
+        },
+        "cache": {
+          "value": 0.3488372093023256,
+          "low": 0,
+          "high": 0.515625
+        },
+        "units": {
+          "value": 152.8,
+          "low": 94.4,
+          "high": 211.20000000000007
+        },
+        "usd": {
+          "value": 0.0001528,
+          "low": 0.0000944,
+          "high": 0.00021120000000000004
+        },
+        "screen": {
+          "value": 0.4193319901296028,
+          "low": 0.34040179751519956,
+          "high": 0.5045068153044281
+        },
+        "mast": {
+          "value": 1.2,
+          "low": 0,
+          "high": 2.8
+        }
+      }
+    },
+    {
+      "stratum": "holdout",
+      "arm": "single-agent",
+      "trials": 15,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 2.2,
+          "low": 1.2,
+          "high": 3.2
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.30418866666708105,
+          "low": 0.22615255555623057,
+          "high": 0.4212428333333567
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": null,
+        "reuse": {
+          "value": 0.5,
+          "low": 0.5,
+          "high": 0.5
+        },
+        "gain": null,
+        "p50": {
+          "value": 0.7504580000022543,
+          "low": 0.20783300000039162,
+          "high": 2.102874999996857
+        },
+        "p95": {
+          "value": 2.1854920999976457,
+          "low": 0.7861706000017874,
+          "high": 2.2848339999982272
+        },
+        "redundancy": null,
+        "tokens": {
+          "value": 95.2,
+          "low": 51.2,
+          "high": 140.8
+        },
+        "cache": {
+          "value": 0.3488372093023256,
+          "low": 0,
+          "high": 0.515625
+        },
+        "units": {
+          "value": 152.8,
+          "low": 94.4,
+          "high": 211.20000000000007
+        },
+        "usd": {
+          "value": 0.0001528,
+          "low": 0.0000944,
+          "high": 0.00021120000000000004
+        },
+        "screen": null,
+        "mast": {
+          "value": 0.6,
+          "low": 0,
+          "high": 1.4
+        }
+      }
+    },
+    {
+      "stratum": "holdout",
+      "arm": "v0.2.0-brief-only",
+      "trials": 6,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "f1": null,
+        "turns": {
+          "value": 1.5,
+          "low": 1,
+          "high": 2
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": null,
+        "coherence": null,
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 0.5044374999997672,
+          "low": 0.21304200000304263,
+          "high": 0.8482499999990978
+        },
+        "p95": {
+          "value": 1.2024374999982683,
+          "low": 0.2208329999994021,
+          "high": 1.3204999999979918
+        },
+        "redundancy": {
+          "value": 0.3333333333333333,
+          "low": 0.3333333333333333,
+          "high": 0.3333333333333333
+        },
+        "tokens": {
+          "value": 62,
+          "low": 44,
+          "high": 80
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 116,
+          "low": 80,
+          "high": 152
+        },
+        "usd": {
+          "value": 0.000116,
+          "low": 0.00008,
+          "high": 0.000152
+        },
+        "screen": {
+          "value": 0.36282051282051286,
+          "low": 0.2923076923076923,
+          "high": 0.4333333333333334
+        },
+        "mast": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        }
+      }
+    },
+    {
+      "stratum": "holdout",
+      "arm": "v0.2.0-prefix-brief",
+      "trials": 3,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 4,
+          "low": 4,
+          "high": 4
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.25146266666544964,
+          "low": 0.25146266666544964,
+          "high": 0.25146266666544964
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 1.0554579999952693,
+          "low": 1.0554579999952693,
+          "high": 1.0554579999952693
+        },
+        "p95": {
+          "value": 1.1432458000046608,
+          "low": 1.1432458000046608,
+          "high": 1.1432458000046608
+        },
+        "redundancy": {
+          "value": 0.5833333333333334,
+          "low": 0.5833333333333334,
+          "high": 0.5833333333333334
+        },
+        "tokens": {
+          "value": 176,
+          "low": 176,
+          "high": 176
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 320,
+          "low": 320,
+          "high": 320
+        },
+        "usd": {
+          "value": 0.00032,
+          "low": 0.00032,
+          "high": 0.00032
+        },
+        "screen": {
+          "value": 0.5757575757575758,
+          "low": 0.5757575757575758,
+          "high": 0.5757575757575758
+        },
+        "mast": {
+          "value": 4,
+          "low": 4,
+          "high": 4
+        }
+      }
+    },
+    {
+      "stratum": "multi-module-isolation",
+      "arm": "v0.2.0-brief-only",
+      "trials": 6,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": null,
+        "coherence": null,
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 0.8341664999989007,
+          "low": 0.8200829999987036,
+          "high": 0.8482499999990978
+        },
+        "p95": {
+          "value": 1.2439582499982862,
+          "low": 1.0143329999991693,
+          "high": 1.3204999999979918
+        },
+        "redundancy": {
+          "value": 0.3333333333333333,
+          "low": 0.3333333333333333,
+          "high": 0.3333333333333333
+        },
+        "tokens": {
+          "value": 44,
+          "low": 44,
+          "high": 44
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 80,
+          "low": 80,
+          "high": 80
+        },
+        "usd": {
+          "value": 0.00008,
+          "low": 0.00008,
+          "high": 0.00008
+        },
+        "screen": {
+          "value": 0.44682539682539685,
+          "low": 0.4333333333333334,
+          "high": 0.4603174603174603
+        },
+        "mast": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        }
+      }
+    },
+    {
+      "stratum": "multi-module-isolation",
+      "arm": "single-agent",
+      "trials": 9,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": null,
+        "coherence": null,
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 0.8695000000006985,
+          "low": 0.7504580000022543,
+          "high": 0.9044169999997393
+        },
+        "p95": {
+          "value": 1.0693000000032042,
+          "low": 0.8695000000006985,
+          "high": 1.079250000000684
+        },
+        "redundancy": null,
+        "tokens": {
+          "value": 44,
+          "low": 44,
+          "high": 44
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 80,
+          "low": 80,
+          "high": 80
+        },
+        "usd": {
+          "value": 0.00008,
+          "low": 0.00008,
+          "high": 0.00008
+        },
+        "screen": null,
+        "mast": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        }
+      }
+    },
+    {
+      "stratum": "multi-module-isolation",
+      "arm": "v0.1.0",
+      "trials": 9,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": null,
+        "coherence": null,
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 0.8580000000001746,
+          "low": 0.8097090000010212,
+          "high": 1.1557499999980791
+        },
+        "p95": {
+          "value": 2.9791495999997997,
+          "low": 0.9295839999995223,
+          "high": 4.18566600000122
+        },
+        "redundancy": {
+          "value": 0.4,
+          "low": 0.3333333333333333,
+          "high": 0.5
+        },
+        "tokens": {
+          "value": 44,
+          "low": 44,
+          "high": 44
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 80,
+          "low": 80,
+          "high": 80
+        },
+        "usd": {
+          "value": 0.00008,
+          "low": 0.00008,
+          "high": 0.00008
+        },
+        "screen": {
+          "value": 0.4738095238095238,
+          "low": 0.43333333333333346,
+          "high": 0.5277777777777778
+        },
+        "mast": {
+          "value": 0.3333333333333333,
+          "low": 0,
+          "high": 1
+        }
+      }
+    },
+    {
+      "stratum": "multi-module-isolation",
+      "arm": "v0.2.0-full",
+      "trials": 9,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": null,
+        "coherence": null,
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 0.8983329999973648,
+          "low": 0.8233749999999418,
+          "high": 0.9080839999987802
+        },
+        "p95": {
+          "value": 1.1709078000010777,
+          "low": 0.9611669999994774,
+          "high": 1.2257909999989351
+        },
+        "redundancy": {
+          "value": 0.4,
+          "low": 0.3333333333333333,
+          "high": 0.5
+        },
+        "tokens": {
+          "value": 44,
+          "low": 44,
+          "high": 44
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 80,
+          "low": 80,
+          "high": 80
+        },
+        "usd": {
+          "value": 0.00008,
+          "low": 0.00008,
+          "high": 0.00008
+        },
+        "screen": {
+          "value": 0.4738095238095238,
+          "low": 0.43333333333333346,
+          "high": 0.5277777777777778
+        },
+        "mast": {
+          "value": 0.3333333333333333,
+          "low": 0,
+          "high": 1
+        }
+      }
+    },
+    {
+      "stratum": "sequential-pivot",
+      "arm": "single-agent",
+      "trials": 6,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 3,
+          "low": 3,
+          "high": 3
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.41703466666725336,
+          "low": 0.41282650000115,
+          "high": 0.4212428333333567
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": null,
+        "reuse": {
+          "value": 0.5,
+          "low": 0.5,
+          "high": 0.5
+        },
+        "gain": null,
+        "p50": {
+          "value": 2.1228959999971266,
+          "low": 2.0229589999980817,
+          "high": 2.1429169999973965
+        },
+        "p95": {
+          "value": 2.2673442499990415,
+          "low": 2.2148750000014843,
+          "high": 2.2848339999982272
+        },
+        "redundancy": null,
+        "tokens": {
+          "value": 132,
+          "low": 132,
+          "high": 132
+        },
+        "cache": {
+          "value": 0.5,
+          "low": 0.5,
+          "high": 0.5
+        },
+        "units": {
+          "value": 196.79999999999998,
+          "low": 196.79999999999998,
+          "high": 196.79999999999998
+        },
+        "usd": {
+          "value": 0.0001968,
+          "low": 0.0001968,
+          "high": 0.0001968
+        },
+        "screen": null,
+        "mast": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        }
+      }
+    },
+    {
+      "stratum": "sequential-pivot",
+      "arm": "v0.1.0",
+      "trials": 6,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 3,
+          "low": 3,
+          "high": 3
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.4873472499997054,
+          "low": 0.4368333333331975,
+          "high": 0.5378611666662133
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": null,
+        "reuse": {
+          "value": 0.5,
+          "low": 0.5,
+          "high": 0.5
+        },
+        "gain": null,
+        "p50": {
+          "value": 2.489896000000954,
+          "low": 2.2091250000012224,
+          "high": 2.5311670000010054
+        },
+        "p95": {
+          "value": 2.62215599999854,
+          "low": 2.5732500000012806,
+          "high": 2.6384579999976268
+        },
+        "redundancy": {
+          "value": 0.5555555555555556,
+          "low": 0.5555555555555556,
+          "high": 0.5555555555555556
+        },
+        "tokens": {
+          "value": 132,
+          "low": 132,
+          "high": 132
+        },
+        "cache": {
+          "value": 0.5,
+          "low": 0.5,
+          "high": 0.5
+        },
+        "units": {
+          "value": 196.79999999999998,
+          "low": 196.79999999999998,
+          "high": 196.79999999999998
+        },
+        "usd": {
+          "value": 0.0001968,
+          "low": 0.0001968,
+          "high": 0.0001968
+        },
+        "screen": {
+          "value": 0.4136187927445733,
+          "low": 0.40350877192982454,
+          "high": 0.42372881355932196
+        },
+        "mast": {
+          "value": 2,
+          "low": 2,
+          "high": 2
+        }
+      }
+    },
+    {
+      "stratum": "sequential-pivot",
+      "arm": "v0.2.0-full",
+      "trials": 6,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 3,
+          "low": 3,
+          "high": 3
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.4381319999999202,
+          "low": 0.4187361666675618,
+          "high": 0.45752783333227853
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": null,
+        "reuse": {
+          "value": 0.5,
+          "low": 0.5,
+          "high": 0.5
+        },
+        "gain": null,
+        "p50": {
+          "value": 2.085104499998124,
+          "low": 2.0264589999969758,
+          "high": 2.1437499999992724
+        },
+        "p95": {
+          "value": 2.7652602499983914,
+          "low": 2.1725420000002487,
+          "high": 2.9628329999977723
+        },
+        "redundancy": {
+          "value": 0.5555555555555556,
+          "low": 0.5555555555555556,
+          "high": 0.5555555555555556
+        },
+        "tokens": {
+          "value": 132,
+          "low": 132,
+          "high": 132
+        },
+        "cache": {
+          "value": 0.5,
+          "low": 0.5,
+          "high": 0.5
+        },
+        "units": {
+          "value": 196.79999999999998,
+          "low": 196.79999999999998,
+          "high": 196.79999999999998
+        },
+        "usd": {
+          "value": 0.0001968,
+          "low": 0.0001968,
+          "high": 0.0001968
+        },
+        "screen": {
+          "value": 0.4136187927445733,
+          "low": 0.40350877192982454,
+          "high": 0.42372881355932196
+        },
+        "mast": {
+          "value": 2,
+          "low": 2,
+          "high": 2
+        }
+      }
+    },
+    {
+      "stratum": "long-horizon-continuity",
+      "arm": "single-agent",
+      "trials": 15,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 3.2,
+          "low": 2.6,
+          "high": 3.8
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.24576896969709638,
+          "low": 0.22662497619066493,
+          "high": 0.29758349999913963
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "reuse": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "gain": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "p50": {
+          "value": 0.968790999999328,
+          "low": 0.7949999999982538,
+          "high": 1.3335420000003069
+        },
+        "p95": {
+          "value": 1.448216000002867,
+          "low": 1.0050836999973398,
+          "high": 1.502291000004334
+        },
+        "redundancy": null,
+        "tokens": {
+          "value": 140.8,
+          "low": 114.4,
+          "high": 167.2
+        },
+        "cache": {
+          "value": 0.46875,
+          "low": 0.28846153846153844,
+          "high": 0.5526315789473685
+        },
+        "units": {
+          "value": 212.79999999999993,
+          "low": 182.07999999999998,
+          "high": 243.52
+        },
+        "usd": {
+          "value": 0.00021280000000000002,
+          "low": 0.00018208,
+          "high": 0.00024352000000000003
+        },
+        "screen": null,
+        "mast": {
+          "value": 1.2,
+          "low": 0.6,
+          "high": 1.8
+        }
+      }
+    },
+    {
+      "stratum": "long-horizon-continuity",
+      "arm": "v0.2.0-full",
+      "trials": 15,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 3.2,
+          "low": 2.6,
+          "high": 3.8
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.2967740303032439,
+          "low": 0.262709666666827,
+          "high": 0.3507252592586425
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "reuse": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "gain": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "p50": {
+          "value": 1.101542000003974,
+          "low": 0.8751659999979893,
+          "high": 1.5366670000003069
+        },
+        "p95": {
+          "value": 1.616504299995722,
+          "low": 1.1685170000026117,
+          "high": 1.7322079999939888
+        },
+        "redundancy": {
+          "value": 0.5625,
+          "low": 0.5384615384615384,
+          "high": 0.5789473684210527
+        },
+        "tokens": {
+          "value": 140.8,
+          "low": 114.4,
+          "high": 167.2
+        },
+        "cache": {
+          "value": 0.46875,
+          "low": 0.28846153846153844,
+          "high": 0.5526315789473685
+        },
+        "units": {
+          "value": 212.79999999999993,
+          "low": 182.07999999999998,
+          "high": 243.52
+        },
+        "usd": {
+          "value": 0.00021280000000000002,
+          "low": 0.00018208,
+          "high": 0.00024352000000000003
+        },
+        "screen": {
+          "value": 0.5470422535211269,
+          "low": 0.4751515151515153,
+          "high": 0.6215934699103715
+        },
+        "mast": {
+          "value": 2.4,
+          "low": 1.2,
+          "high": 3.6
+        }
+      }
+    },
+    {
+      "stratum": "long-horizon-continuity",
+      "arm": "v0.1.0",
+      "trials": 15,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 3.2,
+          "low": 2.6,
+          "high": 3.8
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.31812627272765065,
+          "low": 0.2678066096169506,
+          "high": 0.39087223333335713
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "reuse": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "gain": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "p50": {
+          "value": 1.2194580000068527,
+          "low": 0.8757079999995767,
+          "high": 1.4938330000004498
+        },
+        "p95": {
+          "value": 2.2851001000009985,
+          "low": 1.4455919000007267,
+          "high": 3.391042000002926
+        },
+        "redundancy": {
+          "value": 0.5625,
+          "low": 0.5384615384615384,
+          "high": 0.5789473684210527
+        },
+        "tokens": {
+          "value": 140.8,
+          "low": 114.4,
+          "high": 167.2
+        },
+        "cache": {
+          "value": 0.46875,
+          "low": 0.28846153846153844,
+          "high": 0.5526315789473685
+        },
+        "units": {
+          "value": 212.79999999999993,
+          "low": 182.07999999999998,
+          "high": 243.52
+        },
+        "usd": {
+          "value": 0.00021280000000000002,
+          "low": 0.00018208,
+          "high": 0.00024352000000000003
+        },
+        "screen": {
+          "value": 0.5470422535211269,
+          "low": 0.4751515151515153,
+          "high": 0.6215934699103715
+        },
+        "mast": {
+          "value": 2.4,
+          "low": 1.2,
+          "high": 3.6
+        }
+      }
+    },
+    {
+      "stratum": "long-horizon-continuity",
+      "arm": "v0.2.0-prefix-brief",
+      "trials": 6,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": null,
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 4,
+          "low": 4,
+          "high": 4
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": {
+          "value": 0.24902983333312376,
+          "low": 0.24659700000079787,
+          "high": 0.25146266666544964
+        },
+        "coherence": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 1.1393125000031432,
+          "low": 1.0554579999952693,
+          "high": 1.1658340000067255
+        },
+        "p95": {
+          "value": 1.1866142500020942,
+          "low": 1.1530000000057044,
+          "high": 1.1935410000005504
+        },
+        "redundancy": {
+          "value": 0.5833333333333334,
+          "low": 0.5833333333333334,
+          "high": 0.5833333333333334
+        },
+        "tokens": {
+          "value": 176,
+          "low": 176,
+          "high": 176
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 320,
+          "low": 320,
+          "high": 320
+        },
+        "usd": {
+          "value": 0.00032,
+          "low": 0.00032,
+          "high": 0.00032
+        },
+        "screen": {
+          "value": 0.6333333333333333,
+          "low": 0.5757575757575758,
+          "high": 0.6909090909090909
+        },
+        "mast": {
+          "value": 4,
+          "low": 4,
+          "high": 4
+        }
+      }
+    },
+    {
+      "stratum": "parallel-read-synthesis",
+      "arm": "v0.2.0-full",
+      "trials": 15,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "f1": null,
+        "turns": {
+          "value": 1.4,
+          "low": 1,
+          "high": 1.8
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": null,
+        "coherence": null,
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 0.22358399999939138,
+          "low": 0.21425099999032682,
+          "high": 0.23658299999806331
+        },
+        "p95": {
+          "value": 0.40091249999895806,
+          "low": 0.23512029999910738,
+          "high": 0.4150000000008731
+        },
+        "redundancy": {
+          "value": 0.4117647058823529,
+          "low": 0.3333333333333333,
+          "high": 0.5238095238095238
+        },
+        "tokens": {
+          "value": 58.4,
+          "low": 44,
+          "high": 72.8
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 108.8,
+          "low": 80,
+          "high": 137.6
+        },
+        "usd": {
+          "value": 0.0001088,
+          "low": 0.00008,
+          "high": 0.0001376
+        },
+        "screen": {
+          "value": 0.3958909993752292,
+          "low": 0.3296826639854991,
+          "high": 0.484821519707199
+        },
+        "mast": {
+          "value": 0.4,
+          "low": 0,
+          "high": 1.2
+        }
+      }
+    },
+    {
+      "stratum": "parallel-read-synthesis",
+      "arm": "single-agent",
+      "trials": 12,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": null,
+        "f1": null,
+        "turns": {
+          "value": 1.5,
+          "low": 1,
+          "high": 2
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": null,
+        "coherence": null,
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 0.2116249999999127,
+          "low": 0.20600000000194996,
+          "high": 0.23293749999720603
+        },
+        "p95": {
+          "value": 0.26425609999932925,
+          "low": 0.21564145000120333,
+          "high": 0.30245799999829615
+        },
+        "redundancy": null,
+        "tokens": {
+          "value": 62,
+          "low": 44,
+          "high": 80
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 116,
+          "low": 80,
+          "high": 152
+        },
+        "usd": {
+          "value": 0.000116,
+          "low": 0.00008,
+          "high": 0.000152
+        },
+        "screen": null,
+        "mast": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        }
+      }
+    },
+    {
+      "stratum": "parallel-read-synthesis",
+      "arm": "v0.1.0",
+      "trials": 15,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "f1": null,
+        "turns": {
+          "value": 1.4,
+          "low": 1,
+          "high": 1.8
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": null,
+        "coherence": null,
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 0.23458300000493182,
+          "low": 0.21508300000277814,
+          "high": 0.2506659999999101
+        },
+        "p95": {
+          "value": 0.2745458999983384,
+          "low": 0.2511160000016389,
+          "high": 0.29020699999819044
+        },
+        "redundancy": {
+          "value": 0.4117647058823529,
+          "low": 0.3333333333333333,
+          "high": 0.5238095238095238
+        },
+        "tokens": {
+          "value": 58.4,
+          "low": 44,
+          "high": 72.8
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 108.8,
+          "low": 80,
+          "high": 137.6
+        },
+        "usd": {
+          "value": 0.0001088,
+          "low": 0.00008,
+          "high": 0.0001376
+        },
+        "screen": {
+          "value": 0.3958909993752292,
+          "low": 0.3296826639854991,
+          "high": 0.484821519707199
+        },
+        "mast": {
+          "value": 0.4,
+          "low": 0,
+          "high": 1.2
+        }
+      }
+    },
+    {
+      "stratum": "parallel-read-synthesis",
+      "arm": "v0.2.0-brief-only",
+      "trials": 6,
+      "capped": 0,
+      "metrics": {
+        "pass": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "stable": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "milestone": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "cvr": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "coverage": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "order": {
+          "value": 1,
+          "low": 1,
+          "high": 1
+        },
+        "f1": null,
+        "turns": {
+          "value": 2,
+          "low": 2,
+          "high": 2
+        },
+        "corrections": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "delegation": null,
+        "firstPass": null,
+        "fidelity": null,
+        "latency": null,
+        "coherence": null,
+        "retention": null,
+        "reuse": null,
+        "gain": null,
+        "p50": {
+          "value": 0.22764549999919836,
+          "low": 0.21304200000304263,
+          "high": 0.24350099999719532
+        },
+        "p95": {
+          "value": 0.24778199999491335,
+          "low": 0.2208329999994021,
+          "high": 0.2492089999941527
+        },
+        "redundancy": {
+          "value": 0.3333333333333333,
+          "low": 0.3333333333333333,
+          "high": 0.3333333333333333
+        },
+        "tokens": {
+          "value": 80,
+          "low": 80,
+          "high": 80
+        },
+        "cache": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        },
+        "units": {
+          "value": 152,
+          "low": 152,
+          "high": 152
+        },
+        "usd": {
+          "value": 0.000152,
+          "low": 0.000152,
+          "high": 0.000152
+        },
+        "screen": {
+          "value": 0.31579670329670334,
+          "low": 0.2923076923076923,
+          "high": 0.33928571428571436
+        },
+        "mast": {
+          "value": 0,
+          "low": 0,
+          "high": 0
+        }
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "base": "v0.2.0-full",
+      "arm": "v0.2.0-brief-only",
+      "n": 12,
+      "mcnemar": {
+        "b": 0,
+        "c": 0,
+        "pValue": 1
+      },
+      "continuous": [
+        {
+          "metric": "milestone",
+          "n": 12,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "coverage",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "order",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "turns",
+          "n": 12,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "corrections",
+          "n": 12,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "p50",
+          "n": 12,
+          "wilcoxon": {
+            "w": 39,
+            "n": 12,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": -0.041666666666666664,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "p95",
+          "n": 12,
+          "wilcoxon": {
+            "w": 39,
+            "n": 12,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": -0.041666666666666664,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "redundancy",
+          "n": 12,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "tokens",
+          "n": 12,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "cache",
+          "n": 12,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "units",
+          "n": 12,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "usd",
+          "n": 12,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "screen",
+          "n": 12,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "mast",
+          "n": 12,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        }
+      ],
+      "holm": 1
+    },
+    {
+      "base": "single-agent",
+      "arm": "v0.1.0",
+      "n": 42,
+      "mcnemar": {
+        "b": 0,
+        "c": 0,
+        "pValue": 1
+      },
+      "continuous": [
+        {
+          "metric": "milestone",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "coverage",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "turns",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "corrections",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "latency",
+          "n": 21,
+          "wilcoxon": {
+            "w": 20,
+            "n": 21,
+            "pValue": 0.0009600603537797305
+          },
+          "cliffs": {
+            "delta": 0.3741496598639456,
+            "magnitude": "medium"
+          },
+          "holm": 0.07680482830237845
+        },
+        {
+          "metric": "coherence",
+          "n": 21,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "retention",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "reuse",
+          "n": 9,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "gain",
+          "n": 3,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "p50",
+          "n": 42,
+          "wilcoxon": {
+            "w": 106,
+            "n": 42,
+            "pValue": 0.00001604982972839411
+          },
+          "cliffs": {
+            "delta": 0.1621315192743764,
+            "magnitude": "small"
+          },
+          "holm": 0.0013481856971851052
+        },
+        {
+          "metric": "p95",
+          "n": 42,
+          "wilcoxon": {
+            "w": 106,
+            "n": 42,
+            "pValue": 0.00001604982972839411
+          },
+          "cliffs": {
+            "delta": 0.1621315192743764,
+            "magnitude": "small"
+          },
+          "holm": 0.0013481856971851052
+        },
+        {
+          "metric": "tokens",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "cache",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "units",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "usd",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "mast",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 21,
+            "pValue": 0.0000279212965042215
+          },
+          "cliffs": {
+            "delta": 0.20408163265306123,
+            "magnitude": "small"
+          },
+          "holm": 0.002289546313346163
+        }
+      ],
+      "holm": 1
+    },
+    {
+      "base": "single-agent",
+      "arm": "v0.2.0-full",
+      "n": 42,
+      "mcnemar": {
+        "b": 0,
+        "c": 0,
+        "pValue": 1
+      },
+      "continuous": [
+        {
+          "metric": "milestone",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "coverage",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "turns",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "corrections",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "latency",
+          "n": 21,
+          "wilcoxon": {
+            "w": 23,
+            "n": 21,
+            "pValue": 0.001385264970672965
+          },
+          "cliffs": {
+            "delta": 0.3242630385487528,
+            "magnitude": "small"
+          },
+          "holm": 0.10943593268316423
+        },
+        {
+          "metric": "coherence",
+          "n": 21,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "retention",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "reuse",
+          "n": 9,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "gain",
+          "n": 3,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "p50",
+          "n": 42,
+          "wilcoxon": {
+            "w": 219,
+            "n": 42,
+            "pValue": 0.0037215200153891356
+          },
+          "cliffs": {
+            "delta": 0.10317460317460317,
+            "magnitude": "negligible"
+          },
+          "holm": 0.29027856120035256
+        },
+        {
+          "metric": "p95",
+          "n": 42,
+          "wilcoxon": {
+            "w": 219,
+            "n": 42,
+            "pValue": 0.0037215200153891356
+          },
+          "cliffs": {
+            "delta": 0.10317460317460317,
+            "magnitude": "negligible"
+          },
+          "holm": 0.29027856120035256
+        },
+        {
+          "metric": "tokens",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "cache",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "units",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "usd",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "mast",
+          "n": 42,
+          "wilcoxon": {
+            "w": 0,
+            "n": 21,
+            "pValue": 0.0000279212965042215
+          },
+          "cliffs": {
+            "delta": 0.20408163265306123,
+            "magnitude": "small"
+          },
+          "holm": 0.002289546313346163
+        }
+      ],
+      "holm": 1
+    },
+    {
+      "base": "v0.1.0",
+      "arm": "v0.2.0-full",
+      "n": 45,
+      "mcnemar": {
+        "b": 0,
+        "c": 0,
+        "pValue": 1
+      },
+      "continuous": [
+        {
+          "metric": "milestone",
+          "n": 45,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "coverage",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "order",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "turns",
+          "n": 45,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "corrections",
+          "n": 45,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "latency",
+          "n": 21,
+          "wilcoxon": {
+            "w": 95,
+            "n": 21,
+            "pValue": 0.4869593913123707
+          },
+          "cliffs": {
+            "delta": -0.06575963718820861,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "coherence",
+          "n": 21,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "retention",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "reuse",
+          "n": 9,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "gain",
+          "n": 3,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "p50",
+          "n": 45,
+          "wilcoxon": {
+            "w": 448,
+            "n": 45,
+            "pValue": 0.4360733280225863
+          },
+          "cliffs": {
+            "delta": -0.04691358024691358,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "p95",
+          "n": 45,
+          "wilcoxon": {
+            "w": 448,
+            "n": 45,
+            "pValue": 0.4360733280225863
+          },
+          "cliffs": {
+            "delta": -0.04691358024691358,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "redundancy",
+          "n": 45,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "tokens",
+          "n": 45,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "cache",
+          "n": 45,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "units",
+          "n": 45,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "usd",
+          "n": 45,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "screen",
+          "n": 45,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "mast",
+          "n": 45,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        }
+      ],
+      "holm": 1
+    },
+    {
+      "base": "v0.2.0-full",
+      "arm": "v0.2.0-prefix-brief",
+      "n": 6,
+      "mcnemar": {
+        "b": 0,
+        "c": 0,
+        "pValue": 1
+      },
+      "continuous": [
+        {
+          "metric": "milestone",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "turns",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "corrections",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "latency",
+          "n": 6,
+          "wilcoxon": {
+            "w": 1,
+            "n": 6,
+            "pValue": 0.0625
+          },
+          "cliffs": {
+            "delta": -0.6666666666666666,
+            "magnitude": "large"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "coherence",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "p50",
+          "n": 6,
+          "wilcoxon": {
+            "w": 3,
+            "n": 6,
+            "pValue": 0.15625
+          },
+          "cliffs": {
+            "delta": -0.4444444444444444,
+            "magnitude": "medium"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "p95",
+          "n": 6,
+          "wilcoxon": {
+            "w": 3,
+            "n": 6,
+            "pValue": 0.15625
+          },
+          "cliffs": {
+            "delta": -0.4444444444444444,
+            "magnitude": "medium"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "redundancy",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "tokens",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "cache",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 6,
+            "pValue": 0.0196561556788572
+          },
+          "cliffs": {
+            "delta": -1,
+            "magnitude": "large"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "units",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 6,
+            "pValue": 0.0196561556788572
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "usd",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 6,
+            "pValue": 0.0196561556788572
+          },
+          "cliffs": {
+            "delta": 1,
+            "magnitude": "large"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "screen",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        },
+        {
+          "metric": "mast",
+          "n": 6,
+          "wilcoxon": {
+            "w": 0,
+            "n": 0,
+            "pValue": 1
+          },
+          "cliffs": {
+            "delta": 0,
+            "magnitude": "negligible"
+          },
+          "holm": 1
+        }
+      ],
+      "holm": 1
+    }
+  ],
+  "agreement": {
+    "required": 30,
+    "alpha": null,
+    "accepted": false
+  },
+  "lengthControlledWins": {}
+}

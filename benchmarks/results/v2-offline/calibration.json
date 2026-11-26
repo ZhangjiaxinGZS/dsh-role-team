@@ -1,0 +1,302 @@
+[
+  {
+    "scenario": "E1",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "E1",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "E1",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "E1",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "E2",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "E2",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "E2",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "E2",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "E3",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "E3",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "E3",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "E3",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "E4",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "E4",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "E4",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "E4",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "E5",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "E5",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "E5",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "E5",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "E6",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "E6",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "E6",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "E6",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "G1",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "G1",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "G1",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "G1",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "G2",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "G2",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "G2",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "G2",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "G3",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "G3",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "G3",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "G3",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "G4",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "G4",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "G4",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "G4",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "G5",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "G5",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "G5",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "G5",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "C1",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "C1",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "C1",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "C1",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "C2",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "C2",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "C2",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "C2",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "C3",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "C3",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "C3",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "C3",
+    "kind": "truncated",
+    "accepted": false
+  },
+  {
+    "scenario": "C4",
+    "kind": "reference",
+    "accepted": true
+  },
+  {
+    "scenario": "C4",
+    "kind": "equivalent",
+    "accepted": true
+  },
+  {
+    "scenario": "C4",
+    "kind": "spurious",
+    "accepted": false
+  },
+  {
+    "scenario": "C4",
+    "kind": "truncated",
+    "accepted": false
+  }
+]

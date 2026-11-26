@@ -10,7 +10,7 @@ import type { LiveTrial } from '../types.ts'
 
 const repo = fileURLToPath(new URL('../../', import.meta.url))
 export const flagshipCodex = 'openai-codex:gpt-6.2-astra'
-export async function withLocalHost<T>(t: LiveTrial, work: (ctx: Context) => Promise<T>): Promise<T> {
+export async function withLocalHost<T>(t: LiveTrial, work: (ctx: Context) => Promise<T>, codexJudge = false): Promise<T> {
   const root = await realpath(dirname(t.dshHome))
   if (
     !process.send ||
@@ -35,7 +35,7 @@ export async function withLocalHost<T>(t: LiveTrial, work: (ctx: Context) => Pro
   try {
     await copyFile(original, cred, constants.COPYFILE_EXCL)
     await chmod(cred, 0o600)
-    if (provider === 'openai-codex') {
+    if (provider === 'openai-codex' || codexJudge) {
       const { parseCredentialsDocument } = load('@deepseek-ai/dsh-credentials-local')
       const vault = parseCredentialsDocument(await readFile(cred, 'utf8'), cred)
       const account = vault.records.get('codex-subscription/accounts')?.payload
@@ -49,7 +49,7 @@ export async function withLocalHost<T>(t: LiveTrial, work: (ctx: Context) => Pro
     const bundles = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app']
     boot.initProfile(dir, bundles)
     const dependencies: Record<string, string> = {}
-    if (provider === 'openai-codex') {
+    if (provider === 'openai-codex' || codexJudge) {
       const pkg = process.env.BENCH_CODEX_PACKAGE
       if (
         !pkg ||

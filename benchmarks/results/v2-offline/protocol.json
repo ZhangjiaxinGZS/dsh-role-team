@@ -1,0 +1,920 @@
+{
+  "mode": "dry-run (synthetic harness validation)",
+  "repeats": 3,
+  "limits": {
+    "maxWallMs": 900000,
+    "maxSteps": 100,
+    "maxTotalTokens": 1500000
+  },
+  "seed": "v2-protocol-1",
+  "price": 1,
+  "weights": [
+    1,
+    0.1,
+    1.25,
+    4
+  ],
+  "catalogueSha256": "15934872d69cb23e4cc71fb11be6e9e11336ae5843166fc3f365b32c5435705e",
+  "matrix": [
+    {
+      "scenario": "E1",
+      "repeat": 1,
+      "arm": "v0.2.0-brief-only",
+      "nonce": "804eda64-18fa-4281-84be-095cc1dda26a"
+    },
+    {
+      "scenario": "E1",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "0aff9584-55a8-4264-aa3b-74b448f85309"
+    },
+    {
+      "scenario": "E1",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "f3d95fde-c026-4ba5-9040-1799ca08125f"
+    },
+    {
+      "scenario": "E1",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "613e9913-edb9-4d02-bf19-61afd69e51b1"
+    },
+    {
+      "scenario": "E1",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "41075941-ae22-400a-b5b5-eee1ff6be203"
+    },
+    {
+      "scenario": "E1",
+      "repeat": 2,
+      "arm": "v0.2.0-brief-only",
+      "nonce": "69f50ade-8fc1-4d23-b053-cbfa527301d4"
+    },
+    {
+      "scenario": "E1",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "7c74e910-bfd6-45b9-9898-0ba1632dc60c"
+    },
+    {
+      "scenario": "E1",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "6ea20cb7-4496-41c0-a080-6e9241041744"
+    },
+    {
+      "scenario": "E1",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "8f3b1998-c785-4c45-98e9-489666d79339"
+    },
+    {
+      "scenario": "E1",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "bdc033cf-d758-4028-8f11-00e1e3a8c465"
+    },
+    {
+      "scenario": "E1",
+      "repeat": 3,
+      "arm": "v0.2.0-brief-only",
+      "nonce": "473dfaf4-b5ef-4fa1-b96b-3c6c4a3598ce"
+    },
+    {
+      "scenario": "E1",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "46064a6c-5a7b-4c52-904a-463b1391ee52"
+    },
+    {
+      "scenario": "E2",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "371e227e-5c25-4ab5-a491-8684fd1af264"
+    },
+    {
+      "scenario": "E2",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "2673068f-b6e8-4bd8-94ca-cd3a53cdc9a3"
+    },
+    {
+      "scenario": "E2",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "4092b705-4773-4633-9fd3-198efb81909a"
+    },
+    {
+      "scenario": "E2",
+      "repeat": 1,
+      "arm": "v0.2.0-brief-only",
+      "nonce": "76fa0c56-c5cf-4f4f-a820-bfdb8d28d97c"
+    },
+    {
+      "scenario": "E2",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "da5d446b-73d5-4b76-adff-ef6dcc3b51f3"
+    },
+    {
+      "scenario": "E2",
+      "repeat": 2,
+      "arm": "v0.2.0-brief-only",
+      "nonce": "4440016b-95b8-45c7-bf3a-7e2ea32cdf4f"
+    },
+    {
+      "scenario": "E2",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "d1aa2b70-e532-484e-b4fd-183609925837"
+    },
+    {
+      "scenario": "E2",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "986f8a7c-3673-4c86-aea4-1998224d522d"
+    },
+    {
+      "scenario": "E2",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "a4003a95-1ba8-4a42-9918-3ec82961d985"
+    },
+    {
+      "scenario": "E2",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "355909ef-e047-410b-9092-3234bccd9e91"
+    },
+    {
+      "scenario": "E2",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "9e0e4d68-887c-48e8-85da-b585b99d11d3"
+    },
+    {
+      "scenario": "E2",
+      "repeat": 3,
+      "arm": "v0.2.0-brief-only",
+      "nonce": "49274f85-34a8-4b89-b1ab-cd4d4c795a3e"
+    },
+    {
+      "scenario": "E3",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "0ac6b9f3-7636-4115-8a60-d148ccb73557"
+    },
+    {
+      "scenario": "E3",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "7890e0a0-d113-4aa8-a189-23e3d0e44c31"
+    },
+    {
+      "scenario": "E3",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "28f30110-138b-459b-96fd-290918b6664b"
+    },
+    {
+      "scenario": "E3",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "d1b8141c-8063-4214-a370-9bb1b904efc2"
+    },
+    {
+      "scenario": "E3",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "3eda40b4-05ed-4d77-8737-9c73ec83481c"
+    },
+    {
+      "scenario": "E3",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "191ffb27-3162-4c27-81cc-be3f9120de44"
+    },
+    {
+      "scenario": "E3",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "e90054e3-0083-4625-bdb5-ffe86e35d063"
+    },
+    {
+      "scenario": "E3",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "16a5f648-5239-4ecf-932b-2b96148d445e"
+    },
+    {
+      "scenario": "E3",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "77164279-8d48-43da-b820-8f1850839e65"
+    },
+    {
+      "scenario": "E4",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "4a9d2e5b-5e7a-4c93-b791-fb72d6e9d19c"
+    },
+    {
+      "scenario": "E4",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "7194085c-3b74-40a8-8385-adf280ba929e"
+    },
+    {
+      "scenario": "E4",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "62491595-8d97-4434-9200-dd6c1aa93a90"
+    },
+    {
+      "scenario": "E4",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "38bbf96e-d5f8-496a-82de-d257697009f0"
+    },
+    {
+      "scenario": "E4",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "448dceca-3261-4302-b956-42ef885477ce"
+    },
+    {
+      "scenario": "E4",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "cd236783-2424-462d-bcc3-c92d8e9f64c6"
+    },
+    {
+      "scenario": "E4",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "53ba3c68-b946-4043-a154-4405b6832e33"
+    },
+    {
+      "scenario": "E4",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "15b7fa65-128e-4b15-b9c1-638eeecd880f"
+    },
+    {
+      "scenario": "E4",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "7736d734-52e1-4c21-b04b-a047a71ba37c"
+    },
+    {
+      "scenario": "E5",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "f6fc6683-2462-479c-82c6-62f916ed8dd0"
+    },
+    {
+      "scenario": "E5",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "46234552-3d90-4a59-9f9c-307280f55099"
+    },
+    {
+      "scenario": "E5",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "2be0f8c3-df4b-4553-b61f-28c9ec088ffc"
+    },
+    {
+      "scenario": "E5",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "c013e0ac-4bb2-48c0-ba08-1fd6febbb5d5"
+    },
+    {
+      "scenario": "E5",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "2dc56f83-6e04-4bbe-a4bb-ced4cfb11145"
+    },
+    {
+      "scenario": "E5",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "e3dabd57-eea1-4813-80bf-9fe29349ab0f"
+    },
+    {
+      "scenario": "E5",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "280c4c5c-c95f-44fe-92a1-a8b4ab19a4ec"
+    },
+    {
+      "scenario": "E5",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "66b050cf-08d0-4119-92b2-2b6cdccf9978"
+    },
+    {
+      "scenario": "E5",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "e2db384c-fcea-4bf6-a307-f800102d2a7b"
+    },
+    {
+      "scenario": "E6",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "8b25b80a-5e4a-4ee5-9c7d-86ff829047b3"
+    },
+    {
+      "scenario": "E6",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "259fecd4-430c-4385-b964-877de10d79c2"
+    },
+    {
+      "scenario": "E6",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "ca0a7511-285a-4e05-907b-b57e3daef0c7"
+    },
+    {
+      "scenario": "E6",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "58cc9d27-5e59-4afd-9abf-d71b40f78014"
+    },
+    {
+      "scenario": "E6",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "1021bc17-96a2-4c1e-b202-5f39f0491538"
+    },
+    {
+      "scenario": "E6",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "74b8abeb-38f0-4764-87b7-d1c5e7cf6269"
+    },
+    {
+      "scenario": "E6",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "f3e115b7-a2a2-40b8-b746-83a440276ca6"
+    },
+    {
+      "scenario": "E6",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "06c80b05-8aa3-45fc-8dc5-82e27204093d"
+    },
+    {
+      "scenario": "E6",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "7418eeff-e5b8-4185-b1c2-3b02d44c46ef"
+    },
+    {
+      "scenario": "G1",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "35c7dae9-d534-4816-87bc-8fe45b1a5065"
+    },
+    {
+      "scenario": "G1",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "9ba8ffb8-a50a-42c5-b6a3-34153e4c7fa6"
+    },
+    {
+      "scenario": "G1",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "782e81d0-4d8c-4f25-aea8-41ba66411e2a"
+    },
+    {
+      "scenario": "G1",
+      "repeat": 1,
+      "arm": "v0.2.0-brief-only",
+      "nonce": "bc872a56-b981-4795-9f04-845e5c375fe1"
+    },
+    {
+      "scenario": "G1",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "3ba1079e-a9ab-4d45-8b21-62ad49f995c2"
+    },
+    {
+      "scenario": "G1",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "8c8b1381-c1b7-43f8-99bd-59eda2abb4af"
+    },
+    {
+      "scenario": "G1",
+      "repeat": 2,
+      "arm": "v0.2.0-brief-only",
+      "nonce": "d4347076-6631-4ddf-b071-63c4c4e0a088"
+    },
+    {
+      "scenario": "G1",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "89fe98db-9069-49f5-adc8-8d4c60a13f3e"
+    },
+    {
+      "scenario": "G1",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "5e89c249-147c-4031-83a4-859a3c2cada2"
+    },
+    {
+      "scenario": "G1",
+      "repeat": 3,
+      "arm": "v0.2.0-brief-only",
+      "nonce": "7ee68026-0c91-4740-a3e8-f7bc6522486b"
+    },
+    {
+      "scenario": "G1",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "0f87c96d-8a1f-491b-9a8e-c1073b3c8da3"
+    },
+    {
+      "scenario": "G1",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "546221a8-d709-4314-a7e7-b63727d9c4a6"
+    },
+    {
+      "scenario": "G2",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "20661115-bae3-4e00-8c00-a739f373584f"
+    },
+    {
+      "scenario": "G2",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "b984448c-edbb-4592-bfaa-3d32d245c377"
+    },
+    {
+      "scenario": "G2",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "8e6878ca-02d9-4df0-b69d-59ae170a9093"
+    },
+    {
+      "scenario": "G2",
+      "repeat": 1,
+      "arm": "v0.2.0-brief-only",
+      "nonce": "caf0b060-7e78-4a17-bba9-ba6f923b59cd"
+    },
+    {
+      "scenario": "G2",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "8cd266fb-401d-4d1d-9367-fb2a27ea14b0"
+    },
+    {
+      "scenario": "G2",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "08f73a0a-1e8c-4361-95a4-323326879cfa"
+    },
+    {
+      "scenario": "G2",
+      "repeat": 2,
+      "arm": "v0.2.0-brief-only",
+      "nonce": "c71f08ac-2f3b-409b-bb21-fa3930db9afe"
+    },
+    {
+      "scenario": "G2",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "b78925bd-6b73-4f21-8401-1e4466423ba6"
+    },
+    {
+      "scenario": "G2",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "ba491a87-125a-45dc-8c74-323ba814ff49"
+    },
+    {
+      "scenario": "G2",
+      "repeat": 3,
+      "arm": "v0.2.0-brief-only",
+      "nonce": "2600580f-734e-4e3d-baaa-7a7333bf58fb"
+    },
+    {
+      "scenario": "G2",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "1c63b647-0f4a-4e06-9bf5-d69313a60721"
+    },
+    {
+      "scenario": "G2",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "641b8757-f39b-4b83-85c3-fa4272381c0a"
+    },
+    {
+      "scenario": "G3",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "d169ca1e-0565-4aee-b872-e4e1e7ad8cb9"
+    },
+    {
+      "scenario": "G3",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "307cb794-b26b-481d-bfa9-06b9244cc308"
+    },
+    {
+      "scenario": "G3",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "6b2dfe15-be8e-49da-b048-e16302805b70"
+    },
+    {
+      "scenario": "G3",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "b6cd5b25-bcf8-421c-a7c3-498eace43c68"
+    },
+    {
+      "scenario": "G3",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "a5937917-27a8-4904-90ff-0f38b6bd09ea"
+    },
+    {
+      "scenario": "G3",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "8b786fd4-5560-4510-a816-52de4ba17a30"
+    },
+    {
+      "scenario": "G3",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "94169749-5b5c-4c06-840f-190eb14b329c"
+    },
+    {
+      "scenario": "G3",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "6ea6888d-a297-4f7e-bc4c-f1626f3bb107"
+    },
+    {
+      "scenario": "G3",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "19ba83ef-8b22-413e-b607-94d7647d755b"
+    },
+    {
+      "scenario": "G4",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "d7d8bcb4-ce45-41c0-9e40-bf448578c489"
+    },
+    {
+      "scenario": "G4",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "2ec820ab-2ad6-4442-b3b7-2ccc7999345c"
+    },
+    {
+      "scenario": "G4",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "46b717cf-b2e3-40ed-b005-507fc06450a2"
+    },
+    {
+      "scenario": "G4",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "5243dc65-8eb5-40e3-8e52-f2ab7e4f4976"
+    },
+    {
+      "scenario": "G4",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "8a873ce4-a87b-4d02-99ca-66d6b240983d"
+    },
+    {
+      "scenario": "G4",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "6514be61-a54c-4800-85b1-9db446b3f34a"
+    },
+    {
+      "scenario": "G4",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "844090cd-2758-4ad6-b712-9ce7b54dfbc0"
+    },
+    {
+      "scenario": "G4",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "fe8634a1-2ca1-4036-b4f8-0e75e1a90038"
+    },
+    {
+      "scenario": "G4",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "fcd0ca9e-426f-4b6a-ba1a-4acf5b47a66f"
+    },
+    {
+      "scenario": "G5",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "91431550-b8a3-4c3a-a180-5b2e1ac974c9"
+    },
+    {
+      "scenario": "G5",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "c7b86e21-4022-4235-a7d9-59aa64005d99"
+    },
+    {
+      "scenario": "G5",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "7bd8369d-3e79-4c28-a7a7-f1052d2e7076"
+    },
+    {
+      "scenario": "G5",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "dd9700a0-4adc-4c49-bd3a-b6682b85e390"
+    },
+    {
+      "scenario": "G5",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "1de57f19-60bb-4e81-bfaf-bbbd3b740e68"
+    },
+    {
+      "scenario": "G5",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "6ee446dc-892b-4f34-a56a-265dda311466"
+    },
+    {
+      "scenario": "C1",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "92625ce4-9bd3-45b3-bd37-9540d2e73fc0"
+    },
+    {
+      "scenario": "C1",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "adf3250a-c315-4fa5-ac50-6cfe5474d1f6"
+    },
+    {
+      "scenario": "C1",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "c4451811-80c4-4be5-9543-a6b394e9104b"
+    },
+    {
+      "scenario": "C1",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "f33b26a6-5e07-40a4-89d0-4b81a1053c56"
+    },
+    {
+      "scenario": "C1",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "3d5c799c-33ec-4e16-bb3d-d34847e6accd"
+    },
+    {
+      "scenario": "C1",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "dc810a9f-c94e-4b7d-aff9-80b7f40ee5de"
+    },
+    {
+      "scenario": "C1",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "c46ac3ae-251d-405e-b88b-efc5887e4f7b"
+    },
+    {
+      "scenario": "C1",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "8fd4589e-30b8-46b5-93fa-d0b6c3606b86"
+    },
+    {
+      "scenario": "C1",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "0733f6f5-3844-4cec-95de-b0763d0033e4"
+    },
+    {
+      "scenario": "C2",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "dbc0628b-df43-4e06-b07c-42349716aec2"
+    },
+    {
+      "scenario": "C2",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "0b68b19a-3e4f-43a9-9978-2663d06fdbdf"
+    },
+    {
+      "scenario": "C2",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "921e0d7d-870f-4660-b7e3-2423bfdf4c6e"
+    },
+    {
+      "scenario": "C2",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "41222573-0b7e-4ec4-85e9-c3a49943a6fd"
+    },
+    {
+      "scenario": "C2",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "20c4423f-97d7-43e2-b8a7-b5f70a301ab5"
+    },
+    {
+      "scenario": "C2",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "6b23dc6d-2235-4436-bcdb-c81f8b3c86f0"
+    },
+    {
+      "scenario": "C2",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "8de77a03-1d72-44c1-90fa-c48437048fb7"
+    },
+    {
+      "scenario": "C2",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "3bf5cf58-ee2d-4141-821e-c91b4e73e124"
+    },
+    {
+      "scenario": "C2",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "374e16ce-3ac5-4236-bb74-bfc56d1626d8"
+    },
+    {
+      "scenario": "C3",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "2b685298-8a19-4ad0-8da0-43205a3dfa8a"
+    },
+    {
+      "scenario": "C3",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "b034eff2-813d-4aae-aee3-287cc2c9a72f"
+    },
+    {
+      "scenario": "C3",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "43f4db66-3e1f-4a25-a32f-1cdc970e963f"
+    },
+    {
+      "scenario": "C3",
+      "repeat": 1,
+      "arm": "v0.2.0-prefix-brief",
+      "nonce": "eda4bfbf-39b7-4969-93b6-66c1631aa633"
+    },
+    {
+      "scenario": "C3",
+      "repeat": 2,
+      "arm": "v0.2.0-prefix-brief",
+      "nonce": "ad7ad13b-8411-4f66-a517-9388556384f7"
+    },
+    {
+      "scenario": "C3",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "ebbe8081-3d7f-4187-ae8a-f8897f52e0fd"
+    },
+    {
+      "scenario": "C3",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "05f0950e-b7b6-448c-ad28-b5b433534287"
+    },
+    {
+      "scenario": "C3",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "35e9d085-a408-49c0-8d75-8ae5708745d7"
+    },
+    {
+      "scenario": "C3",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "754f2612-9622-41a7-a57c-e0952b947141"
+    },
+    {
+      "scenario": "C3",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "8917e73e-c408-43eb-98be-d23802fc38ff"
+    },
+    {
+      "scenario": "C3",
+      "repeat": 3,
+      "arm": "v0.2.0-prefix-brief",
+      "nonce": "bc41e641-f8d5-4470-a8a4-3ffc5635facb"
+    },
+    {
+      "scenario": "C3",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "04b773e0-c752-4f37-8c48-d0a6e522a58f"
+    },
+    {
+      "scenario": "C4",
+      "repeat": 1,
+      "arm": "single-agent",
+      "nonce": "c484b114-e055-4d7f-bb73-b1774a52c0d2"
+    },
+    {
+      "scenario": "C4",
+      "repeat": 1,
+      "arm": "v0.2.0-prefix-brief",
+      "nonce": "9326b6d2-3f35-4322-a45c-c67543a7885a"
+    },
+    {
+      "scenario": "C4",
+      "repeat": 1,
+      "arm": "v0.1.0",
+      "nonce": "27623206-7450-4552-b981-981f05b39e6e"
+    },
+    {
+      "scenario": "C4",
+      "repeat": 1,
+      "arm": "v0.2.0-full",
+      "nonce": "6f8b1f36-0c26-4a8c-b03f-9027f81db5a6"
+    },
+    {
+      "scenario": "C4",
+      "repeat": 2,
+      "arm": "v0.1.0",
+      "nonce": "4e1d5f13-4c21-4ddc-8c6d-ce8efa03d4c3"
+    },
+    {
+      "scenario": "C4",
+      "repeat": 2,
+      "arm": "v0.2.0-full",
+      "nonce": "aabddbbf-47ee-4120-b8d9-3403f37258cf"
+    },
+    {
+      "scenario": "C4",
+      "repeat": 2,
+      "arm": "v0.2.0-prefix-brief",
+      "nonce": "ded32b8e-7d0e-4777-bf4a-e87390eaf5a3"
+    },
+    {
+      "scenario": "C4",
+      "repeat": 2,
+      "arm": "single-agent",
+      "nonce": "37e78827-037c-4fc9-86ea-534aa8bc37b7"
+    },
+    {
+      "scenario": "C4",
+      "repeat": 3,
+      "arm": "v0.2.0-prefix-brief",
+      "nonce": "70d08a30-38c8-4ddc-b1fe-d01c1f594d67"
+    },
+    {
+      "scenario": "C4",
+      "repeat": 3,
+      "arm": "v0.1.0",
+      "nonce": "f2f1e138-af17-419a-b3d6-6d9f4208e088"
+    },
+    {
+      "scenario": "C4",
+      "repeat": 3,
+      "arm": "v0.2.0-full",
+      "nonce": "a93ea159-a89f-461c-b374-ea16adbec8f7"
+    },
+    {
+      "scenario": "C4",
+      "repeat": 3,
+      "arm": "single-agent",
+      "nonce": "8aad2518-df07-45b8-9ac2-8e8291a0f57b"
+    }
+  ]
+}

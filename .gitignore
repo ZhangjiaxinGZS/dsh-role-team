@@ -14,3 +14,11 @@ benchmarks/results/live-*/**
 !benchmarks/results/live-*/summary.json
 !benchmarks/results/live-*/environment.json
 !benchmarks/results/live-*/interruptions.jsonl
+
+# Share the v2 synthetic aggregate and its protocol, keep individual traces local.
+!benchmarks/results/v2-offline/
+benchmarks/results/v2-offline/*
+!benchmarks/results/v2-offline/report.md
+!benchmarks/results/v2-offline/summary.json
+!benchmarks/results/v2-offline/protocol.json
+!benchmarks/results/v2-offline/calibration.json

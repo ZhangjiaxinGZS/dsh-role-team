@@ -171,11 +171,11 @@ it('parses native payloads, nested PTC args, wrappers and separate per-session c
   expect(m).toMatchObject({
     inputTokens: 12,
     outputTokens: 5,
-    totalTokens: 22,
+    totalTokens: 39,
     cacheReadTokens: 15,
     cacheWriteTokens: 2,
     reasoningTokens: 3,
-    kvCacheHitRate: 1,
+    kvCacheHitRate: 15 / 29,
     briefSyncCount: 2,
     compactionCount: 5,
     postCompactionResyncRate: 1 / 3,

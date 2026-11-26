@@ -209,3 +209,56 @@ export async function safePath(name: string): Promise<string> {
     throw new Error('Production directories are out of bounds')
   return canonical
 }
+
+export type V2ScenarioId =
+  | 'E1'
+  | 'E2'
+  | 'E3'
+  | 'E4'
+  | 'E5'
+  | 'E6'
+  | 'G1'
+  | 'G2'
+  | 'G3'
+  | 'G4'
+  | 'G5'
+  | 'C1'
+  | 'C2'
+  | 'C3'
+  | 'C4'
+export type V2Arm = Exclude<AblationArm, 'v0.2.0-no-brief'> | 'v0.2.0-brief-only'
+export interface Fact {
+  key: string
+  label: string
+  aliases: string[]
+  values: string[]
+  unit?: string[]
+}
+export interface V2Stage {
+  instruction: string
+  action?: 'compact-reset' | 'fresh-team' | 'controlled-brief'
+}
+export type Archetype =
+  | 'parallel-read-synthesis'
+  | 'multi-module-isolation'
+  | 'sequential-pivot'
+  | 'long-horizon-continuity'
+export interface V2Scenario {
+  archetype: Archetype
+  split: 'dev' | 'holdout'
+  id: V2ScenarioId
+  title: string
+  roles: Role[]
+  files: Record<string, string>
+  prompt: string
+  stages: V2Stage[]
+  facts: Fact[]
+  card?: Fact[]
+  multiAgentOnly?: boolean
+}
+export interface TrialClock {
+  agentWallMs: number
+  setupMs: number
+  simUserMs: number
+  retryBackoffMs: number
+}

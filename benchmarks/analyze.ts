@@ -79,7 +79,7 @@ function armStats(ts: TrialResult[]): ArmStats {
       : null,
     milestoneKpi: intervals.milestone!.mean,
     cvr: intervals.cvr!.mean,
-    kvCacheHitRate: Math.max(input, cached) ? cached / Math.max(input, cached) : null,
+    kvCacheHitRate: promptTokens ? cached / promptTokens : null,
     ...(mode === 'live' && {
       providerUsage: {
         uncachedInput: input,
@@ -331,7 +331,7 @@ export function render(report: ComparisonReport) {
       )
     lines.push(
       '',
-      'Cache rates use the prespecified denominator max(inputTokens, cacheReadTokens). For adapters reporting uncached input separately this metric can saturate at 1.0. Raw counter totals are in the trial records.',
+      'Cache share divides cache reads by all prompt tokens (uncached input + cache reads + cache writes). Raw counter totals are in the trial records.',
     )
   }
   if (report.mode !== 'live')
@@ -479,7 +479,14 @@ export async function analyze(out: string, s4Control?: string) {
   return report
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  if (![3, 4].includes(process.argv.length))
-    throw new Error('Usage: node benchmarks/analyze.ts <result-directory> [S4-prefix-directory]')
-  await analyze(process.argv[2], process.argv[3])
+  if (process.argv[2] === '--v2') {
+    const { reanalyze } = await import('./v2/reanalyze.ts')
+    if (!process.argv[3] || process.argv.length > 5)
+      throw Error('Expected --v2 <directory> [blind-ratings.json]')
+    await reanalyze(process.argv[3], process.argv[4])
+  } else {
+    if (![3, 4].includes(process.argv.length))
+      throw new Error('Usage: node benchmarks/analyze.ts <result-directory> [S4-prefix-directory]')
+    await analyze(process.argv[2], process.argv[3])
+  }
 }

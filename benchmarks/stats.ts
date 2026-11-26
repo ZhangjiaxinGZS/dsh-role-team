@@ -18,10 +18,7 @@ function quantile(sorted: readonly number[], p: number) {
   return sorted[i] + (sorted[Math.ceil(x)] - sorted[i]) * (x - i)
 }
 
-export function bootstrapCI(
-  values: readonly number[],
-  { iterations = 10000, alpha = 0.05, seed = 42 } = {},
-) {
+export function bootstrapCI(values: readonly number[], { iterations = 10000, alpha = 0.05, seed = 42 } = {}) {
   if (!values.length || values.some((v) => !Number.isFinite(v)))
     throw new RangeError('finite observations required')
   if (!Number.isSafeInteger(iterations) || iterations < 1 || !(alpha > 0 && alpha < 1))
@@ -107,8 +104,7 @@ export function cliffsDelta(a: readonly number[], b: readonly number[]) {
   for (const x of a) for (const y of b) dominance += Math.sign(x - y)
   const delta = dominance / (a.length * b.length),
     size = Math.abs(delta)
-  const magnitude =
-    size < 0.147 ? 'negligible' : size < 0.33 ? 'small' : size < 0.474 ? 'medium' : 'large'
+  const magnitude = size < 0.147 ? 'negligible' : size < 0.33 ? 'small' : size < 0.474 ? 'medium' : 'large'
   return { delta, magnitude } as const
 }
 
@@ -140,4 +136,26 @@ export function krippendorffAlpha(units: readonly (number | null)[][], level: 'n
 
 export function communicationF1(precision: number, recall: number) {
   return precision + recall ? (2 * precision * recall) / (precision + recall) : 0
+}
+
+export function holmBonferroni(pValues: readonly number[]) {
+  if (pValues.some((p) => !Number.isFinite(p) || p < 0 || p > 1)) throw new RangeError('Invalid p-value')
+  const ranked = pValues.map((p, i) => ({ p, i })).sort((a, b) => a.p - b.p)
+  const adjusted: number[] = []
+  let previous = 0
+  ranked.forEach(({ p, i }, rank) => {
+    previous = Math.min(1, Math.max(previous, p * (ranked.length - rank)))
+    adjusted[i] = previous
+  })
+  return adjusted
+}
+
+export function effectiveCost(
+  u: { inputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; outputTokens: number },
+  usdPerMillionUnits: number,
+) {
+  const counts = [u.inputTokens, u.cacheReadTokens, u.cacheWriteTokens, u.outputTokens, usdPerMillionUnits]
+  if (counts.some((x) => !Number.isFinite(x) || x < 0)) throw new RangeError('Invalid cost inputs')
+  const units = u.inputTokens + u.cacheReadTokens * 0.1 + u.cacheWriteTokens * 1.25 + u.outputTokens * 4
+  return { units, estimatedUsd: (units * usdPerMillionUnits) / 1e6 }
 }
