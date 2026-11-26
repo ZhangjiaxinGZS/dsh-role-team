@@ -51,6 +51,9 @@ export interface Ui {
     list(): Promise<{ id: string; label: string; isDefault: boolean; broken?: string }[]>
     select(sessionId: SessionReference['sessionId'], preset: string): Promise<string>
   }
+  permissions?: {
+    list(): Promise<{ value: string; name: string }[] | null>
+  }
   pick?: () => Promise<string | null>
   settings?: {
     read(): Promise<{ revision: number; writable: boolean }>

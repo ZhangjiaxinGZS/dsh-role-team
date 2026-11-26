@@ -50,6 +50,21 @@ it('round-trips YAML metadata and preserves all Markdown including CRLF', () => 
   )
   expect(parseMarkdown(memory('draft'), memoryMeta, 'budget', 'budget.md').meta).toEqual(mem)
 })
+it('creates role defaults in YAML and restores both values from a historical snapshot', async () => {
+  const defaults = { defaultModel: { provider: 'p', model: 'm', reasoningEffort: 'high' }, defaultPermission: 'read-only' } as const
+  const created = await store.createRole('Writer', undefined, defaults)
+  if (!created.ok || !created.hash) throw new Error('Expected a published role')
+  const roleId = created.status.roleId
+  const first = (await store.readDocument({ roleId }))!
+  const parsed = parseMarkdown(first.text, roleMeta, roleId, 'role.md')
+  expect(parsed.meta).toEqual({ id: roleId, name: 'Writer', ...defaults })
+  expect(serializeMarkdown(parsed.meta, parsed.body)).toBe(first.text)
+  const plain = serializeMarkdown({ id: roleId, name: 'Writer' }, '')
+  expect(await store.saveDocument({ roleId, expectedHash: first.hash, text: plain })).toMatchObject({ ok: true })
+  expect(await store.restoreRole(roleId, 1, digest(plain))).toMatchObject({ ok: true, status: { publishedRevision: 3 } })
+  expect((await store.readSnapshot(roleId, 3)).role.meta).toEqual(parsed.meta)
+  expect(await store.readDocument({ roleId })).toEqual(first)
+})
 it('validates file ownership, memory scope and frontmatter before modifying disk', async () => {
   expect(await save(card.replace('id: reviewer', 'id: other'))).toMatchObject({
     code: 'invalid',

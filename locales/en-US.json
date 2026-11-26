@@ -278,6 +278,12 @@
     "briefDiscard": "Discard",
     "briefSaveAndLeave": "Save & continue",
     "briefSynced": "Team brief synced",
-    "schedulesUnavailable": "Scheduled tasks are unavailable in this host."
+    "schedulesUnavailable": "Scheduled tasks are unavailable in this host.",
+    "profileTab": "Profile",
+    "defaultsTab": "Defaults",
+    "defaultModel": "Default model",
+    "defaultPermission": "Default permission",
+    "defaultsEffectHint": "Applies to new conversations, teams, and added members. You can still change them anytime in chat.",
+    "unavailableModel": "Unavailable"
   }
 }

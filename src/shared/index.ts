@@ -13,6 +13,11 @@ const timestamp = z.iso.datetime({ offset: true })
 const names = z.array(z.string().min(1))
 export const roleNameKey = (name: string) => name.trim().toLowerCase()
 export const duplicateRoleName = '已存在同名角色，请重新输入'
+const key = z.string().min(1)
+export const modelChoice = z.strictObject({ provider: key, model: key, reasoningEffort: key.optional() })
+export type ModelChoice = z.infer<typeof modelChoice>
+export const permissionPresetId = z.enum(['read-only', 'workspace-write', 'auto', 'danger-full-access'])
+export type PermissionPresetId = z.infer<typeof permissionPresetId>
 export const roleMeta = z.strictObject({
   id: fileId,
   name: z.string().trim().min(1),
@@ -24,6 +29,8 @@ export const roleMeta = z.strictObject({
     .optional(),
   version: revision.optional(),
   model: z.string().min(1).optional(),
+  defaultModel: modelChoice.optional(),
+  defaultPermission: permissionPresetId.optional(),
   skills: names.optional(),
   tools: z.strictObject({ allow: names.optional(), deny: names.optional() }).optional(),
   updatedAt: timestamp.optional(),
@@ -98,10 +105,7 @@ export const proposal = z.strictObject({
   diff: z.string(),
   status: z.enum(['pending', 'confirmed', 'rejected']),
 })
-const key = z.string().min(1)
 export const conversationLocale = z.enum(['zh', 'en'])
-export const modelChoice = z.strictObject({ provider: key, model: key, reasoningEffort: key.optional() })
-export type ModelChoice = z.infer<typeof modelChoice>
 export const leaderPolicy = z.strictObject({
   mode: z.enum(['delegate', 'balanced', 'custom']),
   customText: z.string().max(1200).optional(),

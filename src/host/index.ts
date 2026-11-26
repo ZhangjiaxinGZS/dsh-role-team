@@ -280,8 +280,8 @@ export default class RoleTeamService extends TypertRemoteService implements Role
     )
   }
 
-  @Remote createRole({ name, summary }: Input<'createRole'>) {
-    return this.roles.createRole(name, summary)
+  @Remote createRole({ name, summary, defaultModel, defaultPermission }: Input<'createRole'>) {
+    return this.roles.createRole(name, summary, { defaultModel, defaultPermission })
   }
   @Remote async deleteRole(request: Input<'deleteRole'>) {
     return this.runtime.ordered('training/' + request.roleId, () =>
@@ -303,8 +303,16 @@ export default class RoleTeamService extends TypertRemoteService implements Role
   @Remote readDocument(ref: FileRef) {
     return this.roles.readDocument(ref)
   }
-  @Remote saveDocument(request: EditRequest) {
-    return this.roles.saveDocument(request)
+  @Remote async saveDocument(request: EditRequest) {
+    if (request.memoryId !== undefined) return this.roles.saveDocument(request)
+    const { roleId } = request
+    const hadDefault = !!this.roles.published(roleId)?.role.meta.defaultModel
+    const result = await this.roles.saveDocument(request)
+    // Do not resurrect a choice remembered before the role acquired explicit defaults.
+    if (result.ok && !result.status.error && this.index.models.get(roleId) &&
+        (hadDefault || this.roles.published(roleId)?.role.meta.defaultModel))
+      await this.index.models.delete(roleId)
+    return result
   }
   @Remote deleteDocument(request: DeleteRequest) {
     return request.memoryId === undefined && this.mounted

@@ -30,14 +30,19 @@ export class NativeTeam {
   }
   async models() {
     const catalog = await this.ctx.sessionController.modelCatalog()
+    const def = catalog.default
     return catalog.groups.flatMap((group) =>
-      group.models.map((model) => ({
-        provider: group.id,
-        model: model.id,
-        name: model.name,
-        defaultEffort: model.reasoning?.defaultEffort,
-        efforts: (model.reasoning?.efforts ?? []).map(({ id, name }) => ({ id, name })),
-      })),
+      group.models.map((model) => {
+        const isDefault = def?.provider === group.id && def?.model === model.id
+        return {
+          provider: group.id,
+          model: model.id,
+          name: model.name,
+          defaultEffort: (isDefault && def?.reasoningEffort) || model.reasoning?.defaultEffort,
+          efforts: (model.reasoning?.efforts ?? []).map(({ id, name }) => ({ id, name })),
+          ...(isDefault ? { isDefault: true } : {}),
+        }
+      }),
     )
   }
   select(agent: Agent, choice: ModelChoice) {

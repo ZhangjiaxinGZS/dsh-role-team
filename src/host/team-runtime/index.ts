@@ -140,13 +140,13 @@ export class TeamRuntime {
       return updated
     })
   }
-  private remember(roleId: string, selection: ModelChoice) {
-    return this.ordered('model/' + roleId, () => this.index.models.put({ roleId, selection }))
+  private async remember(roleId: string, selection: ModelChoice) {
+    if (!this.roles.published(roleId)?.role.meta.defaultModel)
+      return this.ordered('model/' + roleId, () => this.index.models.put({ roleId, selection }))
   }
-  private async restoreModel(agent: Agent, roleId: string, selected?: ModelChoice) {
+  private async restoreModel(agent: Agent, roleId: string, defaultModel?: ModelChoice, selected?: ModelChoice) {
     await this.queue.get('model/' + roleId)
-    const choice =
-      selected ?? (!agent.session.firstLiveSeq ? this.index.models.get(roleId)?.selection : undefined)
+    const choice = selected ?? (!agent.session.firstLiveSeq ? defaultModel ?? this.index.models.get(roleId)?.selection : undefined)
     if (!choice) return
     this.restoringModel.add(agent.id)
     try {
@@ -478,7 +478,6 @@ export class TeamRuntime {
     const { index } = this
     const training = index.training.list().find((t) => t.sessionId === agent.id)
     if (training) {
-      await this.restoreModel(agent, training.roleId)
       isolate(
         agent,
         this.roles.root,
@@ -487,6 +486,7 @@ export class TeamRuntime {
       )
       agent.ctx.systemPrompt.suppressRuntimeContext()
       await this.training.install(agent, training)
+      await this.restoreModel(agent, training.roleId, this.roles.published(training.roleId)?.role.meta.defaultModel)
       return
     }
     const seat = index.seats
@@ -509,12 +509,16 @@ export class TeamRuntime {
       )
     }
     const run = this.getTeam(seat.runId).run
+    const role = await this.snapshot(seat.roleId, seat.reset?.sessionId === agent.id ? seat.reset.revision : seat.adoptedRoleRev)
     if (!seat.parentSeatId) {
-      const preset = this.native.ctx.get('permissionPresets')?.current(agent.session)
+      const presets = this.native.ctx.get('permissionPresets')
+      const configured = role.role.meta.defaultPermission
+      if (!agent.session.firstLiveSeq && !run.permissionPreset && configured) presets?.set(agent.session, configured)
+      const preset = presets?.current(agent.session)
       if (preset && preset !== run.permissionPreset)
         await index.runs.update(seat.runId, (r) => ({ ...r, permissionPreset: preset }))
     }
-    await this.restoreModel(agent, seat.roleId, seat.selection)
+    await this.restoreModel(agent, seat.roleId, role.role.meta.defaultModel, seat.selection)
     if (seat.parentSeatId)
       this.native.followPermission(
         run.rootSessionId,

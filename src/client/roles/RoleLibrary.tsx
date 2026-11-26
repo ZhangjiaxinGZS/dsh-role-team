@@ -1,12 +1,13 @@
 import { PaneDivider, paneStyle, usePaneWidths } from '../PaneDivider.js'
 import { rememberRoleView, useNavigation, useRoleView } from '../navigation.js'
-import { duplicateRoleName, roleNameKey } from '../../shared/index.js'
+import { duplicateRoleName, roleNameKey, type ModelChoice, type PermissionPresetId } from '../../shared/index.js'
 import { useEffect, useRef, useState } from 'react'
 import type { Diagnostic } from '../../shared/index.js'
 import { Button, IconPlusOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { MoreMenu, Modal, Notice, useAction, useLoad, useUi } from '../ui.js'
 import type { RoleChoice } from '../team-setup/TeamSetup.js'
 import { Documents, leaveProfile, type ProfileGuard } from './DocumentEditor.js'
+import { RoleDefaultsFields, useRoleDefaultCatalogs } from './RoleDefaults.js'
 import { TrainingDetail } from './Training.js'
 export type LibraryRole = RoleChoice & { error?: Diagnostic | null; empty?: boolean }
 export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[]; changed: () => void }) {
@@ -91,8 +92,13 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
         <CreateRole
           close={() => setModal('')}
           nameTaken={nameTaken}
-          save={async (name, summary) => {
-            const result = await call('createRole', { name, summary })
+          save={async (name, summary, defaults) => {
+            const result = await call('createRole', {
+              name,
+              summary,
+              ...(defaults.defaultModel ? { defaultModel: defaults.defaultModel } : {}),
+              ...(defaults.defaultPermission ? { defaultPermission: defaults.defaultPermission } : {}),
+            })
             if (!result.ok) {
               if (result.code === 'conflict') throw new Error(t('conflict'))
               throw new Error(result.error.message === duplicateRoleName ? t('duplicateRole') : result.error.message)
@@ -255,18 +261,33 @@ function CreateRole({
   nameTaken,
 }: {
   close: () => void
-  save: (name: string, summary: string) => Promise<void>
+  save: (
+    name: string,
+    summary: string,
+    defaults: { defaultModel?: ModelChoice; defaultPermission?: PermissionPresetId },
+  ) => Promise<void>
   nameTaken: (name: string) => boolean
 }) {
   const { t } = useUi(), action = useAction()
+  const { entries, availablePermissions, initialModel, initialPermission } = useRoleDefaultCatalogs()
   const [name, setName] = useState(''), [summary, setSummary] = useState('')
+  const [defaultModel, setDefaultModel] = useState<ModelChoice | undefined>()
+  const [defaultPermission, setDefaultPermission] = useState<PermissionPresetId | undefined>()
+  const effectiveModel = defaultModel ?? initialModel
+  const effectivePermission = defaultPermission ?? initialPermission
   const duplicate = nameTaken(name)
   return (
     <Modal title={t('newRole')} close={close} locked={action.busy}>
       <form
         onSubmit={(event) => {
           event.preventDefault()
-          if (!duplicate && name.trim()) void action.run(() => save(name.trim(), summary.trim()))
+          if (!duplicate && name.trim())
+            void action.run(() =>
+              save(name.trim(), summary.trim(), {
+                defaultModel: effectiveModel,
+                defaultPermission: effectivePermission,
+              }),
+            )
         }}
       >
         <label>
@@ -283,6 +304,15 @@ function CreateRole({
           {t('duty')}
           <input maxLength={160} value={summary} onChange={(e) => setSummary(e.target.value)} />
         </label>
+        <RoleDefaultsFields
+          entries={entries}
+          availablePermissions={availablePermissions}
+          model={effectiveModel}
+          permission={effectivePermission}
+          disabled={action.busy}
+          onModelChange={setDefaultModel}
+          onPermissionChange={setDefaultPermission}
+        />
         <Notice>{duplicate ? t('duplicateRole') : action.error}</Notice>
         <footer>
           <button className="rt-primary" disabled={action.busy || !name.trim() || duplicate}>

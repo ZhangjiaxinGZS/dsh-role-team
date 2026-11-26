@@ -8,6 +8,7 @@ import type {
   PermissionSelectInjected,
 } from '@deepseek-ai/dsh-client-ui-permission-presets/client'
 import type {} from '@deepseek-ai/dsh-agent-preset-registry/remote'
+import type {} from '@deepseek-ai/dsh-permission-presets/remote'
 import { presetDisplayText } from '@deepseek-ai/dsh-agent-preset-registry/display'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { LocaleNamespaceMap, SlotComponent, StoredEntry } from '@deepseek-ai/dsh-client-ui-slots'
@@ -86,6 +87,15 @@ function mount(ctx: Context) {
       },
       async select(id, preset) {
         return unwrap(await presetRemote().select(id, preset))
+      },
+    },
+    permissions: {
+      async list() {
+        const remote = ctx.get('remote.permissionPresets') as
+          | import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['permissionPresets']
+          | undefined
+        if (!remote) return null
+        return unwrap(await remote.catalog()).options
       },
     },
     retain: (target) => ctx.sessions.retain(target, options),
