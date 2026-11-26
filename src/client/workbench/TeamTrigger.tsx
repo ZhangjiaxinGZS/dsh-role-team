@@ -64,13 +64,10 @@ export function teamMessage({ source, content }: Input) {
 }
 
 type Message = NonNullable<ReturnType<typeof teamMessage>>
-function isEmptyCompletion(message: Message) {
-  return message.omitted && (!message.status || message.status === 'completed')
-    && !message.parts.some(part => 'block' in part || part.text.trim())
-}
+type ReportMessage = Message & { closingNote?: Message }
 
 const statusLabels: Readonly<Partial<Record<string, Parameters<Text>[0]>>> = {
-  completed: 'reportCompleted', aborted: 'reportAborted', error: 'reportError',
+  completed: 'reportCompleted', aborted: 'reportAborted', interrupted: 'reportAborted', error: 'reportError', failed: 'reportError',
   'max-tokens': 'reportLimit', refusal: 'reportRefused',
 }
 
@@ -101,7 +98,19 @@ function ReportBody({ message, t, id, clamp }: { clamp: boolean; message: Messag
   </div>
 }
 
-export function TeamMessageCard({ message, name, time, t, fromParent = false }: { fromParent?: boolean; message: Message; name: string; time: number; t: Text }) {
+function ClosingNote({ message, t }: { message: Message; t: Text }) {
+  const [open, setOpen] = useState(false)
+  const id = useId()
+  return <div className="rt-closing-note">
+    <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
+      <IconChevronDownOutlineRegular size={12} aria-hidden="true" />
+      {t(open ? 'reportHideClosingNote' : 'reportShowClosingNote')}
+    </button>
+    {open && <ReportBody clamp={false} id={id} message={message} t={t} />}
+  </div>
+}
+
+export function TeamMessageCard({ message, name, time, t, fromParent = false }: { fromParent?: boolean; message: ReportMessage; name: string; time: number; t: Text }) {
   const [open, setOpen] = useState(fromParent)
   const id = useId()
   const date = new Date(time)
@@ -109,7 +118,7 @@ export function TeamMessageCard({ message, name, time, t, fromParent = false }: 
   const status = message.status && Object.hasOwn(statusLabels, message.status) ? statusLabels[message.status] : undefined
   const markdown = fromParent ? '' : message.parts.flatMap(part => 'text' in part ? [part.text] : []).join('\n')
   const summary = useMemo(() => fromParent ? '' : extractMarkdownPlainText(markdown, { mode: 'first-line' }), [fromParent, markdown])
-  const alert = ['aborted', 'error', 'refusal'].includes(message.status ?? '')
+  const alert = message.settled && message.status && message.status !== 'completed'
   return <section className="rt-team-trigger" data-turn-trigger data-alert={alert || undefined} data-status={message.status}>
     <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
       <span className="rt-report-sender">{title}{message.settled && <span className="rt-report-status">{' · ' + t(status ?? 'reportEnded')}</span>}</span>
@@ -118,6 +127,7 @@ export function TeamMessageCard({ message, name, time, t, fromParent = false }: 
       <IconChevronDownOutlineRegular size={12} />
     </button>
     {open && <ReportBody clamp={fromParent} id={id} message={message} t={t} />}
+    {message.closingNote && <ClosingNote message={message.closingNote} t={t} />}
   </section>
 }
 
@@ -157,7 +167,7 @@ export function registerTeamTrigger(ctx: Context, call: Ui['call'], t: Text) {
   // Several historical cards can share a sender. Share the lookup while it is in flight.
   const pending = new Map<string, Promise<Sender>>()
   function Report({ message, sessionId, time, fallback, moved }: {
-    message: Message; sessionId: string; time: number; fallback: ReactNode; moved?: boolean
+    message: ReportMessage; sessionId: string; time: number; fallback: ReactNode; moved?: boolean
   }) {
     const { senderId, senderName } = message
     const key = JSON.stringify([sessionId, senderId, senderName])
@@ -173,7 +183,7 @@ export function registerTeamTrigger(ctx: Context, call: Ui['call'], t: Text) {
       return () => { live = false }
     }, [key, sessionId, senderId, senderName])
     if (resolved?.key !== key || !resolved.sender) return fallback
-    if (moved || isEmptyCompletion(message)) return null
+    if (moved) return null
     const alias = senderName && !/^(?:role-|rt-(?:root|child)-|lead$)/.test(senderName) ? senderName : undefined
     return <TeamMessageCard fromParent={resolved.sender.fromParent} message={message} name={resolved.sender.name ?? alias ?? t('messageMember')} time={time} t={t} />
   }
@@ -191,7 +201,7 @@ export function registerTeamTrigger(ctx: Context, call: Ui['call'], t: Text) {
     const { node, useChat, sessionId } = props
     const source = useChat(s => s.nodes.turnDataSource(node.data.turn, 'context'))
     const rows = useSyncExternalStore(source.subscribe, source.getSnapshot)
-    const latest = new Map<string, Message>()
+    const latest = new Map<string, ReportMessage>()
     const entries = rows.filter(row => inProcess(row.seq, props))
       .map(row => ({ row, message: teamMessage(row) }))
       .filter(({ message }) => {
@@ -203,9 +213,12 @@ export function registerTeamTrigger(ctx: Context, call: Ui['call'], t: Text) {
           return true
         }
         const report = latest.get(key)
-        if (!report || !isEmptyCompletion(message)) return true
+        // A receipt ends this sender's pending report, even when the child failed.
+        latest.delete(key)
+        if (!report || (message.status && message.status !== 'completed')) return true
         report.settled = true
         report.status = 'completed'
+        if (message.parts.some(part => 'block' in part || part.text.trim())) report.closingNote = message
         return false
       })
     return <>{entries.map(({ row, message }) => {

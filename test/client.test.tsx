@@ -1405,18 +1405,67 @@ it('shows one report with a completion badge when the host omits its closing mes
   expect(report.textContent).toContain(en.ui.reportCompleted)
 })
 
-it('keeps a new closing answer beside the same sender’s earlier report in the same turn', async () => {
+it.each(['team-message', 'agent-message'])('folds the full closing answer into its preceding %s card', async kind => {
+  const sent = processNotice(3, kind, 'Agent editor sent a message: Review underway')
+  const view = await renderProcessReports([sent])
+  const report = await screen.findByRole('button', { name: /From Editor/ })
+  fireEvent.click(report)
+  const closingText = '    keep indentation\n\n**Fix verified**\n\n' + 'Evidence line\n'.repeat(800) + 'Final line.'
+  const finish = processNotice(5, 'subagent-settled', completionPrefix)
+  finish.content.push({ type: 'text', text: 'Its closing message:' }, { type: 'text', text: closingText })
+  view.update([sent, finish])
+  const card = within(report.closest('section')!)
+  expect(screen.getAllByRole('button', { name: /From Editor/ })).toHaveLength(1)
+  expect(report.textContent).toContain(en.ui.reportCompleted)
+  expect(report.getAttribute('aria-expanded')).toBe('true')
+  expect(card.getByTestId('native-markdown').textContent).toBe('Review underway')
+  const toggle = card.getByRole('button', { name: en.ui.reportShowClosingNote })
+  expect(toggle.getAttribute('aria-expanded')).toBe('false')
+  fireEvent.click(toggle)
+  expect(toggle.getAttribute('aria-expanded')).toBe('true')
+  expect(document.getElementById(toggle.getAttribute('aria-controls')!)?.textContent).toBe(closingText)
+  fireEvent.click(card.getByRole('button', { name: en.ui.reportHideClosingNote }))
+  expect(card.getAllByTestId('native-markdown')).toHaveLength(1)
+})
+
+it('marks an empty closing answer complete without adding a note control', async () => {
   await renderProcessReports([
-    processNotice(3, 'agent-message', 'Agent editor sent a message: Review underway'),
-    processNotice(4, 'subagent-settled', completionPrefix + ' Its closing message: Fixed the failing test'),
+    processNotice(3, 'team-message', 'Review complete'),
+    processNotice(4, 'subagent-settled', completionPrefix + ' It left no closing message.'),
   ])
-  const update = (await screen.findByText('Review underway')).closest('button')!
-  const closing = (await screen.findByText('Fixed the failing test')).closest('button')!
-  expect(screen.getAllByRole('button', { name: /From Editor/ })).toHaveLength(2)
-  expect(update.textContent).not.toContain(en.ui.reportCompleted)
-  expect(closing.textContent).toContain(en.ui.reportCompleted)
-  fireEvent.click(closing)
-  expect(screen.getByTestId('native-markdown').textContent).toBe('Fixed the failing test')
+  const card = await screen.findByRole('button', { name: /From Editor/ })
+  expect(card.textContent).toContain(en.ui.reportCompleted)
+  expect(screen.getAllByRole('button')).toHaveLength(1)
+})
+
+it.each(['failed', 'aborted', 'interrupted'])('keeps a %s settlement independent and closes the pending match', async reason => {
+  await renderProcessReports([
+    processNotice(3, 'agent-message', 'Review underway'),
+    processNotice(4, 'subagent-settled', 'Diagnostic details', 'member', reason),
+    processNotice(5, 'subagent-settled', completionPrefix + ' Its closing message: Later turn'),
+  ])
+  const failed = (await screen.findByText('Diagnostic details')).closest('button')!
+  expect(screen.getAllByRole('button', { name: /From Editor/ })).toHaveLength(3)
+  expect(failed.closest('section')?.hasAttribute('data-alert')).toBe(true)
+  expect(screen.getByText('Review underway').closest('button')?.textContent).not.toContain(en.ui.reportCompleted)
+  fireEvent.click(failed)
+  expect(screen.getByTestId('native-markdown').textContent).toBe('Diagnostic details')
+  expect(screen.queryByRole('button', { name: en.ui.reportShowClosingNote })).toBeNull()
+})
+
+it('keeps orphaned settlements independent, including omitted receipts from a different session', async () => {
+  await renderProcessReports([
+    processNotice(3, 'agent-message', 'Agent editor sent a message: Review underway', 'other-member'),
+    processNotice(4, 'subagent-settled', completionPrefix + omittedClosing),
+    processNotice(5, 'subagent-settled', completionPrefix + ' Its closing message: Independent result'),
+  ])
+  const reports = await screen.findAllByRole('button', { name: /From Editor/ })
+  expect(reports).toHaveLength(3)
+  expect(reports[0].textContent).not.toContain(en.ui.reportCompleted)
+  fireEvent.click(reports[1])
+  expect(screen.getByText(en.ui.reportAlreadySent)).toBeTruthy()
+  fireEvent.click(reports[2])
+  expect(screen.getByTestId('native-markdown').textContent).toBe('Independent result')
 })
 
 it('offers team-only atomic mentions, disambiguates names and renders the serialized identity', async () => {

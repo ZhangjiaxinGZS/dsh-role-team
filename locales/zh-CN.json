@@ -173,6 +173,8 @@
     "back": "返回",
     "copyCode": "复制代码",
     "copiedCode": "已复制",
+    "reportShowClosingNote": "查看结束附注",
+    "reportHideClosingNote": "收起结束附注",
     "reportCompleted": "已完成任务",
     "reportAborted": "已中止",
     "reportError": "执行出错",

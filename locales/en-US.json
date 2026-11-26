@@ -173,6 +173,8 @@
     "back": "Back",
     "copyCode": "Copy code",
     "copiedCode": "Copied",
+    "reportShowClosingNote": "Show closing note",
+    "reportHideClosingNote": "Hide closing note",
     "reportCompleted": "Task completed",
     "reportAborted": "Aborted",
     "reportError": "Execution failed",

@@ -802,6 +802,14 @@ body:has(.rt-divider[data-dragging]) * {
 .rt-team-trigger time { margin-inline-start: auto; white-space: nowrap; color: var(--dsw-alias-label-tertiary); font: var(--dsw-font-xxs-12); }
 .rt-team-trigger [aria-expanded="true"] svg { transform: rotate(180deg); }
 .rt-team-trigger-body { padding: 0 14px 12px; overflow-wrap: anywhere; }
+.rt-closing-note { border-block-start: 1px solid var(--dsw-alias-border-l4); }
+.rt-closing-note > button {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px;
+  border: 0; background: transparent; color: var(--dsw-alias-label-secondary); font: var(--dsw-font-xxs-12); cursor: pointer;
+}
+.rt-closing-note > button:hover { color: var(--dsw-alias-label-primary); }
+.rt-closing-note > button:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: -2px; }
+.rt-closing-note > button[aria-expanded=false] svg { transform: rotate(-90deg); }
 .rt-team-trigger-body pre { overflow-x: auto; }
 
 .rt-timer-list, .rt-timer-list article, .rt-timer-form label { display: grid; gap: 6px; min-width: 0; }
