@@ -278,6 +278,8 @@
     "briefDiscard": "Discard",
     "briefSaveAndLeave": "Save & continue",
     "briefSynced": "Team brief synced",
-    "schedulesUnavailable": "Scheduled tasks are unavailable in this host."
+    "schedulesUnavailable": "Scheduled tasks are unavailable in this host.",
+    "copyPath": "Copy",
+    "copiedPath": "Copied"
   }
 }
