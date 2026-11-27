@@ -9,7 +9,9 @@ import type { RoleChoice } from '../team-setup/TeamSetup.js'
 import { Documents, leaveProfile, type ProfileGuard } from './DocumentEditor.js'
 import { RoleDefaultsFields, useRoleDefaultCatalogs } from './RoleDefaults.js'
 import { TrainingDetail } from './Training.js'
-export type LibraryRole = RoleChoice & { error?: Diagnostic | null; empty?: boolean }
+import { useReadReceipt } from '../workbench/activity.js'
+import { ActivityLabel } from '../workbench/ActivityLabel.js'
+export type LibraryRole = RoleChoice & { error?: Diagnostic | null; empty?: boolean; trainingSessionIds?: string[] }
 export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[]; changed: () => void }) {
   const { t, call } = useUi(),
     [role, setRole] = useNavigation('role'),
@@ -51,7 +53,7 @@ export function RoleLibrary({ roles: catalog, changed }: { roles: LibraryRole[];
                 aria-current={id === r.id ? 'page' : undefined}
                 onClick={() => { if (id !== r.id) leaveProfile(guard, { kind: 'switch', proceed: () => setRole(r.id) }) }}
               >
-                {r.name}
+                <ActivityLabel title={r.name} ids={r.trainingSessionIds ?? []} />
               </button>
               <MoreMenu name={r.name} actions={{ deleteRole: () => setDeleting(r) }} />
             </div>
@@ -132,6 +134,16 @@ function RoleDetail({
   const [view, setView] = useRoleView(id)
   const profileSize = usePaneWidths('roles.settings')
   const training = useLoad(id, () => call('openTraining', { roleId: id }), 2400)
+  const sessionId = training.data?.sessionId
+  useReadReceipt(sessionId)
+  const knownSessions = active?.trainingSessionIds
+  const observed = useRef(new Set<string>())
+  useEffect(() => {
+    // Opening the detail can create the role's first training session.
+    if (!sessionId || !knownSessions || observed.current.has(sessionId)) return
+    observed.current.add(sessionId)
+    if (!knownSessions.includes(sessionId)) changed()
+  }, [sessionId, knownSessions, changed])
   const start = useAction()
   const [replacing, setReplacing] = useState<string>()
   const chatActions = (
@@ -164,11 +176,13 @@ function RoleDetail({
             <Button
               disabled={start.busy || replacing !== training.data?.trainingId}
               onClick={() => start.run(async () => {
-                await call('createTraining', {
+                const fresh = await call('createTraining', {
                   roleId: id,
                   mode: active?.revision == null && active ? 'create' : 'coach',
                   expectedTrainingId: replacing,
                 })
+                observed.current.add(fresh.sessionId)
+                changed()
                 training.refresh()
                 setReplacing(undefined)
               })}

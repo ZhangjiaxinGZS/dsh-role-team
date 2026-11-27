@@ -365,10 +365,10 @@ html[data-platform='darwin'] .rt-top {
 }
 @keyframes rt-seat-spin { to { transform: rotate(1turn); } }
 .rt-seat-dot[data-status='seatUnread'] { width: 5px; height: 5px; background: var(--dsw-alias-label-secondary); }
-.rt-seat-name, .rt-team-activity { color: var(--dsw-alias-label-secondary); }
-.rt-seat-name[data-unread], .rt-team-activity[data-unread], .rt-chip[aria-pressed=true] .rt-seat-name { color: var(--dsw-alias-label-primary); }
-.rt-team-activity { display: flex; gap: 6px; align-items: center; min-width: 0; }
-.rt-team-activity > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rt-seat-name, .rt-activity-label { color: var(--dsw-alias-label-secondary); }
+.rt-seat-name[data-unread], .rt-activity-label[data-unread], .rt-chip[aria-pressed=true] .rt-seat-name { color: var(--dsw-alias-label-primary); }
+.rt-activity-label { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.rt-activity-label > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rt-team-list { padding-top: 0; }
 .rt-team-list > header {
   box-sizing: border-box;

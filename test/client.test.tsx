@@ -648,6 +648,87 @@ it('blocks a duplicate display name when creating or renaming a role', async () 
   expect(call.mock.calls.some(([m]) => m === 'saveDocument' || m === 'createRole')).toBe(false)
 })
 
+function trainingStatus(ui: Ui) {
+  const snapshots = new Map()
+  const listeners = new Set<() => void>()
+  ui.sessionStatus = { getSnapshot: () => snapshots, subscribe: fn => { listeners.add(fn); return () => listeners.delete(fn) } }
+  return (id: string, state: object) => act(() => {
+    snapshots.set(id, state)
+    for (const fn of [...listeners]) fn()
+  })
+}
+
+it('shows native activity for library roles and acknowledges only the open training', async () => {
+  const focus = vi.spyOn(document, 'hasFocus').mockReturnValue(true)
+  const rows = [
+    { roleId: 'writer', sessionId: 'writing', trainingId: '1' },
+    { roleId: 'legacy', sessionId: 'older', trainingId: '2' },
+    { roleId: 'legacy', sessionId: 'latest', trainingId: '3' },
+  ]
+  const call = vi.fn(async (method: string, args: { roleId: string }) => {
+    if (method === 'listRoles') return [{ roleId: 'writer', publishedRevision: null }]
+    if (method === 'listTrainings') return rows
+    if (method === 'openTraining') return rows.findLast(row => row.roleId === args.roleId)
+    return method === 'readDocument' ? null : []
+  })
+  const h = harness(call)
+  const update = trainingStatus(h.ui)
+  h.mount(<App />)
+  fireEvent.click(screen.getByRole('button', { name: en.ui.library }))
+  await screen.findByText('stream:writing')
+  const button = screen.getByTitle('legacy')
+  const dot = within(button)
+  expect(dot.queryByRole('img')).toBeNull()
+  update('latest', { completionUnread: true })
+  expect(dot.getByRole('img', { name: en.ui.seatUnread })).toBeTruthy()
+  update('older', { running: true })
+  expect(dot.getByRole('img', { name: en.ui.seatWorking })).toBeTruthy()
+  update('latest', { running: true, pendingInteraction: { kind: 'approval' } })
+  expect(dot.getByRole('img', { name: en.ui.seatApproval })).toBeTruthy()
+  update('older', { completionUnread: true })
+  update('latest', { completionUnread: true })
+  fireEvent.click(button)
+  await screen.findByText('stream:latest')
+  expect(dot.getByRole('img', { name: en.ui.seatUnread })).toBeTruthy()
+  update('older', {})
+  expect(dot.queryByRole('img')).toBeNull()
+  expect(call.mock.calls.filter(([method]) => method === 'listTrainings')).toHaveLength(1)
+  focus.mockRestore()
+})
+
+it('refreshes the role indicator after opening the first training and replacing it', async () => {
+  let sessionId = ''
+  const reopened = Promise.withResolvers<void>()
+  const row = () => ({ roleId: 'designer', trainingId: 'training-' + sessionId, sessionId })
+  const call = vi.fn(async (method: string) => {
+    if (method === 'listRoles') return [{ roleId: 'designer', publishedRevision: null }]
+    if (method === 'listTrainings') return sessionId ? [row()] : []
+    if (method === 'openTraining') {
+      sessionId ||= 'first'
+      if (sessionId === 'replacement') await reopened.promise
+      return row()
+    }
+    if (method === 'createTraining') { sessionId = 'replacement'; return row() }
+    return method === 'readDocument' ? null : []
+  })
+  const h = harness(call)
+  const update = trainingStatus(h.ui)
+  update('first', { running: true })
+  update('replacement', { pendingInteraction: { kind: 'approval' } })
+  h.mount(<App />)
+  fireEvent.click(screen.getByRole('button', { name: en.ui.library }))
+  const dot = within(await screen.findByTitle('designer'))
+  expect(await dot.findByRole('img', { name: en.ui.seatWorking })).toBeTruthy()
+  fireEvent.click(await screen.findByRole('button', { name: en.ui.newTraining }))
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: en.ui.confirm }))
+  expect(await dot.findByRole('img', { name: en.ui.seatApproval })).toBeTruthy()
+  reopened.resolve()
+  await screen.findByText('stream:replacement')
+  update('replacement', {})
+  expect(dot.queryByRole('img')).toBeNull()
+  expect(call.mock.calls.filter(([method]) => method === 'listTrainings')).toHaveLength(3)
+})
+
 it('starts coaching immediately without a team debrief entry', async () => {
   const row = { trainingId: 't', sessionId: 'coach-session', roleId: 'author', mode: 'coach' }
   const call = vi.fn(async (method: string) => {

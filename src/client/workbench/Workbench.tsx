@@ -17,6 +17,7 @@ import {
   IconRefreshOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useActivity, useReadReceipt } from './activity.js'
+import { ActivityLabel } from './ActivityLabel.js'
 import { Fragment, useLayoutEffect, useRef, useState } from 'react'
 import {
   MoreMenu,
@@ -64,7 +65,7 @@ export function Workbench({ roles }: { roles: RoleChoice[] }) {
       <div key={r.runId} className="rt-list-row">
         <HoverCard openDelayMs={350} anchor={<button className="rt-team-select" title={r.title}
           aria-current={id === r.runId ? 'page' : undefined} onClick={() => setSelected(r.runId)}>
-          <TeamActivity title={r.title} ids={r.memberSessionIds ?? []} leader={r.rootSessionId} />
+          <ActivityLabel title={r.title} ids={r.memberSessionIds ?? []} leader={r.rootSessionId} />
         </button>} content={<TeamPreview run={r} />} />
         {r.memberCount !== undefined && <small title={t('members')} className="rt-member-count">{r.memberCount}</small>}
         <MoreMenu
@@ -474,15 +475,6 @@ function MemberBar({ seats, active, target, pickSeat, resetSeat, onReset }: {
     </nav>
   )
 }
-function TeamActivity({ title, ids, leader }: { title: string; ids: string[]; leader: string }) {
-  const { t } = useUi()
-  const status = useActivity(ids, leader, true)
-  return <span className="rt-team-activity" data-unread={status === 'seatUnread' || undefined}>
-    {status !== 'seatIdle' && <span role="img" aria-label={t(status)} title={t(status)} className="rt-seat-dot" data-status={status} />}
-    <span>{title}</span>
-  </span>
-}
-
 function SeatLabel({ seat, active }: { seat: Seat; active: boolean }) {
   const { t } = useUi()
   const status = useActivity(active ? [seat.currentSessionId] : [], '', false)

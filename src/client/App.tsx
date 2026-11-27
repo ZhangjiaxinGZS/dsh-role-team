@@ -32,7 +32,7 @@ export function App() {
     'library',
     async () => {
       const [files, trainings] = await Promise.all([call('listRoles'), call('listTrainings', {})])
-      const rows: LibraryRole[] = await Promise.all(
+      const rows = await Promise.all(
         files.map(async (f) => {
           let name = f.roleId
           if (f.publishedRevision) {
@@ -56,9 +56,18 @@ export function App() {
           }
         }),
       )
-      for (const { roleId } of trainings)
-        if (!rows.some((r) => r.id === roleId)) rows.push({ id: roleId, name: roleId, revision: null })
-      return rows
+      const catalog = new Map<string, LibraryRole & { trainingSessionIds: string[] }>(
+        rows.map(row => [row.id, { ...row, trainingSessionIds: [] }]),
+      )
+      for (const { roleId, sessionId } of trainings) {
+        let row = catalog.get(roleId)
+        if (!row) {
+          row = { id: roleId, name: roleId, revision: null, trainingSessionIds: [] }
+          catalog.set(roleId, row)
+        }
+        row.trainingSessionIds.push(sessionId)
+      }
+      return Array.from(catalog.values())
     },
     6000,
   )
