@@ -50,7 +50,7 @@ export function SessionPane(props: Pane) {
   return <BoundPane key={targetId(props.target)} {...props} />
 }
 export function useRetainedSession(target: SessionTarget) {
-  const { retain } = useUi()
+  const { retain, sessionList } = useUi()
   const [reference, setReference] = useState<SessionReference>(),
     [error, setError] = useState(''),
     [attempt, retry] = useState(0)
@@ -60,6 +60,7 @@ export function useRetainedSession(target: SessionTarget) {
   useEffect(() => {
     let live = true,
       ref: SessionReference | undefined
+    let unsubscribe: (() => void) | undefined
     setReference(undefined)
     setError('')
     try {
@@ -74,13 +75,27 @@ export function useRetainedSession(target: SessionTarget) {
         },
       )
     } catch (e) {
-      setError(String(e))
+      if (e instanceof Error && e.message === `sessions.retain: unknown session ${id}` &&
+          !sessionList.getSnapshot().byId[id]) {
+        const onListChange = () => {
+          if (!live) return
+          const { phase, byId } = sessionList.getSnapshot()
+          if (byId[id]) {
+            unsubscribe?.()
+            unsubscribe = undefined
+            retry((v) => v + 1)
+          } else if (phase === 'ready') setError(String(e))
+        }
+        unsubscribe = sessionList.subscribe(onListChange)
+        onListChange()
+      } else setError(String(e))
     }
     return () => {
       live = false
+      unsubscribe?.()
       ref?.release()
     }
-  }, [id, parent, mode, retain, attempt])
+  }, [id, parent, mode, retain, sessionList, attempt])
   return { reference, error, retry: () => retry((v) => v + 1) }
 }
 function BoundPane({

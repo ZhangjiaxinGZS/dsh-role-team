@@ -22,6 +22,8 @@ import Gateway from '@deepseek-ai/dsh-api-gateway'
 import RemoteAccess from '@deepseek-ai/dsh-api-remote-access'
 import { Context, Service } from '@deepseek-ai/cordis'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
+import AgentRegistry from '@deepseek-ai/dsh-agent'
+import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import {
   LlmAdapter,
@@ -287,6 +289,34 @@ it('shares saved experiences including legacy drafts and isolates team conversat
     service.createTeam({ title: 'bad', roleId, workspaceCwd: join(folder, 'roles') }),
   ).rejects.toThrow(/separate/)
 })
+it('can assemble a retained agent prompt while the role-team host injection is inactive', async () => {
+  const sections = vi.spyOn(SystemPrompt.prototype, 'section')
+  const { run } = await newTeam('Reload')
+  await prompt(run.rootSessionId, 'initialize')
+  const text = sections.mock.calls.find(([section]) => section.name === 'role-team-role')?.[0].text
+  sections.mockRestore()
+  if (typeof text !== 'function') throw new Error('Missing team prompt callback')
+  const [controller] = ctx.registry.get(SessionController)!.fibers
+  await controller.dispose()
+  expect(ctx.get('sessionController')).toBeUndefined()
+  expect(text({})).toContain('rule-one')
+})
+
+it('returns a saved coaching receipt if the agents service unloads during the save', async () => {
+  const training = await service.createTraining({ roleId, workspaceCwd: cwd, mode: 'coach' })
+  await prompt(training.sessionId, 'initialize')
+  const [registry] = ctx.registry.get(AgentRegistry)!.fibers
+  const store = service['roles']
+  const read = store.readSnapshot.bind(store)
+  vi.spyOn(store, 'readSnapshot').mockImplementationOnce(async (...args) => {
+    await registry.dispose()
+    return read(...args)
+  })
+  expect(await tool(training.sessionId, 'update_role', { body: 'saved during reload' })).toMatchObject({ isError: false })
+  expect(ctx.get('agents')).toBeUndefined()
+  expect((await service.readDocument({ roleId }))?.text).toContain('saved during reload')
+})
+
 it('uses the latest published role and memory on the next turn across teams and cold starts', async () => {
   const a = await newTeam('A'),
     b = await newTeam('B')

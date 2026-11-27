@@ -43,6 +43,7 @@ export interface Ui {
     ...args: Parameters<RoleTeamRpc[K]>
   ): ReturnType<RoleTeamRpc[K]>
   retain(target: SessionTarget): SessionReference
+  sessionList: ISessions['list']
   SessionProvider: SessionProviderComponent
   sessionStatus?: import('@deepseek-ai/dsh-client-ui-session/client').UiSession['sessionStatus']
   preview?: WorkspacePreview

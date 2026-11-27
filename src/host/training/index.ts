@@ -359,10 +359,12 @@ export class TrainingRuntime {
             receipt = '已记住经验「' + Array.from(body.split('\n')[0]).slice(0, 80).join('') + '」。'
           }
           snapshot = await loadSnapshot()
-          const turn = agent.ctx.agents.turnBoundaryOf(agent.session).lastTurn
-          if (turn !== pendingTurn) receipts.clear()
-          pendingTurn = turn
-          receipts.add(receipt)
+          const turn = agent.ctx.get('agents')?.turnBoundaryOf(agent.session).lastTurn
+          if (turn !== undefined) {
+            if (turn !== pendingTurn) receipts.clear()
+            pendingTurn = turn
+            receipts.add(receipt)
+          }
           return receipt + reportChanges
         },
       }),

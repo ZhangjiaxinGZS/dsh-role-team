@@ -99,6 +99,7 @@ function mount(ctx: Context) {
       },
     },
     retain: (target) => ctx.sessions.retain(target, options),
+    sessionList: ctx.sessions.list,
     call: (async (method, ...args) => {
       const input =
         method === 'createTeam' || method === 'createTraining' || method === 'openTraining'

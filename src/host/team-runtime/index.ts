@@ -594,11 +594,11 @@ export class TeamRuntime {
     await this.snapshot(seat.roleId, seat.adoptedMemoryRev)
     if (seat.reset) await this.snapshot(seat.roleId, seat.reset.revision)
     let frozen:
-      | { turn: number; role: Snapshot; memory: Snapshot; context: string; adopting: boolean }
+      | { turn: number | undefined; role: Snapshot; memory: Snapshot; context: string; adopting: boolean }
       | undefined
     const view = () => {
-      const turn = this.native.ctx.agents.turnBoundaryOf(agent.session).lastTurn
-      if (frozen?.turn === turn) return frozen
+      const turn = agent.ctx.get('agents')?.turnBoundaryOf(agent.session).lastTurn
+      if (frozen && (turn === undefined || frozen.turn === turn)) return frozen
       const row = current()
       const replacement = row.reset?.sessionId === agent.id ? row.reset.revision : undefined
       const published = replacement === undefined ? this.roles.published(row.roleId) : undefined

@@ -28,7 +28,7 @@ import { DocumentEditor, Documents, EditorBuffers } from '../src/client/roles/Do
 import { TeamSetup } from '../src/client/team-setup/TeamSetup.js'
 import { roleMeta } from '../src/shared/index.js'
 import { parseMarkdown, serializeMarkdown } from '../src/shared/markdown.js'
-import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionListState, SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 // The browser supplies the shared menu. Exercise the catalog and selection callbacks here.
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
   HoverCard: ({ anchor }: { anchor: ReactNode }) => <span>{anchor}</span>,
@@ -203,6 +203,7 @@ function harness(call: ReturnType<typeof vi.fn>) {
     )
   }
   const ui: Ui = {
+    sessionList: sessionCatalog('ready'),
     t: (key) => en.ui[key],
     call: call as Ui['call'],
     SessionProvider: ({ session, children }) => (
@@ -254,6 +255,52 @@ function harness(call: ReturnType<typeof vi.fn>) {
     openView,
   }
 }
+function sessionCatalog(phase: SessionListState['phase']) {
+  let snapshot: SessionListState = { phase, ids: [], byId: {}, projectionsBySession: {} }
+  const listeners = new Set<() => void>()
+  return {
+    get listenerCount() { return listeners.size },
+    getSnapshot: () => snapshot,
+    subscribe(fn: () => void) { listeners.add(fn); return () => listeners.delete(fn) },
+    hydrate(id?: SessionReference['sessionId']) {
+      snapshot = { ...snapshot, phase: 'ready', ids: id ? [id] : [], byId: id ? {
+        [id]: { id, displayTitle: id, blank: true, running: false, updatedAt: 0, retainedBy: {} },
+      } : {} }
+      for (const fn of listeners) fn()
+    },
+  }
+}
+it.each(['appears', 'late', 'missing', 'unmount'] as const)('restores a pane during catalog hydration: %s', async (outcome) => {
+  const h = harness(vi.fn())
+  const id = 'restored' as SessionReference['sessionId']
+  const list = sessionCatalog('pending')
+  h.ui.sessionList = list
+  const retain = vi.spyOn(h.ui, 'retain').mockImplementationOnce(() => {
+    throw new Error('sessions.retain: unknown session ' + id)
+  })
+  const pane = h.mount(<SessionPane target={id} />)
+  expect(screen.getByText(en.ui.loading)).toBeTruthy()
+  expect(screen.queryByText(en.ui.retry)).toBeNull()
+  if (outcome === 'unmount') pane.unmount()
+  act(() => list.hydrate(outcome === 'missing' || outcome === 'late' ? undefined : id))
+  if (outcome === 'unmount') {
+    expect(retain).toHaveBeenCalledTimes(1)
+    expect(list.listenerCount).toBe(0)
+    return
+  }
+  if (outcome === 'missing' || outcome === 'late') {
+    expect(screen.getByText(/unknown session restored/)).toBeTruthy()
+    expect(retain).toHaveBeenCalledTimes(1)
+    if (outcome === 'missing') fireEvent.click(screen.getByRole('button', { name: en.ui.retry }))
+    else act(() => list.hydrate(id))
+  }
+  expect(await screen.findByText('stream:' + id)).toBeTruthy()
+  expect(retain).toHaveBeenCalledTimes(2)
+  expect(list.listenerCount).toBe(0)
+  pane.unmount()
+  expect(h.releases.get(id)).toHaveBeenCalledOnce()
+})
+
 it('uses the native preset chip as the only label and preserves preset selection in a blank chat', async () => {
   const h = harness(vi.fn())
   const select = vi.fn(async () => 'standard')
