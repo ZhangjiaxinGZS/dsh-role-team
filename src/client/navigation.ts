@@ -28,6 +28,14 @@ function remember(key: string, value: string) {
   }
 }
 
+export function wasInRoleWorkspace() {
+  return read('workspace') === 'true'
+}
+
+export function rememberRoleWorkspace(active: boolean) {
+  remember('workspace', String(active))
+}
+
 export function useNavigation<K extends keyof Navigation>(key: K) {
   const [value, update] = useState<Navigation[K]>(() => {
     const saved = read(key)

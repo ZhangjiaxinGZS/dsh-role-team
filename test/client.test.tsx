@@ -1047,7 +1047,7 @@ it('preserves independent scroll offsets when React replaces the preview outlet'
     select(outlet)
   }
   const services = {
-    layout: { panelInfo: { getSnapshot: () => ({ activePanelId: 'role-team' }) },
+    layout: { panelInfo: { getSnapshot: () => ({ activePanelId: 'role-team' }), subscribe: () => () => {} },
       beginNavigation: () => new AbortController().signal, selectPanel: navigate },
     sidebarRight: {}, uiWorkspace: { openSession: () => navigate('conversation') },
   }
@@ -1142,6 +1142,87 @@ it('releases the conversation outlet on native navigation and never closes anoth
   preview.leave('child')
   expect(panel).toBe('role-team')
   expect(remove).toHaveBeenCalledTimes(2)
+})
+
+function panelHost(initialPanel: string | null = null) {
+  let panel = initialPanel
+  let signal = new AbortController()
+  const listeners = new Set<() => void>()
+  const registered = new Set<string>()
+  const disposers: (() => void)[] = []
+  const selectPanel = vi.fn((next: string | null) => {
+    if (next === 'role-team') expect(registered.has(next)).toBe(true)
+    signal.abort()
+    if (next === panel) return
+    panel = next
+    for (const listener of listeners) listener()
+  })
+  const services = {
+    layout: {
+      panelInfo: {
+        getSnapshot: () => ({ activePanelId: panel }),
+        subscribe(listener: () => void) { listeners.add(listener); return () => listeners.delete(listener) },
+      },
+      selectPanel,
+      beginNavigation() { signal.abort(); signal = new AbortController(); return signal.signal },
+    },
+    sidebarRight: {},
+    uiWorkspace: { openSession() { selectPanel(null) } },
+  }
+  const preview = registerPreviewWorkspace({
+    get: (key: keyof typeof services) => services[key],
+    slots: {
+      inject: (_: string, install: () => () => void) => disposers.push(install()),
+      register: ({ key }: { key: string }) => {
+        registered.add(key)
+        return () => registered.delete(key)
+      },
+    },
+    effect: (install: () => () => void) => disposers.push(install()),
+  } as unknown as Context, () => null)
+  return { preview, selectPanel, dispose() { disposers.reverse().forEach(dispose => dispose()) } }
+}
+
+it('restores the role workspace once, including a conversation outlet owned by its preview', () => {
+  installTestStorage()
+  const key = 'dsh.roleTeam.navigation.workspace'
+  localStorage.setItem(key, 'false')
+  const first = panelHost()
+  expect(first.selectPanel).not.toHaveBeenCalled()
+  first.selectPanel('role-team')
+  expect(localStorage.getItem(key)).toBe('true')
+  first.preview.activate(sessionTarget('lead'))
+  expect(first.selectPanel).toHaveBeenLastCalledWith(null)
+  expect(localStorage.getItem(key)).toBe('true')
+  first.dispose()
+  expect(localStorage.getItem(key)).toBe('true')
+
+  const second = panelHost()
+  expect(second.selectPanel.mock.calls).toEqual([['role-team']])
+  second.preview.activate(sessionTarget('lead'))
+  second.selectPanel(null) // Ordinary session, same null outlet; only the navigation signal changes.
+  expect(localStorage.getItem(key)).toBe('false')
+  second.dispose()
+  const third = panelHost()
+  expect(third.selectPanel).not.toHaveBeenCalled()
+  third.selectPanel('role-team')
+  third.selectPanel('settings')
+  expect(localStorage.getItem(key)).toBe('false')
+  third.dispose()
+})
+
+it.each([
+  { panel: 'settings', interacted: false },
+  { panel: null, interacted: true },
+])('yields to navigation before the main slot registers ($panel, interacted=$interacted)', ({ panel, interacted }) => {
+  installTestStorage()
+  const key = 'dsh.roleTeam.navigation.workspace'
+  localStorage.setItem(key, 'true')
+  vi.stubGlobal('navigator', { userActivation: { hasBeenActive: interacted } })
+  const host = panelHost(panel)
+  expect(host.selectPanel).not.toHaveBeenCalled()
+  expect(localStorage.getItem(key)).toBe('false')
+  host.dispose()
 })
 
 it('opens the default session, follows native collapse, and reopens the last member preview', async () => {

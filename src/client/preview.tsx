@@ -6,13 +6,13 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { SessionTarget, WorkspacePreview } from './ui.js'
+import { rememberRoleWorkspace, wasInRoleWorkspace } from './navigation.js'
 
 const rolePanel = 'role-team' as MainPanelId
 
 type WorkspaceProps = PropsRenderSlots<'roleTeam.chat'> & PropsLocale<'roleTeam'>
 
 export function registerPreviewWorkspace(ctx: Context, Main: ComponentType<WorkspaceProps>): WorkspacePreview {
-  const layout = ctx.get('layout')
   const content = document.createElement('div')
   content.className = 'rt-workspace-host'
   const listeners = new Set<() => void>()
@@ -81,13 +81,47 @@ export function registerPreviewWorkspace(ctx: Context, Main: ComponentType<Works
       Workspace,
     ),
   )
-  ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: rolePanel }, Center))
 
   let removeCenter: (() => void) | undefined
   let current: string | undefined
   let navigation: AbortSignal | undefined
+  let trackPanel: (() => void) | undefined
+  let firstMain = true
+  ctx.slots.inject('main', () => {
+    const layout = ctx.get('layout')
+    const unregister = ctx.slots.register({ name: 'main', key: rolePanel }, Center)
+    if (!layout) return unregister
+    const panel = () => layout.panelInfo.getSnapshot().activePanelId
+    let active = wasInRoleWorkspace()
+    // rc.5 restores the native session with "preserve". Select once, after the
+    // main key exists, and yield to any user interaction before plugin startup.
+    if (firstMain && active && panel() === null && !navigator.userActivation?.hasBeenActive) {
+      layout.selectPanel(rolePanel)
+    }
+    firstMain = false
+    trackPanel = () => {
+      const selected = panel()
+      const next = selected === rolePanel || (selected === null && !!removeCenter)
+      if (active !== next) {
+        active = next
+        rememberRoleWorkspace(next)
+      }
+    }
+    trackPanel()
+    const unsubscribe = layout.panelInfo.subscribe(trackPanel)
+    return () => {
+      unsubscribe()
+      trackPanel = undefined
+      unregister()
+    }
+  })
+  function leavePreview() {
+    release()
+    // Opening an ordinary session from preview keeps activePanelId at null.
+    trackPanel?.()
+  }
   function release() {
-    navigation?.removeEventListener('abort', release)
+    navigation?.removeEventListener('abort', leavePreview)
     navigation = undefined
     current = undefined
     removeCenter?.()
@@ -105,6 +139,7 @@ export function registerPreviewWorkspace(ctx: Context, Main: ComponentType<Works
   let defaultTarget: SessionTarget | undefined
 
   function activate(target: SessionTarget) {
+    const layout = ctx.get('layout')
     const id = typeof target === 'string' ? target : target.childSessionId
     const workspace = ctx.get('uiWorkspace') as { openSession(target: SessionTarget): void } | undefined
     if (!layout || !workspace || !ctx.get('sidebarRight') || current === id) return
@@ -113,15 +148,15 @@ export function registerPreviewWorkspace(ctx: Context, Main: ComponentType<Works
     // sidebar's session/store before allowing the gesture to reach those handlers.
     rememberScroll()
     flushSync(() => {
-      navigation?.removeEventListener('abort', release)
+      navigation?.removeEventListener('abort', leavePreview)
       removeCenter ??= ctx.slots.register({ name: 'main', key: 'conversation', priority: -10 }, Center)
       try {
         workspace.openSession(target)
         current = id
         navigation = layout.beginNavigation()
-        navigation.addEventListener('abort', release, { once: true })
+        navigation.addEventListener('abort', leavePreview, { once: true })
       } catch (error) {
-        release()
+        leavePreview()
         throw error
       }
     })
@@ -141,7 +176,7 @@ export function registerPreviewWorkspace(ctx: Context, Main: ComponentType<Works
     },
     subscribe(listener) {
       const off = subscribe(listener)
-      const offLayout = layout?.panelInfo.subscribe(listener)
+      const offLayout = ctx.get('layout')?.panelInfo.subscribe(listener)
       const offKeys = catalog?.subscribe(listener)
       return () => { off(); offLayout?.(); offKeys?.() }
     },
@@ -165,6 +200,7 @@ export function registerPreviewWorkspace(ctx: Context, Main: ComponentType<Works
       if (current) rail.toggleExpanded()
     },
     leave(id: string) {
+      const layout = ctx.get('layout')
       if (layout && current === id) {
         rememberScroll()
         layout.selectPanel(rolePanel)
