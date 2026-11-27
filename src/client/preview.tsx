@@ -24,8 +24,42 @@ export function registerPreviewWorkspace(ctx: Context, Main: ComponentType<Works
     return () => { listeners.delete(listener) }
   }
   const attached = () => content.isConnected
+  type ScrollPosition = { element: Element; top: number; left: number }
+  let positions: ScrollPosition[] | undefined
+  function rememberScroll() {
+    if (positions || !content.isConnected) return
+    const snapshot: ScrollPosition[] = []
+    const record = (element: Element) => {
+      const { scrollTop: top, scrollLeft: left } = element
+      if (top || left) snapshot.push({ element, top, left })
+    }
+    record(content)
+    content.querySelectorAll('*').forEach(record)
+    positions = snapshot
+    // React detaches the old ref and attaches the new one in the same commit.
+    // Drop unused offsets if navigation reused the outlet or left the workspace.
+    queueMicrotask(() => { if (positions === snapshot) positions = undefined })
+  }
   function attach(element: HTMLDivElement | null) {
-    if (element) element.append(content)
+    if (!element) {
+      rememberScroll()
+    } else if (element !== content.parentElement) {
+      rememberScroll()
+      if (
+        content.isConnected && element.isConnected && content.ownerDocument === element.ownerDocument &&
+        'moveBefore' in element && typeof element.moveBefore === 'function'
+      ) {
+        element.moveBefore(content, null)
+      } else {
+        element.append(content)
+      }
+      for (const { element: scroller, top, left } of positions ?? []) {
+        if (scroller.scrollTop !== top || scroller.scrollLeft !== left) {
+          scroller.scrollTo({ top, left, behavior: 'instant' })
+        }
+      }
+      positions = undefined
+    }
     // A transition between center outlets moves the same portal in this commit.
     // After a genuine departure, unmount the workspace and release its session references.
     queueMicrotask(notify)
@@ -77,6 +111,7 @@ export function registerPreviewWorkspace(ctx: Context, Main: ComponentType<Works
     if (!removeCenter && layout.panelInfo.getSnapshot().activePanelId !== rolePanel) return
     // Native click handlers can call openResource synchronously. Commit the native
     // sidebar's session/store before allowing the gesture to reach those handlers.
+    rememberScroll()
     flushSync(() => {
       navigation?.removeEventListener('abort', release)
       removeCenter ??= ctx.slots.register({ name: 'main', key: 'conversation', priority: -10 }, Center)
@@ -130,7 +165,10 @@ export function registerPreviewWorkspace(ctx: Context, Main: ComponentType<Works
       if (current) rail.toggleExpanded()
     },
     leave(id: string) {
-      if (layout && current === id) layout.selectPanel(rolePanel)
+      if (layout && current === id) {
+        rememberScroll()
+        layout.selectPanel(rolePanel)
+      }
     },
   }
 }

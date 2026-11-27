@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 import { RoleLibrary } from '../src/client/roles/RoleLibrary.js'
-import { createContext, useContext, type ComponentProps, type ReactNode } from 'react'
+import { createContext, useContext, useState, type ComponentType, type ComponentProps, type ReactNode } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import en from '../locales/en-US.json' with { type: 'json' }
@@ -1034,6 +1034,72 @@ it('routes preview gestures to the originating session before native actions run
   expect(observed).toEqual(['member-session', 'member-session'])
   view.unmount()
   expect(leave).toHaveBeenCalledWith('member-session')
+})
+
+it('preserves independent scroll offsets when React replaces the preview outlet', async () => {
+  let Center!: ComponentType
+  let Workspace!: ComponentType
+  let select!: (outlet: string) => void
+  let resetOffsets = () => {}
+  const navigate = (outlet: string) => {
+    // Host layout may already have hidden the old outlet before its ref detaches.
+    resetOffsets()
+    select(outlet)
+  }
+  const services = {
+    layout: { panelInfo: { getSnapshot: () => ({ activePanelId: 'role-team' }) },
+      beginNavigation: () => new AbortController().signal, selectPanel: navigate },
+    sidebarRight: {}, uiWorkspace: { openSession: () => navigate('conversation') },
+  }
+  const ctx = {
+    get: (key: keyof typeof services) => services[key],
+    slots: {
+      inject: (_: string, install: () => void) => install(),
+      register: ({ name }: { name: string }, component: ComponentType) => {
+        if (name === 'main') Center = component
+        else Workspace = component
+        return () => {}
+      },
+    },
+    effect: vi.fn(),
+  }
+  const preview = registerPreviewWorkspace(ctx as unknown as Context, () =>
+    <><aside data-testid="teams" /><article><section data-testid="chat" /></article></>)
+  function Shell() {
+    const [outlet, setOutlet] = useState('role-team')
+    select = setOutlet
+    return <><main><Center key={outlet} /></main><Workspace /></>
+  }
+  render(<Shell />)
+  const teams = await screen.findByTestId('teams')
+  const chat = screen.getByTestId('chat')
+  const host = teams.parentElement!
+  const scrollers = [host, teams, chat]
+  for (const el of scrollers) {
+    // jsdom has no scrolling layout or Element.scrollTo implementation.
+    Object.assign(el, {
+      scrollTo({ top = 0, left = 0 }: ScrollToOptions) {
+        el.scrollTop = top
+        el.scrollLeft = left
+      },
+    })
+  }
+  resetOffsets = () => scrollers.forEach(el => { el.scrollTop = 0; el.scrollLeft = 0 })
+  const outlet = screen.getByRole('main')
+  const remove = outlet.removeChild.bind(outlet)
+  vi.spyOn(outlet, 'removeChild').mockImplementation(node => { resetOffsets(); return remove(node) })
+
+  const target = sessionTarget('root')
+  const transitions = [() => preview.activate(target), () => preview.leave('root'), () => select('external')]
+  for (const [index, transition] of transitions.entries()) {
+    const oldCenter = host.parentElement
+    const offsets = [[0, 14], [205 + index, 0], [780, 42 + index]]
+    scrollers.forEach((el, i) => { [el.scrollTop, el.scrollLeft] = offsets[i] })
+    await act(transition)
+    expect(host.parentElement).not.toBe(oldCenter)
+    expect(screen.getByTestId('chat')).toBe(chat)
+    expect(scrollers.map(el => [el.scrollTop, el.scrollLeft])).toEqual(offsets)
+  }
 })
 
 it('releases the conversation outlet on native navigation and never closes another pane’s preview', () => {
