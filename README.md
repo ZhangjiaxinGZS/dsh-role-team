@@ -22,20 +22,20 @@
 
 ### 安装与上手
 
-需要 DeepSeek Harness 0.2.2-rc.5（或兼容的 0.2.x）及 Node.js 24.9+。从 [v0.3.1 Release](https://github.com/ZhangjiaxinGZS/dsh-role-team/releases/tag/v0.3.1) 下载压缩包和校验文件，放在固定目录，在该目录执行下方命令。Desktop 与 Web 分别安装，选择你使用的端即可。
+需要 DeepSeek Harness 0.2.2-rc.5（或兼容的 0.2.x）及 Node.js 24.9+。从 [v0.3.2 Release](https://github.com/ZhangjiaxinGZS/dsh-role-team/releases/tag/v0.3.2) 下载压缩包和校验文件，放在固定目录，在该目录执行下方命令。Desktop 与 Web 分别安装，选择你使用的端即可。
 
 ```sh
 shasum -a 256 -c SHA256SUMS.txt
-dsh plugin --profile web add "$PWD/dsh-role-team-0.3.1.tgz"
+dsh plugin --profile web add "$PWD/dsh-role-team-0.3.2.tgz"
 # macOS Desktop
-"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop add "$PWD/dsh-role-team-0.3.1.tgz"
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop add "$PWD/dsh-role-team-0.3.2.tgz"
 ```
 
 1. 重启宿主，打开「角色团队 → 角色库与培养」，新建角色并填写职责。
 2. 在培养对话中让角色记住一条经验。在「角色设定」中查看保存的内容。
 3. 打开「团队工作台」，新建团队，选择队长、成员和工作目录。向队长发送任务，或用 `@` 指定成员。
 
-本次发布通过 GitHub 分发。以后若同版本发布至 npm，Web 可使用 `dsh plugin --profile web add dsh-role-team@0.3.1` 按包名安装。也可从源码运行 `npm ci` 和 `npm pack` 自行构建。
+本次发布通过 GitHub 分发。以后若同版本发布至 npm，Web 可使用 `dsh plugin --profile web add dsh-role-team@0.3.2` 按包名安装。也可从源码运行 `npm ci` 和 `npm pack` 自行构建。
 
 ## English
 
@@ -55,7 +55,7 @@ The team panel has three tabs for the shared brief, task board and schedules. Br
 
 ### Install and start
 
-Use DeepSeek Harness 0.2.2-rc.5 or a compatible 0.2.x host and Node.js 24.9+. Download the tarball and checksum from the [v0.3.1 release](https://github.com/ZhangjiaxinGZS/dsh-role-team/releases/tag/v0.3.1). Keep both in a stable directory. Run the checksum and profile-specific install commands above from that directory, then restart the host. For a source build, run `npm ci` and `npm pack`. Registry installation with `dsh plugin --profile web add dsh-role-team@0.3.1` requires a future npm publication.
+Use DeepSeek Harness 0.2.2-rc.5 or a compatible 0.2.x host and Node.js 24.9+. Download the tarball and checksum from the [v0.3.2 release](https://github.com/ZhangjiaxinGZS/dsh-role-team/releases/tag/v0.3.2). Keep both in a stable directory. Run the checksum and profile-specific install commands above from that directory, then restart the host. For a source build, run `npm ci` and `npm pack`. Registry installation with `dsh plugin --profile web add dsh-role-team@0.3.2` requires a future npm publication.
 
 1. Open **Role teams → Roles & training** and create a role with a short description.
 2. Ask the role to remember a lesson. Open **Role settings** to review what it saved.
