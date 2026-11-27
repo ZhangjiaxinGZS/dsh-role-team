@@ -1,3 +1,4 @@
+import { registerTrainingChangeTail } from './roles/TrainingChangeTail.js'
 import type {
   ConversationStore,
   ConversationSessionHeaderInjected,
@@ -77,6 +78,7 @@ function mount(ctx: Context) {
       'remote.agentPresets',
     ) as import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['agentPresets']
   const shared: Ui = {
+    get language(): 'zh' | 'en' { return ctx.locale.getLocale().active === 'zh' ? 'zh' : 'en' },
     t,
     get sessionStatus() { return ctx.get('uiSession')?.sessionStatus },
     presets: {
@@ -119,6 +121,7 @@ function mount(ctx: Context) {
   ctx.inject(['uiSession'], scope => scope.effect(() => observeCompletions(scope.uiSession.sessionStatus)))
   registerTeamTrigger(ctx, shared.call, t)
   registerTeamReportTail(ctx, shared)
+  registerTrainingChangeTail(ctx, shared)
   function Main({
     SessionProvider,
     renderSlot,

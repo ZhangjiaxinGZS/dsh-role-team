@@ -41,6 +41,7 @@ export default defineConfig([
       '@deepseek-ai/dsh-client-ui-primitives',
     ],
     noExternal: [
+      'diff',
       /^yaml/,
       '@deepseek-ai/dsh-agent-preset-registry/display',
       /^@deepseek-ai\/dsh-typert-protocol/,

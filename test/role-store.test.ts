@@ -221,6 +221,20 @@ it('rejects links at the role, memory directory, document and snapshot boundarie
   await expect(store.readSnapshot(roleId, 1)).rejects.toThrow()
 })
 
+it('derives summaries for existing snapshots and attributes a role change to its actual revision', async () => {
+  await save(card)
+  await save(memory('published'), null, 'budget')
+  const change = serializeMarkdown({ ...role, summary: 'New duty' }, '## New section\nNext step')
+  const current = await store.readDocument({ roleId })
+  await save(change, current!.hash)
+  await save(serializeMarkdown({ ...role, name: 'Renamed' }, 'Final'), digest(change))
+  const rows = await store.roleHistory(roleId)
+  expect(rows.map(row => row.publishedRevision)).toEqual([3, 1])
+  expect(rows[0].changeSummary.zh).toContain('更新职责简介')
+  expect(rows[0].changeSummary.en).toContain('New section')
+  expect(rows[1].changeSummary).toEqual({ zh: '初始版本', en: 'Initial version' })
+})
+
 it('restores a recent distinct role setting as a new revision, preserving experience and checking for conflicts', async () => {
   let hash: string | null = null
   for (let i = 1; i <= 13; i++) {
@@ -231,6 +245,8 @@ it('restores a recent distinct role setting as a new revision, preserving experi
   await save(memory('published'), null, 'budget')
   const history = await store.roleHistory(roleId)
   expect(history.map((s) => s.publishedRevision)).toEqual([12, 11, 10, 9, 8, 7, 6, 5, 4, 3])
+  expect(history.at(-1)?.changeSummary.zh).toContain('更新职责简介')
+  expect(history.at(-1)?.changeSummary.en).toContain('Updated duty summary')
   expect(await store.restoreRole(roleId, 4, digest('stale'))).toMatchObject({
     ok: false,
     code: 'conflict',

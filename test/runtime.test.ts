@@ -1088,19 +1088,30 @@ it('applies the chosen native team preset to the root and its fresh child, and l
   await expect(ctx.agentPresets.select(result.agent, 'ordinary')).rejects.toThrow(/already started/)
 })
 
-it('asks once for the Chinese report when a coaching turn would close without it', async () => {
+it('emits no change metadata for repeated identical coaching writes', async () => {
+  const coach = await service.createTraining({ roleId, mode: 'coach' })
+  await prompt(coach.sessionId, 'initialize')
+  for (const [name, args] of [
+    ['update_role', { body: 'Confirmed instruction' }],
+    ['remember_experience', { body: 'Confirmed lesson' }],
+  ] as const) {
+    expect(await tool(coach.sessionId, name, args)).toMatchObject({ isError: false, meta: { kind: 'role-team-change' } })
+    expect(await tool(coach.sessionId, name, args)).toMatchObject({ isError: false, meta: null })
+  }
+})
+
+it('keeps coaching confirmations brief and persists the change without forcing another turn', async () => {
   const coach = await service.createTraining({ roleId, mode: 'coach', locale: 'zh' })
   let invoked = false
   model.pause = async (req) => {
     if (req.sessionId !== coach.sessionId || invoked) return
     invoked = true
     const saved = await tool(coach.sessionId, 'remember_experience', { body: '先确认来源。' })
-    expect(JSON.stringify(saved)).toContain('必须在本轮最终回复正文中用中文')
+    expect(saved).toMatchObject({ isError: false, meta: { kind: 'role-team-change', changes: [{ field: 'newExperience', body: '先确认来源。' }] } })
   }
   await prompt(coach.sessionId, '请记住经验')
   const requests = model.requests.filter((r) => r.sessionId === coach.sessionId)
-  expect(requests).toHaveLength(2)
-  expect(JSON.stringify(requests.at(-1)?.messages)).toContain('已记住经验「先确认来源。」')
+  expect(requests).toHaveLength(1)
   expect(await service.listMemories(roleId)).toHaveLength(1)
 })
 
@@ -1150,6 +1161,9 @@ it('executes all coaching tools in the native PTC Node runtime and records succe
     ['mcp__chrome-devtools__list_pages', false],
     ['update_role', true],
   ])
+  expect(calls[0].meta).toMatchObject({ revision: 2, changes: [{ field: 'body', hunks: [{ lines: ['-rule-one', '+Check the evidence.'] }] }] })
+  expect(calls[1].meta).toMatchObject({ revision: 3, changes: [{ field: 'newExperience', body: 'Verify every source.' }] })
+  expect(calls[2].meta).toMatchObject({ revision: 4, changes: [{ field: 'revisedExperience', title: 'Sources', body: 'Prefer original sources.' }] })
   expect(calls.at(-1)?.arguments).toMatchObject({ name: 'lead' })
   expect(JSON.stringify(calls.at(-1)?.content)).toContain('系统名称')
 })

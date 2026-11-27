@@ -1,3 +1,4 @@
+import { roleDiff } from '../../shared/role-diff.js'
 import { randomUUID } from 'node:crypto'
 import { watch, type FSWatcher } from 'node:fs'
 import { mkdir, readdir, realpath, rename, unlink } from 'node:fs/promises'
@@ -172,14 +173,22 @@ export class RoleStore {
     return this.locked(async () => {
       const dir = await this.rolePath(roleId)
       const head = await this.latest(dir)
-      const history: Pick<Snapshot, 'role' | 'publishedAt' | 'publishedRevision'>[] = []
+      const history: (Pick<Snapshot, 'role' | 'publishedAt' | 'publishedRevision'> & {
+        changeSummary: { en: string; zh: string }
+      })[] = []
       if (!head) return history
-      let last = (await this.snapshot(dir, roleId, head)).role
-      for (let rev = head - 1; rev >= 1 && history.length < 10; rev--) {
-        const { role, publishedAt, publishedRevision } = await this.snapshot(dir, roleId, rev)
-        if (JSON.stringify(role) === JSON.stringify(last)) continue
-        history.push({ role, publishedAt, publishedRevision })
-        last = role
+      let current = await this.snapshot(dir, roleId, head)
+      let past = false
+      for (let rev = head - 1; rev >= 0 && history.length < 10; rev--) {
+        const previous = rev ? await this.snapshot(dir, roleId, rev) : undefined
+        if (!previous || JSON.stringify(previous.role) !== JSON.stringify(current.role)) {
+          if (past) {
+            const { role, publishedRevision, publishedAt } = current
+            history.push({ role, publishedRevision, publishedAt, changeSummary: roleDiff(previous?.role, role).summary })
+          }
+          past = true
+        }
+        if (previous) current = previous
       }
       return history
     })
@@ -322,8 +331,12 @@ export class RoleStore {
     })
   }
   async saveDocument(input: EditRequest) {
+    const { unchanged, ...result } = await this.saveDocumentWithOutcome(input)
+    return result
+  }
+  saveDocumentWithOutcome(input: EditRequest) {
     const edit = editRequest.parse(input)
-    return this.change(edit, edit.text)
+    return this.locked(() => this.changeLocked(edit, edit.text, false))
   }
   async deleteDocument(input: DeleteRequest) {
     const ref = deleteRequest.parse(input)
@@ -362,12 +375,12 @@ export class RoleStore {
     ref: FileRef & { expectedHash: string | null },
     proposed: string | null,
     restore: boolean,
-  ): Promise<EditResult> {
+  ): Promise<EditResult & { unchanged?: true }> {
     const create = ref.expectedHash === null
     const { roleId, memoryId } = ref
     if (await this.retiredRole(roleId)) throw new Error('Role ID is retired: ' + roleId)
     const existingPath = await this.documentPath(ref)
-    const check = async (): Promise<EditResult | null> => {
+    const check = async (): Promise<(EditResult & { unchanged?: true }) | null> => {
       const current = await readFileText(existingPath)
       if (
         !restore &&
@@ -377,7 +390,7 @@ export class RoleStore {
       ) {
         const status = await this.publish(roleId)
         if (status.error) return { ok: false, code: 'invalid', error: status.error }
-        return { ok: true, hash: current.hash, status }
+        return { ok: true, hash: current.hash, status, unchanged: true }
       }
       return (current?.hash ?? null) === ref.expectedHash
         ? null

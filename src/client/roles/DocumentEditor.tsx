@@ -1,3 +1,5 @@
+import { roleDiff } from '../../shared/role-diff.js'
+import { RoleDiffView } from './RoleDiffView.js'
 import {
   Button,
   IconEditOutlineRegular,
@@ -237,6 +239,7 @@ export function Documents({
         <RoleHistory
           roleId={roleId}
           hash={panel.hash}
+          current={role.data?.profile}
           dirty={() => !!buffers?.has(roleId + '/role.md')}
           done={() => {
             read()
@@ -335,66 +338,81 @@ export function Documents({
 function RoleHistory({
   roleId,
   hash,
+  current,
   dirty,
   done,
 }: {
   roleId: string
+  current?: { meta: RoleMeta; body: string }
   hash: string
   dirty: () => boolean
   done: () => void
 }) {
-  const { call, t } = useUi(),
+  const { call, t, language = 'en' } = useUi(),
     action = useAction()
   const rows = useLoad(roleId, () => call('roleHistory', { roleId }))
   const [revision, select] = useState<number>()
   const entry = rows.data?.find((r) => r.publishedRevision === revision) ?? rows.data?.[0]
+  const [full, setFull] = useState(false)
+  const diff = useMemo(() => current && entry ? roleDiff(current, entry.role) : undefined, [current, entry])
   return (
     <section className="rt-history" aria-label={t('roleHistory')}>
       <Notice>{rows.error || action.error}</Notice>
       {entry ? (
         <>
-          <ol className="rt-history-list" aria-label={t('revision')}>
-            {rows.data?.map((r) => (
-              <li key={r.publishedRevision}>
-                <button
-                  aria-pressed={r.publishedRevision === entry.publishedRevision}
-                  onClick={() => select(r.publishedRevision)}
-                >
-                  {t('revision')} {r.publishedRevision} · {new Date(r.publishedAt).toLocaleString()}
-                  <small>{r.role.meta.summary || r.role.meta.name}</small>
-                </button>
-              </li>
-            ))}
-          </ol>
+          <div className="rt-history-index">
+            <h3>{t('versions')}</h3>
+            <ol className="rt-history-list" aria-label={t('revision')}>
+              {rows.data?.map((r) => (
+                <li key={r.publishedRevision}>
+                  <button
+                    aria-pressed={r.publishedRevision === entry.publishedRevision}
+                    onClick={() => select(r.publishedRevision)}
+                  >
+                    {t('revision')} {r.publishedRevision} · {new Date(r.publishedAt).toLocaleString()}
+                    <small>{r.changeSummary[language]}</small>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </div>
           <article className="rt-history-preview">
-            <h2>{entry.role.meta.name}</h2>
-            {entry.role.meta.summary && <p className="rt-duty">{entry.role.meta.summary}</p>}
-            {entry.role.body && <Markdown text={entry.role.body} />}
-          </article>
-          <footer>
-            <button
-              className="rt-primary"
-              disabled={action.busy}
-              onClick={() =>
-                action.run(async () => {
-                  if (dirty()) throw new Error(t('finishEditing'))
-                  const result = await call('restoreRole', {
-                    roleId,
-                    revision: entry.publishedRevision,
-                    expectedHash: hash,
+            <header>
+              <h3>{t('versionPreview')} · {t('revision')} {entry.publishedRevision}</h3>
+              <div className="rt-history-modes" role="group" aria-label={t('versionPreview')}>
+                <button aria-pressed={!full} onClick={() => setFull(false)}>{t('diffCurrent')}</button>
+                <button aria-pressed={full} onClick={() => setFull(true)}>{t('fullVersion')}</button>
+              </div>
+              <button
+                className="rt-primary"
+                disabled={action.busy}
+                onClick={() =>
+                  action.run(async () => {
+                    if (dirty()) throw new Error(t('finishEditing'))
+                    const result = await call('restoreRole', {
+                      roleId,
+                      revision: entry.publishedRevision,
+                      expectedHash: hash,
+                    })
+                    if (!result.ok)
+                      throw new Error(
+                        result.code === 'conflict' ? t('restoreConflict') : result.error.message,
+                      )
+                    if (result.status.error) throw new Error(result.status.error.message)
+                    done()
                   })
-                  if (!result.ok)
-                    throw new Error(
-                      result.code === 'conflict' ? t('restoreConflict') : result.error.message,
-                    )
-                  if (result.status.error) throw new Error(result.status.error.message)
-                  done()
-                })
-              }
-            >
-              {t('restoreRole')}
-            </button>
-          </footer>
+                }
+              >
+                {t('restoreRole')}
+              </button>
+            </header>
+            <div className="rt-history-content">
+              {full ? <ProfileFields meta={entry.role.meta} body={entry.role.body} /> :
+                diff ? <RoleDiffView changes={diff.changes} t={t} /> : <Notice>{t('noComparison')}</Notice>}
+              {full && entry.role.meta.defaultModel && <p>{t('defaultModel')} · {Object.values(entry.role.meta.defaultModel).join(' / ')}</p>}
+              {full && entry.role.meta.defaultPermission && <p>{t('defaultPermission')} · {entry.role.meta.defaultPermission}</p>}
+            </div>
+          </article>
         </>
       ) : (
         <p>{t(rows.data ? 'noVersions' : 'loading')}</p>

@@ -38,6 +38,7 @@ export interface WorkspacePreview {
   toggle(): void
 }
 export interface Ui {
+  language?: 'zh' | 'en'
   call<K extends keyof RoleTeamRpc>(
     method: K,
     ...args: Parameters<RoleTeamRpc[K]>

@@ -1,3 +1,4 @@
+import { bilingual } from './role-diff.js'
 import { z } from 'zod'
 import {
   fileId,
@@ -39,7 +40,7 @@ export const runtimeMethods = {
   deleteRole: [z.strictObject({ roleId: fileId, expectedHash: hash.nullable() }), editResult],
   roleHistory: [
     z.strictObject({ roleId: fileId }),
-    z.array(snapshotSchema.pick({ publishedRevision: true, publishedAt: true, role: true })).max(10),
+    z.array(snapshotSchema.pick({ publishedRevision: true, publishedAt: true, role: true }).extend({ changeSummary: bilingual })).max(10),
   ],
   restoreRole: [z.strictObject({ roleId: fileId, revision, expectedHash: hash }), editResult],
   createTeam: [

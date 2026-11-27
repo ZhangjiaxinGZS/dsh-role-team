@@ -814,7 +814,7 @@ it('reads with native Markdown, edits inline, and returns to reading after cance
     if (method === 'roleHistory')
       return [2, 1].map((n) => ({
         publishedRevision: n, publishedAt: '2026-11-23T00:00:00Z',
-        role: { meta, body: '# Version ' + n },
+        role: { meta, body: '# Version ' + n }, changeSummary: { en: 'Changes in ' + n, zh: '更新 ' + n },
       }))
     if (method === 'restoreRole') {
       file = { text: serializeMarkdown(meta, '# Version ' + input.revision), hash: 'c'.repeat(64) }
@@ -854,12 +854,18 @@ it('reads with native Markdown, edits inline, and returns to reading after cance
   fireEvent.click(btn(en.ui.card))
   expect(profileView()).toBe('splitView')
   fireEvent.click(btn(en.ui.roleHistory))
-  await screen.findByText('# Version 2')
+  await screen.findByText('+# Version 2')
   fireEvent.click(btn(en.ui.back))
   await screen.findByText('# New')
   fireEvent.click(btn(en.ui.roleHistory))
   const history = within(screen.getByRole('region', { name: en.ui.roleHistory }))
   fireEvent.click(await history.findByRole('button', { name: /^Revision 1 / }))
+  expect(history.getByRole('button', { name: en.ui.diffCurrent }).getAttribute('aria-pressed')).toBe('true')
+  expect(history.getByText('+# Version 1')).toBeTruthy()
+  expect(history.getByText('-# New')).toBeTruthy()
+  expect(history.getByText('Changes in 1')).toBeTruthy()
+  expect(history.getByRole('button', { name: en.ui.restoreRole }).closest('header')).toBeTruthy()
+  fireEvent.click(history.getByRole('button', { name: en.ui.fullVersion }))
   expect(history.getByTestId('native-markdown').textContent).toBe('# Version 1')
   expect(screen.queryByRole('dialog')).toBeNull()
   fireEvent.click(btn(en.ui.restoreRole))
