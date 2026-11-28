@@ -1,3 +1,4 @@
+import { trainingChangeDefinition } from './roles/training-change-events.js'
 import { registerTrainingChangeTail } from './roles/TrainingChangeTail.js'
 import type {
   ConversationStore,
@@ -121,6 +122,7 @@ function mount(ctx: Context) {
   ctx.inject(['uiSession'], scope => scope.effect(() => observeCompletions(scope.uiSession.sessionStatus)))
   registerTeamTrigger(ctx, shared.call, t)
   registerTeamReportTail(ctx, shared)
+  ctx.inject(['uiConversation'], scope => scope.uiConversation.events.register(trainingChangeDefinition))
   registerTrainingChangeTail(ctx, shared)
   function Main({
     SessionProvider,
