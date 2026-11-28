@@ -8,6 +8,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { fileId, roleMeta, memoryMeta, type EditResult, type IndexRecord } from '../../shared/index.js'
 import type { Input } from '../../shared/runtime.js'
+import { checkCoachingEdit, coachingGuidance } from './write-boundary.js'
 import { RoleStore } from '../role-store/index.js'
 import { digest, parseMarkdown, serializeMarkdown } from '../role-store/markdown.js'
 import type { Index } from '../storage/index.js'
@@ -168,11 +169,26 @@ export class TrainingRuntime {
   async rememberExperience(roleId: string, body: string, title?: string) {
     return (await this.saveExperience(roleId, body, title)).id
   }
-  private async saveExperience(roleId: string, body: string, title?: string) {
+  private async saveExperience(roleId: string, body: string, title?: string, locale: 'en' | 'zh' = 'zh') {
     const content = text.parse(body)
     const ref = { roleId: fileId.parse(roleId), memoryId: 'note-' + digest(content).slice(0, 32) }
-    if (!(await this.roles.readDocument({ roleId }))) {
-      if (!this.current(roleId).length) throw new Error('Role not found')
+    const role = await this.roles.readDocument({ roleId })
+    if (!role && !this.current(roleId).length) throw new Error('Role not found')
+    const current = await this.roles.readDocument(ref)
+    const entry = current && parseMarkdown(current.text, memoryMeta, ref.memoryId, 'memory.md')
+    if (entry && entry.body !== content)
+      throw new Error('This experience was edited. Review the existing entry.')
+    const meta = {
+      id: ref.memoryId,
+      title: title ?? Array.from(content.split('\n')[0]).slice(0, 80).join(''),
+      scope: 'role_long_term',
+      createdAt: new Date().toISOString(),
+    }
+    if (!entry) {
+      checkCoachingEdit('memory body', undefined, content, locale)
+      checkCoachingEdit('title', undefined, meta.title, locale)
+    }
+    if (!role) {
       const created = await this.roles.saveDocument({
         roleId,
         expectedHash: null,
@@ -180,17 +196,7 @@ export class TrainingRuntime {
       })
       if (!created.ok && created.code !== 'conflict') saved(created)
     }
-    const current = await this.roles.readDocument(ref)
-    const entry = current && parseMarkdown(current.text, memoryMeta, ref.memoryId, 'memory.md')
-    if (entry && entry.body !== content)
-      throw new Error('This experience was edited. Review the existing entry.')
     if (entry) return { id: ref.memoryId, receipt: undefined }
-    const meta = {
-      id: ref.memoryId,
-      title: title ?? Array.from(content.split('\n')[0]).slice(0, 80).join(''),
-      scope: 'role_long_term',
-      createdAt: new Date().toISOString(),
-    }
     const result = await this.roles.saveDocumentWithOutcome({
       ...ref,
       expectedHash: current?.hash ?? null,
@@ -224,11 +230,15 @@ export class TrainingRuntime {
         : 'danger-full-access')
       presets.set(agent.session, preset)
     }
+    const locale = row.locale ?? 'zh'
+    const guidance = coachingGuidance[locale]
     installRolePrompt(agent, () =>
       [
         row.locale === 'en'
           ? 'Reply in English. In this private coaching chat, update your own role with update_role when learning a lasting responsibility or preference. Preserve unrelated settings. Keep the current role name unless the user explicitly requests a rename. Use remember_experience for reusable lessons and revise_experience to correct a saved lesson. Confirm saved changes in one or two short sentences. Keep one-off requests and team-specific details out of the role profile.'
           : '请用中文回复。在这次一对一培养中，学到持久的职责或偏好时，用 update_role 直接更新自己的角色设定，保留其他设定。只有用户明确要求改名才传 name，不要使用 lead、root 等系统名称。值得复用的经验用 remember_experience 记住，纠正已有经验用 revise_experience。保存成功后用一两句话确认即可。临时要求和团队专属细节留在本次对话或关联团队。',
+        guidance.origin,
+        guidance.memory,
         snapshot?.role.meta.name ?? row.roleId,
         snapshot?.role.meta.summary,
         snapshot?.role.body,
@@ -241,11 +251,8 @@ export class TrainingRuntime {
     trainingTools.forEach((name, i) =>
       agent.ctx.tools.register({
         name,
-        description: [
-          'Save the complete revised role instructions. Omit name unless the user explicitly asks to rename this role. Never copy a system agent name such as lead or root. Use summary for a short one-line duty to introduce yourself to the team. Preserve existing responsibilities unless corrected.',
-          'Remember a durable lesson for this role. Supply the lesson in plain text.',
-          'Correct one saved lesson by its memoryId from your profile. Supply its revised title and full content.',
-        ][i],
+        description: [guidance[name], guidance.origin, name === 'update_role' ? '' : guidance.memory]
+          .filter(Boolean).join(' '),
         // Zod also attaches a non-enumerable ~standard validator. PTC accepts only JSON data.
         parameters: { ...z.toJSONSchema(inputs[i]) },
         output: {
@@ -276,6 +283,9 @@ export class TrainingRuntime {
                   ? 'Reserved system name. Omit name to keep the current role name.'
                   : '系统名称不能用于改名。省略 name 即可保留当前角色名称。',
               )
+            checkCoachingEdit('name', meta.name, displayName, locale)
+            checkCoachingEdit('summary', meta.summary, summary, locale)
+            checkCoachingEdit('role body', previous?.body, body, locale)
             const next = serializeMarkdown(
               { ...meta, name: displayName ?? meta.name, ...(summary !== undefined && { summary }) },
               body,
@@ -312,6 +322,8 @@ export class TrainingRuntime {
               snapshot = await loadSnapshot()
               throw new Error('The experience changed. Check the updated role profile before editing.')
             }
+            checkCoachingEdit('title', current.meta.title, title, locale)
+            checkCoachingEdit('memory body', current.body, body, locale)
             const result = await this.roles.saveDocumentWithOutcome({
               ...ref, memoryId, expectedHash: file.hash, text: serializeMarkdown({ ...current.meta, title }, body),
             })
@@ -321,7 +333,7 @@ export class TrainingRuntime {
               changes: [{ field: 'revisedExperience', title, body }] }
           } else {
             const { body } = inputs[1].parse(args)
-            receipt = (await this.saveExperience(row.roleId, body)).receipt
+            receipt = (await this.saveExperience(row.roleId, body, undefined, locale)).receipt
           }
           snapshot = await loadSnapshot()
           return receipt ?? null
